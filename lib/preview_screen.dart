@@ -1,15 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'core/models/recovery_event.dart';
+import 'core/features/scan/scan_provider.dart';
 
-class PreviewScreen extends StatelessWidget {
-  final List<FileFoundEvent> files;
+class PreviewScreen extends ConsumerWidget {
   final String outputDir;
 
   const PreviewScreen({
     super.key,
-    required this.files,
     required this.outputDir,
   });
 
@@ -28,7 +28,9 @@ class PreviewScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final files = ref.watch(foundFilesProvider);
+
     final images = files.where((e) => ['JPEG', 'PNG', 'CR2', 'NEF'].contains(e.fileType)).toList();
     final videos = files.where((e) => ['MP4', 'MOV'].contains(e.fileType)).toList();
     final others = files.where((e) => !['JPEG', 'PNG', 'CR2', 'NEF', 'MP4', 'MOV'].contains(e.fileType)).toList();
@@ -55,9 +57,9 @@ class PreviewScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _FileGrid(files: images),
-            _FileGrid(files: videos),
-            _FileGrid(files: others),
+            _FileGrid(files: images, outputDir: outputDir),
+            _FileGrid(files: videos, outputDir: outputDir),
+            _FileGrid(files: others, outputDir: outputDir),
           ],
         ),
       ),
@@ -67,7 +69,26 @@ class PreviewScreen extends StatelessWidget {
 
 class _FileGrid extends StatelessWidget {
   final List<FileFoundEvent> files;
-  const _FileGrid({required this.files});
+  final String outputDir;
+
+  const _FileGrid({required this.files, required this.outputDir});
+
+  Future<void> _openFile(String filename) async {
+    final filePath = '$outputDir/$filename';
+    final file = File(filePath);
+    if (await file.exists()) {
+      final uri = Uri.file(filePath);
+      if (Platform.isWindows) {
+        Process.run('explorer.exe', [filePath]);
+      } else if (Platform.isMacOS) {
+        Process.run('open', [filePath]);
+      } else {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,35 +102,66 @@ class _FileGrid extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
+        childAspectRatio: 0.8,
       ),
       itemCount: files.length,
       itemBuilder: (context, index) {
         final file = files[index];
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Container(
-                  color: Colors.grey[200],
-                  child: Icon(_getIcon(file.fileType), size: 40, color: Colors.grey),
+        final isImage = ['JPEG', 'PNG'].contains(file.fileType);
+        final filePath = '$outputDir/${file.filename}';
+
+        return InkWell(
+          onTap: () => _openFile(file.filename),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            elevation: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Container(
+                    color: Colors.grey[200],
+                    child: isImage
+                        ? Image.file(
+                            File(filePath),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Icon(_getIcon(file.fileType), size: 40, color: Colors.grey),
+                          )
+                        : Icon(_getIcon(file.fileType), size: 40, color: Colors.grey),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  file.filename,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10),
+                Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        file.filename,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatSize(file.fileSize),
+                        style: const TextStyle(fontSize: 9, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes > 1024 * 1024) return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+    if (bytes > 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '$bytes B';
   }
 
   IconData _getIcon(String type) {
@@ -120,8 +172,11 @@ class _FileGrid extends StatelessWidget {
       case 'MP4':
       case 'MOV':
         return Icons.videocam;
+      case 'PDF':
+        return Icons.picture_as_pdf;
       default:
         return Icons.insert_drive_file;
     }
   }
 }
+

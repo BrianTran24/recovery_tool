@@ -89,6 +89,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
             case ErrorEvent(:final message):
               _addLog('LỖI: $message');
+              // Khi bị rút đĩa (detach), ErrorEvent sẽ được gửi. 
+              // Ta cho phép người dùng xem kết quả đã có.
+              setState(() { _done = true; });
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
           }
         },
@@ -111,7 +114,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         actions: [
           if (!_done)
             IconButton(
-              onPressed: () => ref.read(recoveryServiceProvider).cancel(),
+              onPressed: () {
+                ref.read(recoveryServiceProvider).cancel();
+                setState(() { _done = true; });
+              },
               icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
             ),
         ],
@@ -150,7 +156,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ),
         ),
 
-        if (_done)
+        // Nút xem kết quả - hiện sớm nếu có file, hoặc khi đã xong
+        if (files.isNotEmpty || _done)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: SizedBox(
@@ -162,16 +169,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => PreviewScreen(
-                        files: files,
                         outputDir: widget.outputDir,
                       ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.remove_red_eye),
-                label: const Text('XEM KẾT QUẢ', style: TextStyle(fontWeight: FontWeight.bold)),
+                icon: Icon(_done ? Icons.remove_red_eye : Icons.visibility_outlined),
+                label: Text(
+                  _done ? 'XEM KẾT QUẢ' : 'XEM TRỰC TIẾP ($_found file)', 
+                  style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: _done ? Colors.green : Colors.blue,
                   foregroundColor: Colors.white,
                 ),
               ),

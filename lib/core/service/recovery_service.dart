@@ -4,8 +4,11 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'package:ffi/ffi.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../ffi/recovery_bindings.dart';
 import '../models/recovery_event.dart';
+import 'photorec_runner.dart';
 
 const _kProgress  = 1;
 const _kFileFound = 2;
@@ -15,6 +18,7 @@ const _kDone      = 4;
 class RecoveryService {
   final RecoveryBindings _bindings = RecoveryBindings();
   int? _activeHandle;
+  PhotoRecRunner? _photoRecRunner;
 
   Stream<RecoveryEvent> startScan({
     required String devicePath,
@@ -22,6 +26,28 @@ class RecoveryService {
     bool enableFat   = true,
     bool enableCarve = true,
   }) {
+    final controller = StreamController<RecoveryEvent>(onCancel: () {
+      cancel();
+    });
+
+    _startScanInternal(
+      devicePath: devicePath,
+      outputDir: outputDir,
+      enableFat: enableFat,
+      enableCarve: enableCarve,
+      controller: controller,
+    );
+
+    return controller.stream;
+  }
+
+  Future<void> _startScanInternal({
+    required String devicePath,
+    required String outputDir,
+    required bool enableFat,
+    required bool enableCarve,
+    required StreamController<RecoveryEvent> controller,
+  }) async {
     String targetPath = devicePath;
     String unmountPath = devicePath;
 
@@ -33,26 +59,7 @@ class RecoveryService {
       }
     }
 
-    final controller = StreamController<RecoveryEvent>(onCancel: () {
-      cancel();
-    });
-
-    // 1. Tạo NativeCallable ở Main Isolate để nhận callback (Event loop ở đây luôn rảnh)
-    final callable = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.listener((Pointer<RecoveryEventNative> ptr) {
-      final ev = ptr.ref;
-      final event = _mapNativeEventStatic(ev);
-      if (!controller.isClosed) controller.add(event);
-      
-      // GIẢI PHÓNG vùng nhớ Heap mà C đã malloc
-      malloc.free(ptr);
-      
-      if (event is DoneEvent || event is ErrorEvent) {
-        if (!controller.isClosed) controller.close();
-      }
-    });
-
-    // 2. Mở thiết bị
-    // Chỉ unmount nếu là thiết bị vật lý (/dev/disk...)
+    // 1. Unmount and Open Device
     if (unmountPath.startsWith('/dev/')) {
       final unmountPtr = unmountPath.toNativeUtf8();
       _bindings.unmount(unmountPtr);
@@ -63,36 +70,109 @@ class RecoveryService {
     int handle = _bindings.open(targetPtr);
     malloc.free(targetPtr);
 
-    if (handle == -2 && targetPath != devicePath) {
-      final originalPtr = devicePath.toNativeUtf8();
-      handle = _bindings.open(originalPtr);
-      malloc.free(originalPtr);
-    }
-
     if (handle < 0) {
       controller.add(ErrorEvent(code: handle, message: 'Lỗi mở thiết bị ($handle)'));
       controller.close();
-      callable.close();
-      return controller.stream;
+      return;
     }
     _activeHandle = handle;
 
-    // Lấy địa chỉ hàm callback để truyền vào Isolate
-    final callbackAddr = callable.nativeFunction.address;
+    int totalFound = 0;
+    int fatCount = 0;
+    int carveCount = 0;
+    final startTime = DateTime.now();
 
-    // 3. Chạy Isolate quét (Isolate này sẽ bị block bởi hàm scan của C)
-    _runScanInIsolate(
-      handle: handle,
-      outputDir: outputDir,
-      callbackAddr: callbackAddr,
-      enableFat: enableFat,
-      enableCarve: enableCarve,
-    ).then((_) {
-      _activeHandle = null;
+    // 2. Perform FAT Scan (FFI) if enabled
+    if (enableFat) {
+      final callable = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.listener((Pointer<RecoveryEventNative> ptr) {
+        final ev = ptr.ref;
+        final event = _mapNativeEventStatic(ev);
+        
+        if (event is FileFoundEvent) {
+          fatCount++;
+          totalFound++;
+        }
+        
+        if (!controller.isClosed && event is! DoneEvent) {
+          controller.add(event);
+        }
+        
+        malloc.free(ptr);
+      });
+
+      await _runScanInIsolate(
+        handle: handle,
+        outputDir: outputDir,
+        callbackAddr: callable.nativeFunction.address,
+        enableFat: true,
+        enableCarve: false, // Legacy carver disabled
+      );
+      
       callable.close();
-    });
+    }
 
-    return controller.stream;
+    // 3. Perform Deep Scan (PhotoRec) if enabled
+    if (enableCarve && !controller.isClosed) {
+      final binaryPath = await _deployPhotoRec();
+      _photoRecRunner = PhotoRecRunner();
+      
+      final photoRecStream = _photoRecRunner!.events.listen((event) {
+        if (event is FileFoundEvent) {
+          carveCount++;
+          totalFound++;
+        }
+        if (!controller.isClosed && event is! DoneEvent) {
+          controller.add(event);
+        }
+      });
+
+      await _photoRecRunner!.run(
+        binaryPath: binaryPath,
+        devicePath: targetPath,
+        outputDir: outputDir,
+      );
+      
+      await photoRecStream.cancel();
+      _photoRecRunner = null;
+    }
+
+    // 4. Cleanup and Close
+    _bindings.close(handle);
+    _activeHandle = null;
+
+    if (!controller.isClosed) {
+      controller.add(DoneEvent(
+        totalFound: totalFound,
+        fatCount: fatCount,
+        carveCount: carveCount,
+        duration: DateTime.now().difference(startTime),
+      ));
+      controller.close();
+    }
+  }
+
+  Future<String> _deployPhotoRec() async {
+    final exeName = Platform.isWindows ? 'photorec_win.exe' : (Platform.isMacOS ? 'photorec_macos' : 'photorec_android');
+    final directory = await getApplicationSupportDirectory();
+    final path = p.join(directory.path, exeName);
+
+    if (!File(path).existsSync()) {
+      // In a real scenario, we would load from assets
+      // ByteData data = await rootBundle.load('assets/bin/$exeName');
+      // List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      // await File(path).writeAsBytes(bytes);
+      
+      // Placeholder for now
+      // print('DEBUG: Binary should be deployed to $path');
+      // For testing purposes on Windows, if photorec is in PATH, we can just return 'photorec'
+      if (Platform.isWindows) return 'photorec'; 
+    }
+
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['+x', path]);
+    }
+
+    return path;
   }
 
   static Future<void> _runScanInIsolate({
@@ -168,5 +248,6 @@ class RecoveryService {
     if (_activeHandle != null) {
       _bindings.cancel(_activeHandle!);
     }
+    _photoRecRunner?.stop();
   }
 }

@@ -28,30 +28,65 @@ typedef struct {
 
 static uint64_t mp4_read_size(const uint8_t* buf, size_t len) {
     if (len < 8) return 0;
-    uint32_t box_size = ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16)
-                        | ((uint32_t)buf[2] <<  8) |  (uint32_t)buf[3];
-    if (box_size >= 8 && box_size < 1024 * 1024 * 1024)
-        return (uint64_t)box_size;
+
+    uint64_t total_size = 0;
+    size_t offset = 0;
+
+    // Duyệt qua các box để tìm tổng size
+    // MP4 structure: [size][type][data...]
+    while (offset + 8 <= len) {
+        uint64_t box_size = ((uint32_t)buf[offset] << 24) | ((uint32_t)buf[offset+1] << 16)
+                          | ((uint32_t)buf[offset+2] <<  8) |  (uint32_t)buf[offset+3];
+
+        char type[5] = { (char)buf[offset+4], (char)buf[offset+5], (char)buf[offset+6], (char)buf[offset+7], 0 };
+
+        if (box_size == 1) { // 64-bit size
+            if (offset + 16 > len) break;
+            box_size = 0;
+            for (int i = 0; i < 8; i++) {
+                box_size = (box_size << 8) | buf[offset + 8 + i];
+            }
+        }
+
+        if (box_size == 0) { // Box kéo dài đến hết file - không hỗ trợ tốt khi carving
+            break;
+        }
+
+        // Kiểm tra tính hợp lệ của box type (phải là alphanumeric cơ bản)
+        for (int i = 0; i < 4; i++) {
+            if (!((type[i] >= 'a' && type[i] <= 'z') || (type[i] >= 'A' && type[i] <= 'Z') || (type[i] >= '0' && type[i] <= '9') || type[i] == ' ')) {
+                goto end_parse;
+            }
+        }
+
+        offset += box_size;
+        total_size = offset;
+
+        // Nếu tìm thấy 'moov' hoặc 'mdat' mà sau đó là dữ liệu không hợp lệ, có thể dừng
+        if (strcmp(type, "moov") == 0 || strcmp(type, "mdat") == 0) {
+            // Thường mdat là box cuối cùng hoặc sau moov
+        }
+
+        if (offset > 500ULL * 1024 * 1024) break; // Max size safety
+    }
+
+end_parse:
+    if (total_size > 8) return total_size;
     return 0;
 }
 
 static int jpeg_validate(const uint8_t* buf, size_t len) {
     // JPEG header: FF D8 FF
+    if (len < 4) return 0;
+    if (buf[0] != 0xFF || buf[1] != 0xD8 || buf[2] != 0xFF) return 0;
+
     // Thường theo sau bởi E0 (JFIF) hoặc E1 (Exif)
-    if (len < 8) return 0;
-    if (buf[3] == 0xE0 || buf[3] == 0xE1 || buf[3] == 0xDB || buf[3] == 0xC0) {
-        // Kiểm tra xem có dữ liệu thực sự phía sau không (không phải toàn 0 hoặc 0xFF)
-        int non_zero = 0;
-        for (int i = 4; i < 64 && i < (int)len; i++) {
-            if (buf[i] != 0x00 && buf[i] != 0xFF) {
-                non_zero = 1;
-                break;
-            }
-        }
-        return non_zero;
+    if (buf[3] == 0xE0 || buf[3] == 0xE1 || buf[3] == 0xDB || buf[3] == 0xC0 || buf[3] == 0xEE) {
+        return 1;
     }
     return 0;
 }
+
 
 static int mp4_validate(const uint8_t* buf, size_t len) {
     // MP4 header offset 4: 'ftyp'
@@ -209,6 +244,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, voi
 
                     // Junk filtering: Kích thước tối thiểu
                     if (file_size >= MIN_FILE_SIZE) {
+                        printf("DEBUG: Carved %s at offset %llu, size: %llu bytes\n", sig->name, (unsigned long long)file_start, (unsigned long long)file_size);
                         if (on_file) on_file(context, sig->name, "carved", file_size, file_start / sector_size);
                         total_found++;
 
