@@ -1,0 +1,14 @@
+# ffigen config — tự generate bindings thay vì viết tay
+# ffigen.yaml
+output: 'lib/core/ffi/recovery_bindings_generated.dart'
+name: 'RecoveryBindingsGenerated'
+description: 'Auto-generated FFI bindings for recovery.h'
+headers:
+  entry-points:
+    - 'native/src/recovery_ffi.h'
+functions:
+  include:
+    - 'recovery_.*'
+structs:
+  include:
+    - 'RecoveryEvent'
