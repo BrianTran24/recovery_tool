@@ -48,6 +48,7 @@ class RecoveryService {
     required bool enableCarve,
     required StreamController<RecoveryEvent> controller,
   }) async {
+    print('DEBUG: _startScanInternal started for $devicePath');
     String targetPath = devicePath;
     String unmountPath = devicePath;
 
@@ -67,7 +68,9 @@ class RecoveryService {
     }
 
     final targetPtr = targetPath.toNativeUtf8();
+    print('DEBUG: Calling _bindings.open for $targetPath');
     int handle = _bindings.open(targetPtr);
+    print('DEBUG: _bindings.open returned handle: $handle');
     malloc.free(targetPtr);
 
     if (handle < 0) {
@@ -76,6 +79,9 @@ class RecoveryService {
       return;
     }
     _activeHandle = handle;
+    
+    // Phát sự kiện bắt đầu ngay để UI không bị stuck ở loading
+    controller.add(ProgressEvent(percent: 0, scannedBytes: 0, speedMbps: 0));
 
     int totalFound = 0;
     int fatCount = 0;
@@ -84,9 +90,11 @@ class RecoveryService {
 
     // 2. Perform FAT Scan (FFI) if enabled
     if (enableFat) {
+      print('DEBUG: Starting FAT scan');
       final callable = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.listener((Pointer<RecoveryEventNative> ptr) {
         final ev = ptr.ref;
         final event = _mapNativeEventStatic(ev);
+        print('DEBUG: Received native event type: ${ev.eventType}');
         
         if (event is FileFoundEvent) {
           fatCount++;
@@ -100,6 +108,7 @@ class RecoveryService {
         malloc.free(ptr);
       });
 
+      print('DEBUG: Before _runScanInIsolate');
       await _runScanInIsolate(
         handle: handle,
         outputDir: outputDir,
@@ -107,6 +116,7 @@ class RecoveryService {
         enableFat: true,
         enableCarve: false, // Legacy carver disabled
       );
+      print('DEBUG: After _runScanInIsolate');
       
       callable.close();
     }
@@ -182,13 +192,16 @@ class RecoveryService {
     required bool enableFat,
     required bool enableCarve,
   }) {
+    print('DEBUG: Spawning isolate for scan');
     return Isolate.run(() {
+      print('DEBUG: Isolate started');
       final workerBindings = RecoveryBindings();
       final outputPtr = outputDir.toNativeUtf8();
       
       // Chuyển địa chỉ int lại thành con trỏ hàm
       final nativeCallback = Pointer<NativeFunction<Void Function(Pointer<RecoveryEventNative>)>>.fromAddress(callbackAddr);
 
+      print('DEBUG: Calling workerBindings.scan');
       workerBindings.scan(
         handle,
         outputPtr,
@@ -196,9 +209,11 @@ class RecoveryService {
         enableFat ? 1 : 0,
         enableCarve ? 1 : 0,
       );
+      print('DEBUG: workerBindings.scan finished');
 
       malloc.free(outputPtr);
       workerBindings.close(handle);
+      print('DEBUG: Isolate finishing');
     });
   }
 

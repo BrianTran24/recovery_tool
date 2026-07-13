@@ -1,9 +1,8 @@
 #include "carver.h"
+#include "platform_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <time.h>
 
 typedef enum {
@@ -137,8 +136,8 @@ typedef struct {
 } CarverContext;
 
 static int ReadChunk(const CarverContext* ctx, uint64_t byte_offset, uint8_t* buf, size_t buf_size, size_t* bytes_read) {
-    if (lseek(ctx->fd, (off_t)byte_offset, SEEK_SET) < 0) return -1;
-    ssize_t n = read(ctx->fd, buf, buf_size);
+    if (LSEEK(ctx->fd, (int64_t)byte_offset, SEEK_SET) < 0) return -1;
+    ssize_t n = READ(ctx->fd, buf, (uint32_t)buf_size);
     if (n < 0) { *bytes_read = 0; return -1; }
     *bytes_read = (size_t)n;
     return 0;
@@ -155,8 +154,8 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
     uint64_t remaining = file_size, pos = start_byte;
     while (remaining > 0) {
         size_t to_read = (remaining < chunk_size) ? (size_t)remaining : chunk_size;
-        if (lseek(fd, (off_t)pos, SEEK_SET) < 0) break;
-        ssize_t n = read(fd, buf, to_read);
+        if (LSEEK(fd, (int64_t)pos, SEEK_SET) < 0) break;
+        ssize_t n = READ(fd, buf, (uint32_t)to_read);
         if (n <= 0) break;
 
         fwrite(buf, 1, n, out);

@@ -1,11 +1,9 @@
 #include "fat32_parser.h"
+#include "platform_config.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 // Packed struct map thẳng vào 512 bytes đầu của disk
 #pragma pack(push, 1)
@@ -153,8 +151,8 @@ uint32_t* LoadFATTable(int fd, const FAT32_Info* info) {
     if (!fat) return NULL;
 
     off_t offset = (off_t)info->fat_start_sector * info->bytes_per_sector;
-    lseek(fd, offset, SEEK_SET);
-    read(fd, fat, fatBytes);
+    LSEEK(fd, offset, SEEK_SET);
+    READ(fd, fat, fatBytes);
 
     return fat; // Caller chịu trách nhiệm free()
 }
@@ -252,8 +250,8 @@ int ReadCluster(int fd, const FAT32_Info* info,
                 uint32_t cluster, uint8_t* buffer) {
     uint32_t sector = ClusterToSector(info, cluster);
     off_t offset = (off_t)sector * info->bytes_per_sector;
-    if (lseek(fd, offset, SEEK_SET) < 0) return -1;
-    ssize_t n = read(fd, buffer, info->bytes_per_cluster);
+    if (LSEEK(fd, offset, SEEK_SET) < 0) return -1;
+    ssize_t n = READ(fd, buffer, info->bytes_per_cluster);
     return (n == (ssize_t)info->bytes_per_cluster) ? 0 : -1;
 }
 
@@ -376,7 +374,7 @@ int RecoverAllDeletedFiles(int fd, const uint8_t* sector0,
     // 3. Alloc cluster buffer
     uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
 
-    mkdir(outputDir, 0755);
+    MKDIR(outputDir, 0755);
 
     int recoveredCount = 0;
     // 5. Bắt đầu scan từ root directory (cluster 2)
