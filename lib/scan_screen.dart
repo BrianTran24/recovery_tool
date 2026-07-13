@@ -256,6 +256,7 @@ class _FileFoundTile extends StatelessWidget {
 
   static const _icons = {
     'JPEG': Icons.image_outlined,
+    'JPG':  Icons.image_outlined,
     'PNG':  Icons.image_outlined,
     'CR2':  Icons.camera_outlined,
     'NEF':  Icons.camera_outlined,
@@ -267,6 +268,7 @@ class _FileFoundTile extends StatelessWidget {
 
   static const _colors = {
     'JPEG': Colors.orange,
+    'JPG':  Colors.orange,
     'PNG':  Colors.blue,
     'CR2':  Colors.purple,
     'NEF':  Colors.purple,
@@ -284,8 +286,9 @@ class _FileFoundTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colors[event.fileType] ?? Colors.grey;
-    final icon  = _icons[event.fileType]  ?? Icons.insert_drive_file_outlined;
+    final normalizedType = canonicalFileType(event.fileType);
+    final color = _colors[normalizedType] ?? Colors.grey;
+    final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_outlined;
 
     return ListTile(
       leading: CircleAvatar(
@@ -296,7 +299,7 @@ class _FileFoundTile extends StatelessWidget {
           style: const TextStyle(fontSize: 13),
           overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        '${event.fileType} · ${_formatSize(event.fileSize)} · sector ${event.sectorOffset}',
+        '$normalizedType · ${_formatSize(event.fileSize)} · sector ${event.sectorOffset}',
         style: const TextStyle(fontSize: 11),
       ),
       dense: true,

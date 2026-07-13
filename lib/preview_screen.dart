@@ -32,9 +32,15 @@ class PreviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final files = ref.watch(foundFilesProvider);
 
-    final images = files.where((e) => ['JPEG', 'PNG', 'CR2', 'NEF'].contains(e.fileType)).toList();
-    final videos = files.where((e) => ['MP4', 'MOV'].contains(e.fileType)).toList();
-    final others = files.where((e) => !['JPEG', 'PNG', 'CR2', 'NEF', 'MP4', 'MOV'].contains(e.fileType)).toList();
+    final images = files.where((e) => isImageFileType(e.fileType)).toList();
+    final videos = files.where((e) {
+      final type = canonicalFileType(e.fileType);
+      return type == 'MP4' || type == 'MOV';
+    }).toList();
+    final others = files.where((e) {
+      final type = canonicalFileType(e.fileType);
+      return !isImageFileType(type) && type != 'MP4' && type != 'MOV';
+    }).toList();
 
     return DefaultTabController(
       length: 3,
@@ -115,7 +121,8 @@ class _FileGrid extends StatelessWidget {
       itemCount: files.length,
       itemBuilder: (context, index) {
         final file = files[index];
-        final isImage = ['JPEG', 'PNG'].contains(file.fileType);
+        final type = canonicalFileType(file.fileType);
+        final isImage = isImageFileType(type);
         final filePath = p.join(outputDir, file.filename);
 
         return InkWell(
@@ -173,7 +180,7 @@ class _FileGrid extends StatelessWidget {
   }
 
   IconData _getIcon(String type) {
-    switch (type) {
+    switch (canonicalFileType(type)) {
       case 'JPEG':
       case 'PNG':
         return Icons.image;
@@ -187,4 +194,3 @@ class _FileGrid extends StatelessWidget {
     }
   }
 }
-

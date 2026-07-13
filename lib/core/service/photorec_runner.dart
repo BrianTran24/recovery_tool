@@ -98,11 +98,12 @@ class PhotoRecRunner {
     if (match != null) {
       final filename = match.group(1)!;
       final sector = int.tryParse(match.group(2)!) ?? 0;
-      final type = filename.split('.').last.toUpperCase();
+      final rawType = filename.contains('.') ? filename.split('.').last : filename;
+      final type = canonicalFileType(rawType);
 
       return FileFoundEvent(
-        fileType: type,
-        filename: filename,
+       fileType: type,
+       filename: filename,
         fileSize: 0,
         sectorOffset: sector,
       );

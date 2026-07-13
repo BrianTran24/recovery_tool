@@ -28,9 +28,33 @@ typedef struct {
     size_t        footer_len;
     CarveStrategy strategy;
     uint64_t      max_size;
+    uint64_t      min_size;
     uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len);
     int (*validate)(const uint8_t* buf, size_t len);
 } FileSignature;
+
+#define MAX_SIGNATURE_CANDIDATES 8
+
+typedef struct {
+    const FileSignature* items[MAX_SIGNATURE_CANDIDATES];
+    size_t count;
+} SignatureBucket;
+
+#define JPEG_MIN_SIZE (32ULL * 1024)
+#define PNG_MIN_SIZE  (16ULL * 1024)
+
+static int mp4_read_bytes(const CarverContext* ctx, uint64_t pos, const uint8_t* buf, size_t len, uint64_t file_start, uint8_t* out, size_t need) {
+    if (pos >= file_start) {
+        uint64_t rel = pos - file_start;
+        if (rel + need <= len) {
+            memcpy(out, buf + rel, need);
+            return 0;
+        }
+    }
+
+    if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) return -1;
+    return (READ(ctx->fd, out, (uint32_t)need) == (ssize_t)need) ? 0 : -1;
+}
 
 static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
     uint64_t pos = file_start;
@@ -42,15 +66,15 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
     // Duyệt qua các box của MP4 trực tiếp trên đĩa để tìm kích thước thực
     for (int i = 0; i < 200; i++) {
         if (pos + 8 > ctx->disk_size) break;
-        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
-        if (READ(ctx->fd, box_header, 8) != 8) break;
+
+        if (mp4_read_bytes(ctx, pos, buf, len, file_start, box_header, 8) != 0) break;
 
         uint64_t box_size = ((uint32_t)box_header[0] << 24) | ((uint32_t)box_header[1] << 16) |
                            ((uint32_t)box_header[2] <<  8) |  (uint32_t)box_header[3];
         char type[5] = { (char)box_header[4], (char)box_header[5], (char)box_header[6], (char)box_header[7], 0 };
 
         if (box_size == 1) { // 64-bit size
-            if (READ(ctx->fd, box_header + 8, 8) != 8) break;
+            if (mp4_read_bytes(ctx, pos + 8, buf, len, file_start, box_header + 8, 8) != 0) break;
             box_size = 0;
             for (int j = 0; j < 8; j++) {
                 box_size = (box_size << 8) | box_header[8 + j];
@@ -90,10 +114,14 @@ static int jpeg_validate(const uint8_t* buf, size_t len) {
     if (len < 4) return 0;
     if (buf[0] != 0xFF || buf[1] != 0xD8 || buf[2] != 0xFF) return 0;
 
-    // Thường theo sau bởi E0 (JFIF) hoặc E1 (Exif)
-    if (buf[3] == 0xE0 || buf[3] == 0xE1 || buf[3] == 0xDB || buf[3] == 0xC0 || buf[3] == 0xEE) {
+    // Cho phép các APPn/marker đầu phổ biến để không loại nhầm JPEG hợp lệ.
+    if ((buf[3] >= 0xE0 && buf[3] <= 0xEF) ||
+        buf[3] == 0xDB ||
+        (buf[3] >= 0xC0 && buf[3] <= 0xC3) ||
+        buf[3] == 0xFE) {
         return 1;
     }
+
     return 0;
 }
 
@@ -114,19 +142,19 @@ static FileSignature SIGNATURES[] = {
         .name = "JPEG", .extension = ".jpg",
         .header = {0xFF, 0xD8, 0xFF}, .header_len = 3,
         .footer = {0xFF, 0xD9}, .footer_len = 2,
-        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024,
+        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
         .validate = jpeg_validate
     },
     {
         .name = "PNG", .extension = ".png",
         .header = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, .header_len = 8,
         .footer = {0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82}, .footer_len = 8,
-        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024,
+        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024, .min_size = PNG_MIN_SIZE,
     },
     {
         .name = "MP4", .extension = ".mp4",
         .header = {0x66, 0x74, 0x79, 0x70}, .header_len = 4, .header_offset = 4,
-        .strategy = STRATEGY_MAX_SIZE, .max_size = 2000ULL * 1024 * 1024,
+        .strategy = STRATEGY_MAX_SIZE, .max_size = 2000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
         .read_size = mp4_read_size,
         .validate = mp4_validate
     },
@@ -134,7 +162,7 @@ static FileSignature SIGNATURES[] = {
         .name = "PDF", .extension = ".pdf",
         .header = {0x25, 0x50, 0x44, 0x46}, .header_len = 4,
         .footer = {0x25, 0x25, 0x45, 0x4F, 0x46}, .footer_len = 5,
-        .strategy = STRATEGY_FOOTER, .max_size = 200ULL * 1024 * 1024,
+        .strategy = STRATEGY_FOOTER, .max_size = 200ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
     }
 };
 
@@ -158,7 +186,7 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
     FILE* out = fopen(output_path, "wb");
     if (!out) return -1;
 
-    const size_t chunk_size = 1024 * 1024;
+    const size_t chunk_size = 4 * 1024 * 1024;
     uint8_t* buf = (uint8_t*)malloc(chunk_size);
     if (!buf) { fclose(out); return -1; }
 
@@ -180,60 +208,119 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
 }
 
 static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const FileSignature* sig) {
-    uint8_t* buf = (uint8_t*)malloc(ctx->read_chunk);
+    const size_t scan_size = 2 * 1024 * 1024;
+    const size_t overlap = (sig->footer_len > 0) ? (sig->footer_len - 1) : 0;
+    uint8_t* read_buf = (uint8_t*)malloc(scan_size);
+    uint8_t* scan_buf = (uint8_t*)malloc(scan_size + overlap);
+    uint8_t tail[MAX_FOOTER_LEN - 1];
+    size_t tail_len = 0;
+    if (!read_buf || !scan_buf) {
+        free(read_buf);
+        free(scan_buf);
+        return 0;
+    }
+
     uint64_t pos = file_start;
     uint64_t end = file_start + sig->max_size;
     if (end > ctx->disk_size) end = ctx->disk_size;
+
     while (pos < end) {
         size_t n = 0;
-        ReadChunk(ctx, pos, buf, ctx->read_chunk, &n);
-        if (n == 0) break;
-        for (size_t i = 0; i <= (n > sig->footer_len ? n - sig->footer_len : 0); i++) {
-            if (memcmp(buf + i, sig->footer, sig->footer_len) == 0) {
-                free(buf);
-                return pos + i + sig->footer_len;
+        if (ReadChunk(ctx, pos, read_buf, scan_size, &n) != 0 || n == 0) break;
+
+        size_t scan_len = tail_len + n;
+        if (tail_len > 0) memcpy(scan_buf, tail, tail_len);
+        memcpy(scan_buf + tail_len, read_buf, n);
+
+        uint8_t* ptr = scan_buf;
+        size_t search_len = scan_len;
+        while (search_len >= sig->footer_len) {
+            uint8_t* match = (uint8_t*)memchr(ptr, sig->footer[0], search_len - sig->footer_len + 1);
+            if (!match) break;
+
+            if (memcmp(match, sig->footer, sig->footer_len) == 0) {
+                uint64_t found_pos = (pos - tail_len) + (uint64_t)(match - scan_buf) + sig->footer_len;
+                free(read_buf);
+                free(scan_buf);
+                return found_pos;
             }
+            ptr = match + 1;
+            search_len = scan_len - (size_t)(ptr - scan_buf);
         }
-        pos += (n > sig->footer_len) ? (n - sig->footer_len) : n;
+
+        if (overlap > 0) {
+            tail_len = (scan_len < overlap) ? scan_len : overlap;
+            memcpy(tail, scan_buf + scan_len - tail_len, tail_len);
+        } else {
+            tail_len = 0;
+        }
+
+        pos += n;
     }
-    free(buf);
+    free(read_buf);
+    free(scan_buf);
     return 0;
 }
 
 int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end) {
-    CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = 1024 * 1024 };
-    uint8_t* buf = (uint8_t*)malloc(ctx.read_chunk + 64);
+    const uint32_t chunk_size = 4U * 1024U * 1024U;
+    CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = chunk_size };
+    uint8_t* buf = (uint8_t*)malloc((size_t)chunk_size + 1024);
     int total_found = 0;
     uint64_t pos = 0;
 
+    SignatureBucket signature_buckets[MAX_HEADER_LEN][256] = {{{0}}};
+    uint8_t used_offsets[MAX_HEADER_LEN] = {0};
+    size_t offsets[MAX_HEADER_LEN];
+    size_t offset_count = 0;
+
+    for (size_t s = 0; s < NUM_SIGNATURES; s++) {
+        const FileSignature* sig = &SIGNATURES[s];
+        if (sig->header_len == 0 || sig->header_offset >= MAX_HEADER_LEN) continue;
+
+        if (!used_offsets[sig->header_offset]) {
+            used_offsets[sig->header_offset] = 1;
+            offsets[offset_count++] = sig->header_offset;
+        }
+
+        SignatureBucket* bucket = &signature_buckets[sig->header_offset][sig->header[0]];
+        if (bucket->count < MAX_SIGNATURE_CANDIDATES) {
+            bucket->items[bucket->count++] = sig;
+        }
+    }
+
     uint64_t last_progress_pos = 0;
-    const uint64_t progress_interval = 2 * 1024 * 1024;
+    const uint64_t progress_interval = 4 * 1024 * 1024;
 
     if (on_progress) {
         on_progress(context, progress_start, 0, 0);
     }
 
-    if (disk_size == 0) {
-        free(buf);
+    if (disk_size == 0 || !buf) {
+        if (buf) free(buf);
         return 0;
     }
 
     while (pos < disk_size && (!cancelled || !*cancelled)) {
         size_t n = 0;
-        ReadChunk(&ctx, pos, buf, ctx.read_chunk, &n);
+        ReadChunk(&ctx, pos, buf, chunk_size, &n);
         if (n == 0) break;
 
         int found_in_chunk = 0;
-        for (size_t i = 0; i < n; i++) {
-            for (size_t s = 0; s < NUM_SIGNATURES; s++) {
-                FileSignature* sig = &SIGNATURES[s];
-                if (i + sig->header_offset + sig->header_len > n) continue;
-                if (memcmp(buf + i + sig->header_offset, sig->header, sig->header_len) == 0) {
+        for (size_t i = 0; i < n && !found_in_chunk; i++) {
+            for (size_t oi = 0; oi < offset_count && !found_in_chunk; oi++) {
+                size_t header_offset = offsets[oi];
+                if (i + header_offset >= n) continue;
 
-                    // Thêm bước validate để loại bỏ rác
-                    if (sig->validate) {
-                        if (!sig->validate(buf + i, n - i)) continue;
-                    }
+                SignatureBucket* bucket = &signature_buckets[header_offset][buf[i + header_offset]];
+                if (bucket->count == 0) continue;
+
+                for (size_t b = 0; b < bucket->count; b++) {
+                    const FileSignature* sig = bucket->items[b];
+                    if (i + sig->header_offset + sig->header_len > n) continue;
+                    if (memcmp(buf + i + sig->header_offset, sig->header, sig->header_len) != 0) continue;
+
+                    if (sig->validate && !sig->validate(buf + i, n - i)) continue;
 
                     uint64_t file_start = pos + i;
                     uint64_t file_size = 0;
@@ -242,13 +329,9 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                         if (end > file_start) file_size = end - file_start;
                     } else if (sig->strategy == STRATEGY_MAX_SIZE) {
                         if (sig->read_size) {
-                             uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
-                             if (s_field > 0) file_size = s_field;
-                             else {
-                                 // Nếu read_size trả về 0 cho MP4, nghĩa là thiếu metadata quan trọng
-                                 // Ta bỏ qua luôn để tránh tạo file hỏng 2GB rác
-                                 continue;
-                             }
+                            uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
+                            if (s_field > 0) file_size = s_field;
+                            else continue;
                         } else {
                             file_size = sig->max_size;
                         }
@@ -256,8 +339,8 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                         file_size = sig->max_size;
                     }
 
-                    // Junk filtering: Kích thước tối thiểu
-                    if (file_size >= MIN_FILE_SIZE) {
+                    uint64_t min_size = sig->min_size ? sig->min_size : MIN_FILE_SIZE;
+                    if (file_size >= min_size) {
                         char filename[256];
                         snprintf(filename, sizeof(filename), "carved_%04d%s", total_found, sig->extension);
                         char outPath[512];
@@ -269,14 +352,11 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                             total_found++;
                         }
 
-                        // Nhảy qua vùng đã tìm thấy
                         pos = file_start + (file_size > 0 ? file_size : 1);
                         found_in_chunk = 1;
-                        break;
                     }
                 }
             }
-            if (found_in_chunk) break;
         }
 
         if (!found_in_chunk) {

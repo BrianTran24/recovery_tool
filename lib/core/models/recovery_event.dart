@@ -48,3 +48,37 @@ class DoneEvent extends RecoveryEvent {
   @override
   String toString() => 'DoneEvent(found: $totalFound (FAT: $fatCount, Carve: $carveCount), duration: ${duration.inSeconds}s)';
 }
+
+String canonicalFileType(String type) {
+  switch (type.trim().toUpperCase()) {
+    case 'JPG':
+    case 'JPE':
+      return 'JPEG';
+    case 'JPEG':
+      return 'JPEG';
+    case 'PNG':
+      return 'PNG';
+    case 'CR2':
+      return 'CR2';
+    case 'NEF':
+      return 'NEF';
+    case 'MP4':
+      return 'MP4';
+    case 'MOV':
+      return 'MOV';
+    case 'PDF':
+      return 'PDF';
+    case 'DOCX':
+      return 'DOCX';
+    default:
+      return type.trim().toUpperCase();
+  }
+}
+
+bool isImageFileType(String type) {
+  final normalized = canonicalFileType(type);
+  return normalized == 'JPEG' ||
+      normalized == 'PNG' ||
+      normalized == 'CR2' ||
+      normalized == 'NEF';
+}
