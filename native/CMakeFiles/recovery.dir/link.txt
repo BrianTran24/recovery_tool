@@ -1,1 +1,0 @@
-/usr/bin/cc  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o librecovery.dylib -install_name @rpath/librecovery.dylib CMakeFiles/recovery.dir/src/sector_reader.c.o CMakeFiles/recovery.dir/src/fat32_parser.c.o CMakeFiles/recovery.dir/src/carver.c.o CMakeFiles/recovery.dir/src/recovery_ffi.c.o  -framework CoreFoundation -framework DiskArbitration

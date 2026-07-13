@@ -12,6 +12,13 @@ typedef enum {
 } CarveStrategy;
 
 typedef struct {
+    int      fd;
+    uint64_t disk_size;
+    uint32_t sector_size;
+    uint32_t read_chunk;
+} CarverContext;
+
+typedef struct {
     const char*   name;
     const char*   extension;
     uint8_t       header[MAX_HEADER_LEN];
@@ -21,56 +28,60 @@ typedef struct {
     size_t        footer_len;
     CarveStrategy strategy;
     uint64_t      max_size;
-    uint64_t (*read_size)(const uint8_t* header_buf, size_t buf_len);
+    uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len);
     int (*validate)(const uint8_t* buf, size_t len);
 } FileSignature;
 
-static uint64_t mp4_read_size(const uint8_t* buf, size_t len) {
-    if (len < 8) return 0;
-
+static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+    uint64_t pos = file_start;
     uint64_t total_size = 0;
-    size_t offset = 0;
+    uint8_t box_header[16];
+    int found_moov = 0;
+    int found_mdat = 0;
 
-    // Duyệt qua các box để tìm tổng size
-    // MP4 structure: [size][type][data...]
-    while (offset + 8 <= len) {
-        uint64_t box_size = ((uint32_t)buf[offset] << 24) | ((uint32_t)buf[offset+1] << 16)
-                          | ((uint32_t)buf[offset+2] <<  8) |  (uint32_t)buf[offset+3];
+    // Duyệt qua các box của MP4 trực tiếp trên đĩa để tìm kích thước thực
+    for (int i = 0; i < 200; i++) {
+        if (pos + 8 > ctx->disk_size) break;
+        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        if (READ(ctx->fd, box_header, 8) != 8) break;
 
-        char type[5] = { (char)buf[offset+4], (char)buf[offset+5], (char)buf[offset+6], (char)buf[offset+7], 0 };
+        uint64_t box_size = ((uint32_t)box_header[0] << 24) | ((uint32_t)box_header[1] << 16) |
+                           ((uint32_t)box_header[2] <<  8) |  (uint32_t)box_header[3];
+        char type[5] = { (char)box_header[4], (char)box_header[5], (char)box_header[6], (char)box_header[7], 0 };
 
         if (box_size == 1) { // 64-bit size
-            if (offset + 16 > len) break;
+            if (READ(ctx->fd, box_header + 8, 8) != 8) break;
             box_size = 0;
-            for (int i = 0; i < 8; i++) {
-                box_size = (box_size << 8) | buf[offset + 8 + i];
+            for (int j = 0; j < 8; j++) {
+                box_size = (box_size << 8) | box_header[8 + j];
             }
         }
 
-        if (box_size == 0) { // Box kéo dài đến hết file - không hỗ trợ tốt khi carving
-            break;
-        }
-
-        // Kiểm tra tính hợp lệ của box type (phải là alphanumeric cơ bản)
-        for (int i = 0; i < 4; i++) {
-            if (!((type[i] >= 'a' && type[i] <= 'z') || (type[i] >= 'A' && type[i] <= 'Z') || (type[i] >= '0' && type[i] <= '9') || type[i] == ' ')) {
-                goto end_parse;
+        // Kiểm tra tính hợp lệ của box type (alphanumeric)
+        int valid_type = 1;
+        for (int j = 0; j < 4; j++) {
+            if (!((type[j] >= 'a' && type[j] <= 'z') || (type[j] >= 'A' && type[j] <= 'Z') || (type[j] >= '0' && type[j] <= '9') || type[j] == ' ')) {
+                valid_type = 0;
+                break;
             }
         }
 
-        offset += box_size;
-        total_size = offset;
+        if (!valid_type || (box_size < 8 && box_size != 0)) break;
 
-        // Nếu tìm thấy 'moov' hoặc 'mdat' mà sau đó là dữ liệu không hợp lệ, có thể dừng
-        if (strcmp(type, "moov") == 0 || strcmp(type, "mdat") == 0) {
-            // Thường mdat là box cuối cùng hoặc sau moov
-        }
+        if (strcmp(type, "moov") == 0) found_moov = 1;
+        if (strcmp(type, "mdat") == 0) found_mdat = 1;
 
-        if (offset > 500ULL * 1024 * 1024) break; // Max size safety
+        if (box_size == 0) break; // Box kéo dài đến hết file
+
+        pos += box_size;
+        total_size = pos - file_start;
+
+        if (found_moov && found_mdat && total_size > 1024 * 1024) return total_size;
+        if (total_size > 2000ULL * 1024 * 1024) break; // Giới hạn an toàn 2GB
     }
 
-end_parse:
-    if (total_size > 8) return total_size;
+    // Chỉ trả về kích thước nếu tìm thấy metadata (moov) để đảm bảo file phát được
+    if (found_moov) return total_size;
     return 0;
 }
 
@@ -88,13 +99,14 @@ static int jpeg_validate(const uint8_t* buf, size_t len) {
 
 
 static int mp4_validate(const uint8_t* buf, size_t len) {
-    // MP4 header offset 4: 'ftyp'
-    // Kiểm tra thêm một vài bytes sau ftyp
     if (len < 12) return 0;
-    // ftyp thường có các sub-type như mp42, isom, avc1...
-    // Nếu byte 8-11 không rỗng thì khả năng cao là valid
-    if (buf[8] != 0 || buf[9] != 0) return 1;
-    return 0;
+    // Kiểm tra ftyp brand (phải là ký tự in được)
+    for (int i = 8; i < 12; i++) {
+        if (buf[i] != 0 && (buf[i] < 32 || buf[i] > 126)) return 0;
+    }
+    // Brand không được rỗng
+    if (buf[8] == 0 && buf[9] == 0 && buf[10] == 0 && buf[11] == 0) return 0;
+    return 1;
 }
 
 static FileSignature SIGNATURES[] = {
@@ -114,7 +126,7 @@ static FileSignature SIGNATURES[] = {
     {
         .name = "MP4", .extension = ".mp4",
         .header = {0x66, 0x74, 0x79, 0x70}, .header_len = 4, .header_offset = 4,
-        .strategy = STRATEGY_MAX_SIZE, .max_size = 500ULL * 1024 * 1024,
+        .strategy = STRATEGY_MAX_SIZE, .max_size = 2000ULL * 1024 * 1024,
         .read_size = mp4_read_size,
         .validate = mp4_validate
     },
@@ -128,20 +140,19 @@ static FileSignature SIGNATURES[] = {
 
 #define NUM_SIGNATURES (sizeof(SIGNATURES) / sizeof(SIGNATURES[0]))
 
-typedef struct {
-    int      fd;
-    uint64_t disk_size;
-    uint32_t sector_size;
-    uint32_t read_chunk;
-} CarverContext;
-
 static int ReadChunk(const CarverContext* ctx, uint64_t byte_offset, uint8_t* buf, size_t buf_size, size_t* bytes_read) {
-    if (LSEEK(ctx->fd, (int64_t)byte_offset, SEEK_SET) < 0) return -1;
+    if (LSEEK(ctx->fd, (off_t_64)byte_offset, SEEK_SET) < 0) return -1;
     ssize_t n = READ(ctx->fd, buf, (uint32_t)buf_size);
     if (n < 0) { *bytes_read = 0; return -1; }
     *bytes_read = (size_t)n;
     return 0;
 }
+
+#ifdef _WIN32
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
 
 int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char* output_path) {
     FILE* out = fopen(output_path, "wb");
@@ -154,7 +165,7 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
     uint64_t remaining = file_size, pos = start_byte;
     while (remaining > 0) {
         size_t to_read = (remaining < chunk_size) ? (size_t)remaining : chunk_size;
-        if (LSEEK(fd, (int64_t)pos, SEEK_SET) < 0) break;
+        if (LSEEK(fd, (off_t_64)pos, SEEK_SET) < 0) break;
         ssize_t n = READ(fd, buf, (uint32_t)to_read);
         if (n <= 0) break;
 
@@ -189,7 +200,7 @@ static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const 
     return 0;
 }
 
-int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled) {
+int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end) {
     CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = 1024 * 1024 };
     uint8_t* buf = (uint8_t*)malloc(ctx.read_chunk + 64);
     int total_found = 0;
@@ -199,7 +210,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, voi
     const uint64_t progress_interval = 2 * 1024 * 1024;
 
     if (on_progress) {
-        on_progress(context, 0.0, 0, 0);
+        on_progress(context, progress_start, 0, 0);
     }
 
     if (disk_size == 0) {
@@ -231,9 +242,13 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, voi
                         if (end > file_start) file_size = end - file_start;
                     } else if (sig->strategy == STRATEGY_MAX_SIZE) {
                         if (sig->read_size) {
-                             uint64_t s_field = sig->read_size(buf + i, n - i);
+                             uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
                              if (s_field > 0) file_size = s_field;
-                             else file_size = sig->max_size;
+                             else {
+                                 // Nếu read_size trả về 0 cho MP4, nghĩa là thiếu metadata quan trọng
+                                 // Ta bỏ qua luôn để tránh tạo file hỏng 2GB rác
+                                 continue;
+                             }
                         } else {
                             file_size = sig->max_size;
                         }
@@ -243,9 +258,16 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, voi
 
                     // Junk filtering: Kích thước tối thiểu
                     if (file_size >= MIN_FILE_SIZE) {
-                        printf("DEBUG: Carved %s at offset %llu, size: %llu bytes\n", sig->name, (unsigned long long)file_start, (unsigned long long)file_size);
-                        if (on_file) on_file(context, sig->name, "carved", file_size, file_start / sector_size);
-                        total_found++;
+                        char filename[256];
+                        snprintf(filename, sizeof(filename), "carved_%04d%s", total_found, sig->extension);
+                        char outPath[512];
+                        snprintf(outPath, sizeof(outPath), "%s%c%s", output_dir, PATH_SEP, filename);
+
+                        printf("DEBUG: Saving carved file to %s, size: %llu bytes\n", outPath, (unsigned long long)file_size);
+                        if (ExtractFileRange(fd, file_start, file_size, outPath) == 0) {
+                            if (on_file) on_file(context, sig->name, filename, file_size, file_start / sector_size);
+                            total_found++;
+                        }
 
                         // Nhảy qua vùng đã tìm thấy
                         pos = file_start + (file_size > 0 ? file_size : 1);
@@ -263,14 +285,16 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, voi
 
         if (pos - last_progress_pos >= progress_interval) {
             if (on_progress) {
-                on_progress(context, (double)pos / disk_size * 100.0, pos, 0);
+                double phase_pct = (double)pos / disk_size * 100.0;
+                double pct = progress_start + (phase_pct * (progress_end - progress_start) / 100.0);
+                on_progress(context, pct, pos, 0);
             }
             last_progress_pos = pos;
         }
     }
 
     if (on_progress && (!cancelled || !*cancelled)) {
-        on_progress(context, 100.0, disk_size, 0);
+        on_progress(context, progress_end, disk_size, 0);
     }
 
     free(buf);

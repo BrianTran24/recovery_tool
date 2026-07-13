@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"/Users/hieutran/AndroidStudioProjects/recovery_sd/native/cmake_install.cmake"
+		"C:/Users/PC/StudioProjects/recovery_tool/native/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

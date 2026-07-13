@@ -1,5 +1,6 @@
 #include "fat32_parser.h"
 #include "platform_config.h"
+#include "carver.h" // Để lấy MIN_FILE_SIZE
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -68,49 +69,21 @@ int ParseBPB(const uint8_t* sector0, FAT32_BPB* bpb, FAT32_Info* info) {
         }
     }
 
-    // Log 32 bytes đầu để debug cực kỳ chi tiết
-    printf("DEBUG: Parsing sector. All zeros: %s. Hex: ", all_zeros ? "YES" : "NO");
-    for(int i=0; i<32; i++) printf("%02X ", sector0[i]);
-    printf("... Sig: %02X %02X\n", sector0[510], sector0[511]);
+    if (all_zeros) return -2;
 
-    if (all_zeros) {
-        return -2; // Mã lỗi đặc biệt cho sector trống
-    }
-
-    if (IsExFAT(sector0)) {
-        printf("DEBUG: Detected exFAT signature\n");
-        return -3; // Mã lỗi cho exFAT
-    }
+    if (IsExFAT(sector0)) return -3;
 
     memcpy(bpb, sector0, sizeof(FAT32_BPB));
 
     // Validate BPB cơ bản
-    if (bpb->bytes_per_sector == 0 || bpb->sectors_per_cluster == 0) {
-        printf("DEBUG: BPB Invalid - bytes_per_sector: %u, sectors_per_cluster: %u\n",
-               bpb->bytes_per_sector, bpb->sectors_per_cluster);
-        return -1;
-    }
+    if (bpb->bytes_per_sector == 0 || bpb->sectors_per_cluster == 0) return -1;
 
     // Kiểm tra signature ở cuối sector (offset 510)
-    if (sector0[510] != 0x55 || sector0[511] != 0xAA) {
-        printf("DEBUG: Missing 0x55AA signature at end of sector\n");
-        return -1;
-    }
+    if (sector0[510] != 0x55 || sector0[511] != 0xAA) return -1;
 
-    // Thử tin vào bytes_per_sector và sectors_per_cluster nếu signature 0x55AA tồn tại
-    // Nhiều SD card hiện đại có BPB không chuẩn nhưng dữ liệu vẫn đúng
-    if (bpb->bytes_per_sector != 512 && bpb->bytes_per_sector != 1024 && bpb->bytes_per_sector != 2048 && bpb->bytes_per_sector != 4096) {
-        printf("DEBUG: Unusual bytes_per_sector: %u\n", bpb->bytes_per_sector);
-        return -1;
-    }
+    if (bpb->bytes_per_sector != 512 && bpb->bytes_per_sector != 1024 && bpb->bytes_per_sector != 2048 && bpb->bytes_per_sector != 4096) return -1;
 
-    if (bpb->sectors_per_cluster == 0 || (bpb->sectors_per_cluster & (bpb->sectors_per_cluster - 1)) != 0) {
-        printf("DEBUG: Invalid sectors_per_cluster: %u (must be power of 2)\n", bpb->sectors_per_cluster);
-        return -1;
-    }
-
-    // Nếu các thông số cơ bản có vẻ ổn, chúng ta tiến hành parse
-    printf("DEBUG: BPB looks plausible. Bytes/Sec: %u, Sec/Clust: %u\n", bpb->bytes_per_sector, bpb->sectors_per_cluster);
+    if (bpb->sectors_per_cluster == 0 || (bpb->sectors_per_cluster & (bpb->sectors_per_cluster - 1)) != 0) return -1;
 
     // Tính các địa chỉ quan trọng
     info->bytes_per_sector    = bpb->bytes_per_sector;
@@ -120,7 +93,6 @@ int ParseBPB(const uint8_t* sector0, FAT32_BPB* bpb, FAT32_Info* info) {
     info->fat_start_sector    = bpb->reserved_sectors;
     info->fat_size_sectors    = bpb->fat_size_32;
 
-    // Data region bắt đầu sau Reserved + FAT1 + FAT2
     info->data_start_sector   = bpb->reserved_sectors
                                 + (bpb->num_fats * bpb->fat_size_32);
 
@@ -128,14 +100,6 @@ int ParseBPB(const uint8_t* sector0, FAT32_BPB* bpb, FAT32_Info* info) {
     info->total_clusters      = (bpb->total_sectors_32 - info->data_start_sector)
                                 / bpb->sectors_per_cluster;
 
-    printf("=== FAT32 Info ===\n");
-    printf("Bytes/sector    : %u\n",   info->bytes_per_sector);
-    printf("Sectors/cluster : %u\n",   info->sectors_per_cluster);
-    printf("Bytes/cluster   : %u\n",   info->bytes_per_cluster);
-    printf("FAT start       : sector %u\n", info->fat_start_sector);
-    printf("Data start      : sector %u\n", info->data_start_sector);
-    printf("Root cluster    : %u\n",   info->root_cluster);
-    printf("Total clusters  : %u\n",   info->total_clusters);
     return 0;
 }
 
@@ -150,7 +114,7 @@ uint32_t* LoadFATTable(int fd, const FAT32_Info* info) {
     uint32_t* fat = (uint32_t*)malloc(fatBytes);
     if (!fat) return NULL;
 
-    off_t offset = (off_t)info->fat_start_sector * info->bytes_per_sector;
+    off_t_64 offset = (off_t_64)info->fat_start_sector * info->bytes_per_sector;
     LSEEK(fd, offset, SEEK_SET);
     READ(fd, fat, fatBytes);
 
@@ -245,11 +209,23 @@ typedef struct {
     uint16_t write_time;
 } DeletedFileInfo;
 
+static void EmitFatProgress(FatProgressCallback on_progress, void* context, uint32_t total_clusters, int visited_clusters, double progress_start, double progress_end, int64_t scanned_bytes) {
+    if (!on_progress) return;
+
+    double ratio = 0.0;
+    if (total_clusters > 0) {
+        ratio = (double)visited_clusters / (double)total_clusters;
+    }
+    double pct = progress_start + ratio * (progress_end - progress_start);
+    if (pct > progress_end) pct = progress_end;
+    on_progress(context, pct, scanned_bytes, 0);
+}
+
 // Đọc một cluster vào buffer
 int ReadCluster(int fd, const FAT32_Info* info,
                 uint32_t cluster, uint8_t* buffer) {
     uint32_t sector = ClusterToSector(info, cluster);
-    off_t offset = (off_t)sector * info->bytes_per_sector;
+    off_t_64 offset = (off_t_64)sector * info->bytes_per_sector;
     if (LSEEK(fd, offset, SEEK_SET) < 0) return -1;
     ssize_t n = READ(fd, buffer, info->bytes_per_cluster);
     return (n == (ssize_t)info->bytes_per_cluster) ? 0 : -1;
@@ -262,9 +238,19 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                    uint8_t* clusterBuf,
                    void* context,
                    FatFileCallback on_file,
+                   FatProgressCallback on_progress,
+                   double progress_start,
+                   double progress_end,
+                   int* visited_clusters,
                    const char* outputDir,
                    volatile int* cancelled,
                    int* recoveredCount);
+
+#ifdef _WIN32
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
 
 // Scan một directory cluster — tìm entry có 0xE5
 void ScanDirectoryCluster(int fd, const FAT32_Info* info,
@@ -273,6 +259,10 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                           uint8_t* clusterBuf,
                           void* context,
                           FatFileCallback on_file,
+                          FatProgressCallback on_progress,
+                          double progress_start,
+                          double progress_end,
+                          int* visited_clusters,
                           const char* outputDir,
                           volatile int* cancelled,
                           int* recoveredCount) {
@@ -285,13 +275,15 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
 
         if (e->name[0] == 0x00) break; // Hết directory
 
-        if (IsDeletedFile(e)) {
+        if (IsDeletedFile(e) && e->file_size >= MIN_FILE_SIZE) {
             char filename[64];
             GetDeletedFileName(e, filename, sizeof(filename));
             uint32_t first_cluster = GetFirstCluster(e);
 
+            char savedFilename[256];
+            snprintf(savedFilename, sizeof(savedFilename), "fat_%04d_%s", *recoveredCount, filename);
             char outPath[512];
-            snprintf(outPath, sizeof(outPath), "%s/fat_%04d_%s", outputDir, *recoveredCount, filename);
+            snprintf(outPath, sizeof(outPath), "%s%c%s", outputDir, PATH_SEP, savedFilename);
 
             // Recover file
             FILE* out = fopen(outPath, "wb");
@@ -317,9 +309,12 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                 free(fileBuf);
 
                 if (on_file) {
-                    on_file(context, "FAT", filename, (int64_t)e->file_size, (int64_t)ClusterToSector(info, first_cluster));
+                    on_file(context, "FAT", savedFilename, (int64_t)e->file_size, (int64_t)ClusterToSector(info, first_cluster));
                 }
                 (*recoveredCount)++;
+                if (visited_clusters) {
+                EmitFatProgress(on_progress, context, info->total_clusters, *visited_clusters, progress_start, progress_end, (int64_t)(*visited_clusters) * info->bytes_per_cluster);
+                }
             }
         }
 
@@ -331,7 +326,7 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
             uint32_t subCluster = GetFirstCluster(e);
             // Cần buffer riêng cho đệ quy để không ghi đè buffer hiện tại
             uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
-            ScanDirectory(fd, info, fat, subCluster, subBuf, context, on_file, outputDir, cancelled, recoveredCount);
+            ScanDirectory(fd, info, fat, subCluster, subBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, outputDir, cancelled, recoveredCount);
             free(subBuf);
         }
     }
@@ -344,6 +339,10 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                    uint8_t* clusterBuf,
                    void* context,
                    FatFileCallback on_file,
+                   FatProgressCallback on_progress,
+                   double progress_start,
+                   double progress_end,
+                   int* visited_clusters,
                    const char* outputDir,
                    volatile int* cancelled,
                    int* recoveredCount) {
@@ -353,15 +352,19 @@ void ScanDirectory(int fd, const FAT32_Info* info,
     while (cluster >= 2 && cluster < 0x0FFFFFF8 && maxChain-- > 0) {
         if (cancelled && *cancelled) return;
         if (ReadCluster(fd, info, cluster, clusterBuf) == 0) {
+            if (visited_clusters) {
+                (*visited_clusters)++;
+                EmitFatProgress(on_progress, context, info->total_clusters, *visited_clusters, progress_start, progress_end, (int64_t)(cluster - 2) * info->bytes_per_cluster);
+            }
             ScanDirectoryCluster(fd, info, fat, cluster,
-                                 clusterBuf, context, on_file, outputDir, cancelled, recoveredCount);
+                                 clusterBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, outputDir, cancelled, recoveredCount);
         }
         cluster = FATNextCluster(fat, cluster);
     }
 }
 
 int RecoverAllDeletedFiles(int fd, const uint8_t* sector0,
-                           const char* outputDir, void* context, FatFileCallback on_file, volatile int* cancelled) {
+                           const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled) {
     // 1. Parse BPB
     FAT32_BPB bpb;
     FAT32_Info info;
@@ -373,16 +376,18 @@ int RecoverAllDeletedFiles(int fd, const uint8_t* sector0,
 
     // 3. Alloc cluster buffer
     uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
+    if (!clusterBuf) {
+        free(fat);
+        return 0;
+    }
 
     MKDIR(outputDir, 0755);
 
     int recoveredCount = 0;
+    int visited_clusters = 0;
     // 5. Bắt đầu scan từ root directory (cluster 2)
-    printf("=== Bắt đầu scan FAT32 từ root cluster %u ===\n", info.root_cluster);
     ScanDirectory(fd, &info, fat, info.root_cluster,
-                  clusterBuf, context, on_file, outputDir, cancelled, &recoveredCount);
-
-    printf("\n=== Tổng cộng tìm thấy FAT32: %d file ===\n", recoveredCount);
+                  clusterBuf, context, on_file, on_progress, 0.0, 100.0, &visited_clusters, outputDir, cancelled, &recoveredCount);
 
     free(clusterBuf);
     free(fat);

@@ -7,14 +7,12 @@ import '../../service/recovery_service.dart';
 
 // Service singleton
 final recoveryServiceProvider = Provider((ref) {
-  print('Provider: Creating RecoveryService');
   return RecoveryService();
 });
 
 // Scan stream — active khi đang scan
 final scanStreamProvider = StreamProvider.autoDispose
     .family<RecoveryEvent, ScanParams>((ref, params) {
-  print('Provider: Initializing scanStreamProvider for ${params.devicePath}');
   final service = ref.watch(recoveryServiceProvider);
   return service.startScan(
     devicePath:  params.devicePath,

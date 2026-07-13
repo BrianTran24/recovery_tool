@@ -1,6 +1,6 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(recovery_tool LANGUAGES CXX)
+project(recovery_tool LANGUAGES CXX C)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
@@ -30,7 +30,7 @@ set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Use Unicode for all projects.
-add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
 
 # Compilation settings that should be applied to most targets.
 #
@@ -48,6 +48,21 @@ endfunction()
 # Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
+
+# --- NATIVE RECOVERY LIBRARY ---
+set(NATIVE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/src")
+add_library(recovery SHARED
+    "${NATIVE_SRC_DIR}/sector_reader.c"
+    "${NATIVE_SRC_DIR}/fat32_parser.c"
+    "${NATIVE_SRC_DIR}/carver.c"
+    "${NATIVE_SRC_DIR}/recovery_ffi.c"
+)
+target_include_directories(recovery PRIVATE "${NATIVE_SRC_DIR}")
+set_target_properties(recovery PROPERTIES
+    OUTPUT_NAME "recovery"
+    SUFFIX ".dll"
+)
+# -------------------------------
 
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
@@ -72,7 +87,7 @@ endif()
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
-install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+install(TARGETS ${BINARY_NAME} recovery RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"

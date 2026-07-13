@@ -25,9 +25,9 @@ typedef struct {
     char     filename[256];
     int64_t  file_size;
     int64_t  sector_offset;
-    int32_t  error_code;       // EVENT_ERROR
+    int32_t  error_code;
     char     error_msg[256];
-    int32_t  total_found;      // EVENT_DONE
+    int32_t  total_found;
     int32_t  fat_count;
     int32_t  carve_count;
     int64_t  duration_ms;

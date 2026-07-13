@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path/path.dart' as p;
 import 'core/models/recovery_event.dart';
 import 'core/features/scan/scan_provider.dart';
 
@@ -74,15 +75,22 @@ class _FileGrid extends StatelessWidget {
   const _FileGrid({required this.files, required this.outputDir});
 
   Future<void> _openFile(String filename) async {
-    final filePath = '$outputDir/$filename';
+    // Chuẩn hóa path để tránh lỗi mix slashes
+    final normalizedOutputDir = p.normalize(outputDir);
+    final filePath = p.join(normalizedOutputDir, filename);
     final file = File(filePath);
+    
     if (await file.exists()) {
-      final uri = Uri.file(filePath);
       if (Platform.isWindows) {
-        Process.run('explorer.exe', [filePath]);
+        // Sử dụng start để mở bằng app mặc định trên Windows
+        // Bọc đường dẫn trong ngoặc kép để xử lý khoảng trắng
+        Process.run('cmd', ['/c', 'start', '', filePath]);
       } else if (Platform.isMacOS) {
         Process.run('open', [filePath]);
+      } else if (Platform.isLinux) {
+        Process.run('xdg-open', [filePath]);
       } else {
+        final uri = Uri.file(filePath);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
         }
@@ -108,7 +116,7 @@ class _FileGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final file = files[index];
         final isImage = ['JPEG', 'PNG'].contains(file.fileType);
-        final filePath = '$outputDir/${file.filename}';
+        final filePath = p.join(outputDir, file.filename);
 
         return InkWell(
           onTap: () => _openFile(file.filename),

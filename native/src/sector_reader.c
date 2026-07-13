@@ -1,4 +1,5 @@
 #include "sector_reader.h"
+#include "platform_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +75,7 @@ int GetDiskGeometry(int fd, DiskGeometry* out) {
 
 int ReadSectors(int fd, long long sectorIndex, uint32_t numSectors,
                 uint32_t sectorSize, uint8_t* buffer, size_t* bytesRead) {
-    off_t offset = (off_t)sectorIndex * sectorSize;
+    off_t_64 offset = (off_t_64)sectorIndex * sectorSize;
     if (_lseeki64(fd, offset, SEEK_SET) == -1L) return -1;
 
     int n = _read(fd, buffer, numSectors * sectorSize);
@@ -123,7 +124,7 @@ int GetDiskGeometry(int fd, DiskGeometry* out) {
 
 int ReadSectors(int fd, long long sectorIndex, uint32_t numSectors,
                 uint32_t sectorSize, uint8_t* buffer, size_t* bytesRead) {
-    off_t offset = (off_t)sectorIndex * sectorSize;
+    off_t_64 offset = (off_t_64)sectorIndex * sectorSize;
     if (lseek(fd, offset, SEEK_SET) < 0) return -1;
     ssize_t n = read(fd, buffer, (size_t)numSectors * sectorSize);
     if (n < 0) return -1;

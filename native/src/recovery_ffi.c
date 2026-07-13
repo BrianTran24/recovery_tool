@@ -15,6 +15,8 @@ typedef struct {
     RecoveryCallback cb;
     int32_t  fat_count;
     int32_t  carve_count;
+    double   progress_base;
+    double   progress_span;
 } ScanSession;
 
 static ScanSession g_sessions[8] = {0};
@@ -31,11 +33,7 @@ static int64_t NowMs(void) {
 
 static void PostEvent(ScanSession* s, const RecoveryEvent* ev) {
     if (!s->cb) return;
-    RecoveryEvent* heapEv = (RecoveryEvent*)malloc(sizeof(RecoveryEvent));
-    if (heapEv) {
-        memcpy(heapEv, ev, sizeof(RecoveryEvent));
-        s->cb(heapEv);
-    }
+    s->cb(ev);
 }
 
 static void EmitProgress(ScanSession* s, double pct, int64_t scanned, int32_t speed) {
@@ -45,6 +43,13 @@ static void EmitProgress(ScanSession* s, double pct, int64_t scanned, int32_t sp
     ev.scanned_bytes = scanned;
     ev.speed_mbps    = speed;
     PostEvent(s, &ev);
+}
+
+static void EmitPhaseProgress(ScanSession* s, double pct, int64_t scanned, int32_t speed) {
+    double mapped = s->progress_base + (pct * s->progress_span / 100.0);
+    if (mapped < 0.0) mapped = 0.0;
+    if (mapped > 100.0) mapped = 100.0;
+    EmitProgress(s, mapped, scanned, speed);
 }
 
 static void EmitFileFound(ScanSession* s, const char* type, const char* name, int64_t size, int64_t sector) {
@@ -59,6 +64,10 @@ static void EmitFileFound(ScanSession* s, const char* type, const char* name, in
 
 static void on_carve_progress(void* ctx, double pct, int64_t scanned, int32_t speed) {
     EmitProgress((ScanSession*)ctx, pct, scanned, speed);
+}
+
+static void on_fat_progress(void* ctx, double pct, int64_t scanned, int32_t speed) {
+    EmitPhaseProgress((ScanSession*)ctx, pct, scanned, speed);
 }
 
 static void on_carve_file(void* ctx, const char* type, const char* name, int64_t size, int64_t sector) {
@@ -105,6 +114,8 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     s->start_ms   = NowMs();
     s->fat_count  = 0;
     s->carve_count = 0;
+    s->progress_base = 0.0;
+    s->progress_span = enable_carve ? 40.0 : 100.0;
 
     DiskGeometry geo;
     if (GetDiskGeometry(s->fd, &geo) < 0) {
@@ -120,6 +131,8 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
         uint8_t sector[512];
         int found_fat = 0;
 
+        EmitPhaseProgress(s, 0.5, 0, 0);
+
         if (LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
             uint8_t sector1[512];
             if (LSEEK(s->fd, 512, SEEK_SET) == 512 && READ(s->fd, sector1, 512) == 512) {
@@ -132,13 +145,17 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                     uint8_t* table = (uint8_t*)malloc(entry_size * read_count);
                     if (LSEEK(s->fd, (int64_t)table_lba * 512, SEEK_SET) >= 0 && READ(s->fd, table, (uint32_t)(entry_size * read_count)) == (ssize_t)(entry_size * read_count)) {
                         for (size_t i = 0; i < read_count; i++) {
+                            if ((i & 15U) == 0U) {
+                                double pct = 1.0 + ((double)i / (double)(read_count == 0 ? 1 : read_count)) * 8.0;
+                                EmitPhaseProgress(s, pct, (int64_t)(table_lba + i) * 512, 0);
+                            }
                             uint8_t* entry = table + (i * entry_size);
                             static const uint8_t BASIC_DATA_GUID[16] = {0xA2, 0xA0, 0xD0, 0xEB, 0xE5, 0xB9, 0x33, 0x44, 0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7};
                             if (memcmp(entry, BASIC_DATA_GUID, 16) == 0) {
                                 uint64_t start_lba = *((uint64_t*)&entry[32]);
                                 uint8_t vbr[512];
                                 if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                                    if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, &s->cancelled) > 0) {
+                                    if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
                                         found_fat = 1;
                                     }
                                 }
@@ -157,7 +174,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                         uint32_t start_lba = *((uint32_t*)&entry[8]);
                         uint8_t vbr[512];
                         if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                            if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, &s->cancelled) > 0) {
+                            if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
                                 found_fat = 1;
                             }
                         }
@@ -166,15 +183,40 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
             }
 
             if (!found_fat && !s->cancelled) {
-                if (RecoverAllDeletedFiles(s->fd, sector, output_dir, s, on_fat_file, &s->cancelled) > 0) {
+                if (RecoverAllDeletedFiles(s->fd, sector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
                     found_fat = 1;
                 }
             }
         }
+
+        if (!found_fat && !s->cancelled) {
+            for (int i = 1; i < 32768; i++) {
+                if (s->cancelled) break;
+                if (LSEEK(s->fd, (int64_t)i * 512, SEEK_SET) < 0) break;
+                if (READ(s->fd, sector, 512) != 512) break;
+
+                if ((i & 255) == 0) {
+                    double pct = 12.0 + ((double)i / 32767.0) * 28.0;
+                    EmitPhaseProgress(s, pct, (int64_t)i * 512, 0);
+                }
+
+                if (sector[510] == 0x55 && sector[511] == 0xAA) {
+                    if (sector[0] == 0xEB || sector[0] == 0xE9) {
+                        if (RecoverAllDeletedFiles(s->fd, sector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
+                            found_fat = 1;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        EmitPhaseProgress(s, enable_carve ? 40.0 : 100.0, 0, 0);
     }
 
     if (enable_carve && !s->cancelled) {
-        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, s, on_carve_progress, on_carve_file, &s->cancelled);
+        double carve_start = enable_fat ? 40.0 : 0.0;
+        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0);
     }
 
     RecoveryEvent done = {0};

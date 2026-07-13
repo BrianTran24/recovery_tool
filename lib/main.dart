@@ -12,8 +12,8 @@ void main() {
     runApp(const ProviderScope(child: MyApp()));
   }, (error, stackTrace) {
     // Handle uncaught errors here
-    print('Uncaught error: $error');
-    print('Stack trace: $stackTrace');
+    debugPrint('Uncaught error: $error');
+    debugPrint('Stack trace: $stackTrace');
   });
 }
 
@@ -44,14 +44,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
   Future<void> _pickImageFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.any,
@@ -150,8 +142,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   itemBuilder: (context, index) {
                     final disk = disks[index];
                     final path =
-                        (disk.raw != null && disk.raw!.startsWith('/dev/'))
-                            ? disk.raw!
+                        (disk.raw.startsWith('/dev/'))
+                            ? disk.raw
                             : disk.devicePath;
 
                     return Card(
@@ -189,11 +181,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }

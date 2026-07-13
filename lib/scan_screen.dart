@@ -1,5 +1,4 @@
 // lib/features/scan/scan_screen.dart
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,7 +107,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       appBar: AppBar(
         title: scanAsync.when(
           data: (_) => Text(_done ? 'Hoàn thành' : 'Đang quét...'),
-          error: (e, __) => const Text('Lỗi khởi tạo'),
+          error: (e, _) => const Text('Lỗi khởi tạo'),
           loading: () => const Text('Đang khởi động...'),
         ),
         actions: [
@@ -211,7 +210,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                       ),
                       // List Logs
                       Container(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         child: ListView.builder(
                           padding: const EdgeInsets.all(12),
                           itemCount: _logs.length,
@@ -247,26 +246,6 @@ class _StatItem extends StatelessWidget {
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       ],
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color  color;
-  const _Chip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(fontSize: 12, color: color,
-              fontWeight: FontWeight.w500)),
     );
   }
 }
@@ -310,7 +289,7 @@ class _FileFoundTile extends StatelessWidget {
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.12),
+        backgroundColor: color.withValues(alpha: 0.12),
         child: Icon(icon, color: color, size: 20),
       ),
       title: Text(event.filename,

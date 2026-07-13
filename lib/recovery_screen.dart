@@ -1,1 +1,1 @@
-///Chọn output folder, tiến trình khôi phục
+// Chọn output folder, tiến trình khôi phục

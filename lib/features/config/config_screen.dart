@@ -47,8 +47,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       return;
     }
 
-    final path = (widget.disk.raw != null && widget.disk.raw!.startsWith('/dev/'))
-        ? widget.disk.raw!
+    final path = (widget.disk.raw.startsWith('/dev/'))
+        ? widget.disk.raw
         : widget.disk.devicePath;
 
     if (path == null) return;
@@ -103,7 +103,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
             const SizedBox(height: 8),
             Card(
               elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
