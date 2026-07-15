@@ -1,8 +1,12 @@
 # recovery_tool
 
-A new Flutter project.
+Flutter app for recovering files from a disk image or removable storage.
+
+The native scanner now prioritizes filesystem metadata on exFAT images, so live files are discovered before deleted-file carving.
 
 ## Getting Started
+
+Use the **Backup Image** flow when you already have a `.img` file. The app will scan the image in read-only mode and write recovered files to a separate output folder.
 
 This project is a starting point for a Flutter application.
 

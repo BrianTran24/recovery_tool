@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:disks_desktop/disks_desktop.dart';
@@ -13,20 +12,16 @@ class ConfigScreen extends StatefulWidget {
 }
 
 class _ConfigScreenState extends State<ConfigScreen> {
-  bool _enableFat = true;
-  bool _enableCarve = true;
+  int _scanMode = 1; // 1=Deleted, 2=Existing, 3=Both
   String? _outputDir;
   final TextEditingController _pathController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Mặc định folder khôi phục trong Home
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    if (home != null) {
-      _outputDir = '$home/RecoveredFiles';
-      _pathController.text = _outputDir!;
-    }
+    // Mặc định folder khôi phục là E:\test theo yêu cầu
+    _outputDir = r'E:\test';
+    _pathController.text = _outputDir!;
   }
 
   Future<void> _pickDirectory() async {
@@ -53,26 +48,15 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     if (path == null) return;
 
-    if (!_enableFat && !_enableCarve) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng chọn ít nhất một phương thức quét (Quét nhanh hoặc Quét sâu)'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ScanScreen(
-          devicePath: path,
+          sourcePath: path,
           outputDir: _outputDir!,
-          enableFat: _enableFat,
-          enableCarve: _enableCarve,
+          enableFat: true,
+          enableCarve: true,
+          scanMode: _scanMode,
         ),
       ),
     );
@@ -93,42 +77,82 @@ class _ConfigScreenState extends State<ConfigScreen> {
             Card(
               child: ListTile(
                 leading: const Icon(Icons.storage, color: Colors.blue),
-                title: Text(widget.disk.devicePath ?? 'Unknown'),
-                subtitle: Text('Dung lượng: ${(widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024)} GB'),
+                title: Text(
+                  widget.disk.raw.startsWith('/dev/')
+                      ? (widget.disk.devicePath ?? 'Unknown')
+                      : 'Ảnh backup: ${widget.disk.devicePath ?? 'Unknown'}',
+                ),
+                subtitle: Text(
+                  widget.disk.raw.startsWith('/dev/')
+                      ? 'Dung lượng: ${(widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024)} GB'
+                      : 'Làm việc trên ảnh chỉ đọc, không ghi vào thẻ gốc',
+                ),
               ),
             ),
+            if (!widget.disk.raw.startsWith('/dev/')) ...[
+              const SizedBox(height: 12),
+              const Card(
+                color: Color(0xFFE8F4FF),
+                child: ListTile(
+                  leading: Icon(Icons.lock_outline, color: Colors.blue),
+                  title: Text('Chế độ an toàn'),
+                  subtitle: Text('Nguồn là file .img nên mọi thao tác sẽ chạy trên bản sao.'),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             
-            Text('Tùy chọn quét', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const Card(
+              color: Color(0xFFF0F7FF),
+              child: ListTile(
+                leading: Icon(Icons.auto_fix_high, color: Colors.blue),
+                title: Text('Chế độ khôi phục thông minh'),
+                subtitle: Text('Hệ thống sẽ tự động kết hợp Quét cấu trúc (để giữ tên file) và Quét sâu (để tìm file bị mất dấu vết).'),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            Text('Trạng thái file cần tìm', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Card(
               elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Column(
                 children: [
-                  SwitchListTile(
-                    secondary: const Icon(Icons.flash_on, color: Colors.orange),
-                    title: const Text('Quét nhanh (File System)'),
-                    subtitle: const Text('Loại 1: Tìm file dựa trên bảng mục lục. Nhanh, giữ nguyên tên file và thư mục.'),
-                    value: _enableFat,
-                    onChanged: (v) => setState(() => _enableFat = v),
+                  RadioListTile<int>(
+                    secondary: const Icon(Icons.delete_outline, color: Colors.red),
+                    title: const Text('Chỉ file đã xóa'),
+                    subtitle: const Text('Tìm kiếm những file đã bị xóa trước đó.'),
+                    value: 1,
+                    groupValue: _scanMode,
+                    onChanged: (v) => setState(() => _scanMode = v!),
                   ),
                   const Divider(indent: 64, endIndent: 16, height: 1),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.search, color: Colors.deepPurple),
-                    title: const Text('Quét sâu (Signature Carving)'),
-                    subtitle: const Text('Loại 2: Quét từng sector để tìm dữ liệu thô. Dành cho thẻ bị format, mất tên file.'),
-                    value: _enableCarve,
-                    onChanged: (v) => setState(() => _enableCarve = v),
+                  RadioListTile<int>(
+                    secondary: const Icon(Icons.file_present, color: Colors.green),
+                    title: const Text('Chỉ file hiện có'),
+                    subtitle: const Text('Quét những file chưa bị xóa (file đang tồn tại).'),
+                    value: 2,
+                    groupValue: _scanMode,
+                    onChanged: (v) => setState(() => _scanMode = v!),
+                  ),
+                  const Divider(indent: 64, endIndent: 16, height: 1),
+                  RadioListTile<int>(
+                    secondary: const Icon(Icons.all_inclusive, color: Colors.blue),
+                    title: const Text('Tất cả file'),
+                    subtitle: const Text('Quét cả file đã xóa và file hiện có.'),
+                    value: 3,
+                    groupValue: _scanMode,
+                    onChanged: (v) => setState(() => _scanMode = v!),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
             Text('Thư mục lưu trữ', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

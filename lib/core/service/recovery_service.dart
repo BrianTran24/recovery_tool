@@ -18,10 +18,11 @@ class RecoveryService {
   int? _activeHandle;
 
   Stream<RecoveryEvent> startScan({
-    required String devicePath,
+    required String sourcePath,
     required String outputDir,
     bool enableFat = true,
     bool enableCarve = true,
+    int scanMode = 1, // 1=Deleted, 2=Existing, 3=Both
   }) {
     final controller = StreamController<RecoveryEvent>(
       onCancel: () {
@@ -30,10 +31,11 @@ class RecoveryService {
     );
 
     _startScanInternal(
-      devicePath: devicePath,
+      sourcePath: sourcePath,
       outputDir: outputDir,
       enableFat: enableFat,
       enableCarve: enableCarve,
+      scanMode: scanMode,
       controller: controller,
     );
 
@@ -41,23 +43,24 @@ class RecoveryService {
   }
 
   Future<void> _startScanInternal({
-    required String devicePath,
+    required String sourcePath,
     required String outputDir,
     required bool enableFat,
     required bool enableCarve,
+    required int scanMode,
     required StreamController<RecoveryEvent> controller,
   }) async {
-    debugPrint('DEBUG: _startScanInternal (FFI Native) started for $devicePath');
-    var targetPath = _normalizeNativeDevicePath(devicePath);
+    debugPrint('DEBUG: _startScanInternal (FFI Native) started for $sourcePath');
+    var targetPath = _normalizeNativeDevicePath(sourcePath);
 
-    String unmountPath = devicePath;
+    String unmountPath = sourcePath;
 
     if (Platform.isMacOS) {
-      if (devicePath.contains('/dev/disk') &&
-          !devicePath.contains('/dev/rdisk')) {
-        targetPath = devicePath.replaceFirst('/dev/disk', '/dev/rdisk');
-      } else if (devicePath.contains('/dev/rdisk')) {
-        unmountPath = devicePath.replaceFirst('/dev/rdisk', '/dev/disk');
+      if (sourcePath.contains('/dev/disk') &&
+          !sourcePath.contains('/dev/rdisk')) {
+        targetPath = sourcePath.replaceFirst('/dev/disk', '/dev/rdisk');
+      } else if (sourcePath.contains('/dev/rdisk')) {
+        unmountPath = sourcePath.replaceFirst('/dev/rdisk', '/dev/disk');
       }
     }
 
@@ -107,6 +110,7 @@ class RecoveryService {
       sendPort: receivePort.sendPort,
       enableFat: enableFat,
       enableCarve: enableCarve,
+      scanMode: scanMode,
     );
     
     // Wait for the scan to finish or timeout
@@ -131,6 +135,7 @@ class RecoveryService {
     required SendPort sendPort,
     required bool enableFat,
     required bool enableCarve,
+    required int scanMode,
   }) {
     return Isolate.run(() {
       final workerBindings = RecoveryBindings();
@@ -151,6 +156,7 @@ class RecoveryService {
         callable.nativeFunction,
         enableFat ? 1 : 0,
         enableCarve ? 1 : 0,
+        scanMode,
       );
 
       callable.close();
@@ -188,6 +194,7 @@ class RecoveryService {
         return FileFoundEvent(
           fileType: _arrayToStringStatic(ev.fileType, 16),
           filename: _arrayToStringStatic(ev.filename, 256),
+          modifiedTime: _arrayToStringStatic(ev.modifiedTime, 32),
           fileSize: ev.fileSize,
           sectorOffset: ev.sectorOffset,
         );

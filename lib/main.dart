@@ -44,40 +44,42 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Future<void> _pickImageFile() async {
+  Future<void> _pickBackupImage() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      dialogTitle: 'Chọn file backup (.img, .bin, ...)',
+      type: FileType.custom,
+      allowedExtensions: const ['img', 'bin', 'dd', 'raw'],
+      dialogTitle: 'Chọn file ảnh backup (.img, .bin, .dd, .raw)',
     );
 
     if (result != null && result.files.single.path != null) {
       final path = result.files.single.path!;
-      final size = File(path).lengthSync();
-
-      // Tạo một đối tượng Disk giả cho ConfigScreen
-      final fakeDisk = Disk(
-        blockSize: 512,
-        busType: 'IMAGE',
-        description: 'Backup Image File',
-        device: path,
-        devicePath: path,
-        readOnly: true,
-        removable: true,
-        system: false,
-        logicalBlockSize: 512,
-        mountpoints: const [],
-        raw: path,
-        size: size,
-      );
 
       if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ConfigScreen(disk: fakeDisk),
+          builder: (context) => ConfigScreen(disk: _buildImageDisk(path)),
         ),
       );
     }
+  }
+
+  Disk _buildImageDisk(String path) {
+    final size = File(path).lengthSync();
+    return Disk(
+      blockSize: 512,
+      busType: 'IMAGE',
+      description: 'Backup Image File',
+      device: path,
+      devicePath: path,
+      readOnly: true,
+      removable: false,
+      system: false,
+      logicalBlockSize: 512,
+      mountpoints: const [],
+      raw: path,
+      size: size,
+    );
   }
 
   @override
@@ -98,13 +100,13 @@ class _MyHomePageState extends State<MyHomePage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: OutlinedButton.icon(
-              onPressed: _pickImageFile,
+              onPressed: _pickBackupImage,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 side: const BorderSide(color: Colors.blue),
               ),
               icon: const Icon(Icons.file_open),
-              label: const Text('KHÔI PHỤC TỪ FILE BACKUP (.IMG)'),
+              label: const Text('KHÔI PHỤC TỪ ẢNH BACKUP (.IMG)'),
             ),
           ),
           const Divider(),
@@ -153,8 +155,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           backgroundColor: Colors.blueAccent,
                           child: Icon(Icons.usb, color: Colors.white),
                         ),
-                        title: Text(disk.devicePath ?? 'Unknown',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(
+                          disk.raw.startsWith('/dev/')
+                              ? (disk.devicePath ?? 'Unknown')
+                              : 'Ảnh backup: ${disk.devicePath ?? 'Unknown'}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           '${disk.busType} · ${_byteToGB(disk.size ?? 0).toStringAsFixed(2)} GB',
                         ),

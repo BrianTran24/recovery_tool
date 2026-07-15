@@ -7,17 +7,19 @@ import 'core/features/scan/scan_provider.dart';
 import '../../core/models/recovery_event.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
-  final String devicePath;
+  final String sourcePath;
   final String outputDir;
   final bool enableFat;
   final bool enableCarve;
+  final int scanMode;
 
   const ScanScreen({
     super.key,
-    required this.devicePath,
+    required this.sourcePath,
     required this.outputDir,
     this.enableFat = true,
     this.enableCarve = true,
+    this.scanMode = 1,
   });
 
   @override
@@ -47,12 +49,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   void initState() {
     super.initState();
     _params = ScanParams(
-      devicePath: widget.devicePath,
+      sourcePath: widget.sourcePath,
       outputDir: widget.outputDir,
       enableFat: widget.enableFat,
       enableCarve: widget.enableCarve,
+      scanMode: widget.scanMode,
     );
-    _logs.add('Khởi tạo phiên quét cho ${widget.devicePath}');
+    _logs.add('Khởi tạo phiên quét cho ${widget.sourcePath}');
   }
 
   @override
@@ -289,6 +292,12 @@ class _FileFoundTile extends StatelessWidget {
     final normalizedType = canonicalFileType(event.fileType);
     final color = _colors[normalizedType] ?? Colors.grey;
     final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_outlined;
+    final details = <String>[
+      normalizedType,
+      _formatSize(event.fileSize),
+      if (event.modifiedTime.isNotEmpty) event.modifiedTime,
+      'sector ${event.sectorOffset}',
+    ];
 
     return ListTile(
       leading: CircleAvatar(
@@ -298,10 +307,7 @@ class _FileFoundTile extends StatelessWidget {
       title: Text(event.filename,
           style: const TextStyle(fontSize: 13),
           overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '$normalizedType · ${_formatSize(event.fileSize)} · sector ${event.sectorOffset}',
-        style: const TextStyle(fontSize: 11),
-      ),
+      subtitle: Text(details.join(' · '), style: const TextStyle(fontSize: 11)),
       dense: true,
     );
   }

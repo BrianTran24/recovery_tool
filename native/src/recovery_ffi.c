@@ -2,6 +2,7 @@
 #include "sector_reader.h"
 #include "carver.h"
 #include "fat32_parser.h"
+#include "exfat_parser.h"
 #include "platform_config.h"
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,8 @@ typedef struct {
     int32_t  carve_count;
     double   progress_base;
     double   progress_span;
+    uint8_t* sector_mask;
+    int64_t  total_sectors;
 } ScanSession;
 
 static ScanSession g_sessions[8] = {0};
@@ -52,14 +55,27 @@ static void EmitPhaseProgress(ScanSession* s, double pct, int64_t scanned, int32
     EmitProgress(s, mapped, scanned, speed);
 }
 
-static void EmitFileFound(ScanSession* s, const char* type, const char* name, int64_t size, int64_t sector) {
+static void EmitFileFound(ScanSession* s, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
     RecoveryEvent ev = {0};
     ev.event_type  = EVENT_FILE_FOUND;
     strncpy(ev.file_type, type, 15);
     strncpy(ev.filename,  name, 255);
+    if (modifiedTime) {
+        strncpy(ev.modified_time, modifiedTime, 31);
+    }
     ev.file_size     = size;
     ev.sector_offset = sector;
     PostEvent(s, &ev);
+}
+
+static void MarkSectorsUsed(ScanSession* s, int64_t start_sector, int64_t count) {
+    if (!s->sector_mask) return;
+    for (int64_t i = 0; i < count; i++) {
+        int64_t idx = start_sector + i;
+        if (idx >= 0 && idx < s->total_sectors) {
+            s->sector_mask[idx >> 3] |= (1 << (idx & 7));
+        }
+    }
 }
 
 static void on_carve_progress(void* ctx, double pct, int64_t scanned, int32_t speed) {
@@ -70,16 +86,55 @@ static void on_fat_progress(void* ctx, double pct, int64_t scanned, int32_t spee
     EmitPhaseProgress((ScanSession*)ctx, pct, scanned, speed);
 }
 
-static void on_carve_file(void* ctx, const char* type, const char* name, int64_t size, int64_t sector) {
+static void on_carve_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, size, sector);
+    EmitFileFound(s, type, name, modifiedTime, size, sector);
     s->carve_count++;
 }
 
-static void on_fat_file(void* ctx, const char* type, const char* name, int64_t size, int64_t sector) {
+static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, size, sector);
+    EmitFileFound(s, type, name, modifiedTime, size, sector);
+    MarkSectorsUsed(s, sector, sector_count);
     s->fat_count++;
+}
+
+static int RecoverVolumeFiles(
+    ScanSession* s,
+    const uint8_t* sector0,
+    int64_t baseSector,
+    const char* output_dir,
+    int enable_fat,
+    int scan_mode
+) {
+    if (!enable_fat) return 0;
+
+    if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
+        return RecoverExfatAllFiles(
+            s->fd,
+            baseSector,
+            sector0,
+            512,
+            output_dir,
+            s,
+            on_fat_file,
+            on_fat_progress,
+            &s->cancelled,
+            scan_mode
+        );
+    }
+
+    return RecoverAllFiles(
+        s->fd,
+        baseSector,
+        sector0,
+        output_dir,
+        s,
+        on_fat_file,
+        on_fat_progress,
+        &s->cancelled,
+        scan_mode
+    );
 }
 
 EXPORT int32_t recovery_unmount(const char* device_path) {
@@ -106,7 +161,7 @@ EXPORT int64_t recovery_disk_size(int32_t handle) {
     return geo.totalBytes;
 }
 
-EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCallback callback, int32_t enable_fat, int32_t enable_carve) {
+EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCallback callback, int32_t enable_fat, int32_t enable_carve, int32_t scan_mode) {
     if (handle < 0 || handle >= 8) return -1;
     ScanSession* s = &g_sessions[handle];
     s->cb         = callback;
@@ -115,7 +170,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     s->fat_count  = 0;
     s->carve_count = 0;
     s->progress_base = 0.0;
-    s->progress_span = enable_carve ? 40.0 : 100.0;
+    s->progress_span = enable_carve ? 60.0 : 100.0;
 
     DiskGeometry geo;
     if (GetDiskGeometry(s->fd, &geo) < 0) {
@@ -126,6 +181,10 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
         PostEvent(s, &err);
         return -1;
     }
+
+    s->total_sectors = geo.totalBytes / geo.bytesPerSector;
+    size_t mask_size = (size_t)((s->total_sectors >> 3) + 1);
+    s->sector_mask = (uint8_t*)calloc(mask_size, 1);
 
     if (enable_fat && !s->cancelled) {
         uint8_t sector[512];
@@ -155,7 +214,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                                 uint64_t start_lba = *((uint64_t*)&entry[32]);
                                 uint8_t vbr[512];
                                 if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                                    if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
+                                    if (RecoverVolumeFiles(s, vbr, (int64_t)start_lba, output_dir, enable_fat, scan_mode) > 0) {
                                         found_fat = 1;
                                     }
                                 }
@@ -174,7 +233,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                         uint32_t start_lba = *((uint32_t*)&entry[8]);
                         uint8_t vbr[512];
                         if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                            if (RecoverAllDeletedFiles(s->fd, vbr, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
+                            if (RecoverVolumeFiles(s, vbr, (int64_t)start_lba, output_dir, enable_fat, scan_mode) > 0) {
                                 found_fat = 1;
                             }
                         }
@@ -183,7 +242,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
             }
 
             if (!found_fat && !s->cancelled) {
-                if (RecoverAllDeletedFiles(s->fd, sector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
+                if (RecoverVolumeFiles(s, sector, 0, output_dir, enable_fat, scan_mode) > 0) {
                     found_fat = 1;
                 }
             }
@@ -202,7 +261,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
 
                 if (sector[510] == 0x55 && sector[511] == 0xAA) {
                     if (sector[0] == 0xEB || sector[0] == 0xE9) {
-                        if (RecoverAllDeletedFiles(s->fd, sector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled) > 0) {
+                        if (RecoverVolumeFiles(s, sector, (int64_t)i, output_dir, enable_fat, scan_mode) > 0) {
                             found_fat = 1;
                             break;
                         }
@@ -214,9 +273,17 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
         EmitPhaseProgress(s, enable_carve ? 40.0 : 100.0, 0, 0);
     }
 
-    if (enable_carve && !s->cancelled) {
-        double carve_start = enable_fat ? 40.0 : 0.0;
-        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0);
+    // Luôn chạy Carve ngoại trừ chế độ SCAN_MODE_EXISTING (vì file hiện có đã có trong FS rồi)
+    int32_t final_carve = (scan_mode == SCAN_MODE_EXISTING) ? 0 : 1;
+
+    if (final_carve && !s->cancelled) {
+        double carve_start = 60.0; // FS scan chiếm 60%
+        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask);
+    }
+
+    if (s->sector_mask) {
+        free(s->sector_mask);
+        s->sector_mask = NULL;
     }
 
     RecoveryEvent done = {0};
@@ -237,6 +304,9 @@ EXPORT void recovery_cancel(int32_t handle) {
 EXPORT void recovery_close(int32_t handle) {
     if (handle >= 0 && handle < 8 && g_sessions[handle].fd > 0) {
         CLOSE(g_sessions[handle].fd);
+        if (g_sessions[handle].sector_mask) {
+            free(g_sessions[handle].sector_mask);
+        }
         memset(&g_sessions[handle], 0, sizeof(ScanSession));
     }
 }

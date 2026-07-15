@@ -9,7 +9,7 @@
 #define MIN_FILE_SIZE   (1024 * 1024) // Filter out files smaller than 1MB
 
 typedef void (*CarveProgressCallback)(void* context, double pct, int64_t scanned, int32_t speed);
-typedef void (*CarveFileCallback)(void* context, const char* type, const char* name, int64_t size, int64_t sector);
+typedef void (*CarveFileCallback)(void* context, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector);
 
 int CarveFilesWithProgress(
     int fd,
@@ -21,7 +21,8 @@ int CarveFilesWithProgress(
     CarveFileCallback on_file,
     volatile int* cancelled,
     double progress_start,
-    double progress_end
+    double progress_end,
+    const uint8_t* used_mask
 );
 
 int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char* output_path);

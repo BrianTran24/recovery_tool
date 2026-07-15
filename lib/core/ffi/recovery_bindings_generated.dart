@@ -147,6 +147,9 @@ final class RecoveryEvent extends ffi.Struct {
   @ffi.Array.multi([256])
   external ffi.Array<ffi.Char> filename;
 
+  @ffi.Array.multi([32])
+  external ffi.Array<ffi.Char> modifiedTime;
+
   @ffi.Int64()
   external int file_size;
 

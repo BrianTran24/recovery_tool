@@ -54,6 +54,7 @@ set(NATIVE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/src")
 add_library(recovery SHARED
     "${NATIVE_SRC_DIR}/sector_reader.c"
     "${NATIVE_SRC_DIR}/fat32_parser.c"
+    "${NATIVE_SRC_DIR}/exfat_parser.c"
     "${NATIVE_SRC_DIR}/carver.c"
     "${NATIVE_SRC_DIR}/recovery_ffi.c"
 )

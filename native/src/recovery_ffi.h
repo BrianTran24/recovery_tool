@@ -14,6 +14,11 @@
 #define EVENT_ERROR      3
 #define EVENT_DONE       4
 
+// Scan modes
+#define SCAN_MODE_DELETED  1
+#define SCAN_MODE_EXISTING 2
+#define SCAN_MODE_BOTH     3
+
 // Struct truyền qua callback — packed để Dart struct alignment dễ map
 #pragma pack(push, 1)
 typedef struct {
@@ -23,6 +28,7 @@ typedef struct {
     int32_t  speed_mbps;
     char     file_type[16];    // EVENT_FILE_FOUND: "JPEG", "MP4"...
     char     filename[256];
+    char     modified_time[32];
     int64_t  file_size;
     int64_t  sector_offset;
     int32_t  error_code;
@@ -57,8 +63,9 @@ EXPORT int32_t recovery_scan(
         int32_t           handle,
         const char*       output_dir,
         RecoveryCallback  callback,
-        int32_t           enable_fat,    // 1 = bật FAT32 parser
-        int32_t           enable_carve   // 1 = bật signature carving
+        int32_t           enable_fat,    // 1 = bật filesystem parser (FAT32/exFAT)
+        int32_t           enable_carve,  // 1 = bật signature carving
+        int32_t           scan_mode      // 1=Deleted, 2=Existing, 3=Both
 );
 
 // Yêu cầu dừng scan (set flag, không block)

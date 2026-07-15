@@ -56,7 +56,7 @@ void main() {
       final completer = Completer<void>();
 
       final stream = recoveryService.startScan(
-        devicePath: dummyDisk.path,
+        sourcePath: dummyDisk.path,
         outputDir: outputDir.path,
         enableFat: false, // Only carving for this test
         enableCarve: true,

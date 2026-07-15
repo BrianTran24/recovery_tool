@@ -5,6 +5,47 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
+
+#ifdef _WIN32
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
+
+// Recursive mkdir
+static void mkdir_p(const char *path) {
+    char tmp[1024];
+    char *p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    len = strlen(tmp);
+    if (len == 0) return;
+    if (tmp[len - 1] == PATH_SEP) tmp[len - 1] = 0;
+
+    p = tmp;
+#ifdef _WIN32
+    if (len >= 3 && isalpha(tmp[0]) && tmp[1] == ':' && tmp[2] == PATH_SEP) {
+        p = tmp + 3;
+    }
+#endif
+    if (*p == PATH_SEP) p++;
+
+    for (; *p; p++) {
+        if (*p == PATH_SEP) {
+            *p = 0;
+            MKDIR(tmp, 0755);
+            *p = PATH_SEP;
+        }
+    }
+    MKDIR(tmp, 0755);
+}
+
 typedef enum {
     STRATEGY_FOOTER,
     STRATEGY_SIZE_FIELD,
@@ -40,7 +81,7 @@ typedef struct {
     size_t count;
 } SignatureBucket;
 
-#define JPEG_MIN_SIZE (32ULL * 1024)
+#define JPEG_MIN_SIZE (50ULL * 1024) // Reduced from 150KB to catch more valid photos
 #define PNG_MIN_SIZE  (16ULL * 1024)
 
 static int mp4_read_bytes(const CarverContext* ctx, uint64_t pos, const uint8_t* buf, size_t len, uint64_t file_start, uint8_t* out, size_t need) {
@@ -92,6 +133,9 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
 
         if (!valid_type || (box_size < 8 && box_size != 0)) break;
 
+        // KIỂM TRA HỢP LỆ: Box size không được lớn hơn disk_size
+        if (box_size > ctx->disk_size) break;
+
         if (strcmp(type, "moov") == 0) found_moov = 1;
         if (strcmp(type, "mdat") == 0) found_mdat = 1;
 
@@ -101,20 +145,51 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
         total_size = pos - file_start;
 
         if (found_moov && found_mdat && total_size > 1024 * 1024) return total_size;
-        if (total_size > 2000ULL * 1024 * 1024) break; // Giới hạn an toàn 2GB
+        if (total_size > 10000ULL * 1024 * 1024) break; // Giới hạn an toàn 10GB
     }
 
-    // Chỉ trả về kích thước nếu tìm thấy metadata (moov) để đảm bảo file phát được
-    if (found_moov) return total_size;
+    // CẢI TIẾN: Trả về kích thước ngay cả khi thiếu moov (nhưng có mdat)
+    // để cứu được dữ liệu thô của các video bị lỗi/crashed
+    if (found_moov || found_mdat) return total_size;
+    return 0;
+}
+
+#define JPEG_MIN_SIZE (50ULL * 1024) // Reduced from 150KB to catch more valid photos
+#define PNG_MIN_SIZE  (16ULL * 1024)
+
+static int jpeg_get_dimensions(const uint8_t* buf, size_t len, uint32_t* width, uint32_t* height) {
+    if (len < 10) return 0;
+    size_t pos = 2; // Skip FF D8
+    while (pos + 8 < len) {
+        if (buf[pos] != 0xFF) break;
+        uint8_t marker = buf[pos + 1];
+        uint32_t marker_len = (buf[pos + 2] << 8) | buf[pos + 3];
+
+        // SOF0 - SOF15 (Start of Frame)
+        if (marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xC8 && marker != 0xCC) {
+            *height = (buf[pos + 5] << 8) | buf[pos + 6];
+            *width = (buf[pos + 7] << 8) | buf[pos + 8];
+            return 1;
+        }
+        if (marker_len < 2) break;
+        pos += marker_len + 2;
+    }
     return 0;
 }
 
 static int jpeg_validate(const uint8_t* buf, size_t len) {
     // JPEG header: FF D8 FF
-    if (len < 4) return 0;
+    if (len < 10) return 0;
     if (buf[0] != 0xFF || buf[1] != 0xD8 || buf[2] != 0xFF) return 0;
 
-    // Cho phép các APPn/marker đầu phổ biến để không loại nhầm JPEG hợp lệ.
+    // Optional: Filter out tiny thumbnails (e.g. width < 160px)
+    // CẢI THIỆN: Nếu file lớn hoặc không rõ kích thước, ưu tiên giữ lại để tránh mất file gốc
+    uint32_t w = 0, h = 0;
+    if (jpeg_get_dimensions(buf, len, &w, &h)) {
+        if (w > 0 && w < 160) return 0;
+    }
+
+    // Standard JPEG markers
     if ((buf[3] >= 0xE0 && buf[3] <= 0xEF) ||
         buf[3] == 0xDB ||
         (buf[3] >= 0xC0 && buf[3] <= 0xC3) ||
@@ -142,27 +217,21 @@ static FileSignature SIGNATURES[] = {
         .name = "JPEG", .extension = ".jpg",
         .header = {0xFF, 0xD8, 0xFF}, .header_len = 3,
         .footer = {0xFF, 0xD9}, .footer_len = 2,
-        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
+        .strategy = STRATEGY_FOOTER, .max_size = 100ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
         .validate = jpeg_validate
     },
     {
         .name = "PNG", .extension = ".png",
         .header = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, .header_len = 8,
         .footer = {0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82}, .footer_len = 8,
-        .strategy = STRATEGY_FOOTER, .max_size = 50ULL * 1024 * 1024, .min_size = PNG_MIN_SIZE,
+        .strategy = STRATEGY_FOOTER, .max_size = 100ULL * 1024 * 1024, .min_size = PNG_MIN_SIZE,
     },
     {
-        .name = "MP4", .extension = ".mp4",
+        .name = "Video", .extension = ".mp4",
         .header = {0x66, 0x74, 0x79, 0x70}, .header_len = 4, .header_offset = 4,
-        .strategy = STRATEGY_MAX_SIZE, .max_size = 2000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
+        .strategy = STRATEGY_MAX_SIZE, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
         .read_size = mp4_read_size,
         .validate = mp4_validate
-    },
-    {
-        .name = "PDF", .extension = ".pdf",
-        .header = {0x25, 0x50, 0x44, 0x46}, .header_len = 4,
-        .footer = {0x25, 0x25, 0x45, 0x4F, 0x46}, .footer_len = 5,
-        .strategy = STRATEGY_FOOTER, .max_size = 200ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
     }
 };
 
@@ -177,9 +246,9 @@ static int ReadChunk(const CarverContext* ctx, uint64_t byte_offset, uint8_t* bu
 }
 
 #ifdef _WIN32
-#define PATH_SEP '\\'
+#define PATH_SEP_UNUSED '\\'
 #else
-#define PATH_SEP '/'
+#define PATH_SEP_UNUSED '/'
 #endif
 
 int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char* output_path) {
@@ -262,7 +331,7 @@ static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const 
     return 0;
 }
 
-int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end) {
+int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask) {
     const uint32_t chunk_size = 4U * 1024U * 1024U;
     CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = chunk_size };
     uint8_t* buf = (uint8_t*)malloc((size_t)chunk_size + 1024);
@@ -315,6 +384,13 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                 SignatureBucket* bucket = &signature_buckets[header_offset][buf[i + header_offset]];
                 if (bucket->count == 0) continue;
 
+                // KIỂM TRA DEDUPLICATION: Nếu sector này đã được FS khôi phục, bỏ qua header tìm thấy ở đây
+                uint64_t current_file_start = pos + i;
+                int64_t current_sector = (int64_t)(current_file_start / sector_size);
+                if (used_mask && (used_mask[current_sector >> 3] & (1 << (current_sector & 7)))) {
+                    continue;
+                }
+
                 for (size_t b = 0; b < bucket->count; b++) {
                     const FileSignature* sig = bucket->items[b];
                     if (i + sig->header_offset + sig->header_len > n) continue;
@@ -342,13 +418,20 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                     uint64_t min_size = sig->min_size ? sig->min_size : MIN_FILE_SIZE;
                     if (file_size >= min_size) {
                         char filename[256];
-                        snprintf(filename, sizeof(filename), "carved_%04d%s", total_found, sig->extension);
-                        char outPath[512];
-                        snprintf(outPath, sizeof(outPath), "%s%c%s", output_dir, PATH_SEP, filename);
+                        uint64_t sector_index = file_start / sector_size;
+                        // Use GoPro style naming: GOPR[Sector].EXT
+                        snprintf(filename, sizeof(filename), "GOPR%06llu%s", (unsigned long long)sector_index, sig->extension);
+
+                        char carvedDir[1024];
+                        snprintf(carvedDir, sizeof(carvedDir), "%s%cCARVED", output_dir, PATH_SEP);
+                        mkdir_p(carvedDir);
+
+                        char outPath[1024];
+                        snprintf(outPath, sizeof(outPath), "%s%c%s", carvedDir, PATH_SEP, filename);
 
                         printf("DEBUG: Saving carved file to %s, size: %llu bytes\n", outPath, (unsigned long long)file_size);
                         if (ExtractFileRange(fd, file_start, file_size, outPath) == 0) {
-                            if (on_file) on_file(context, sig->name, filename, file_size, file_start / sector_size);
+                            if (on_file) on_file(context, sig->name, filename, "", file_size, sector_index);
                             total_found++;
                         }
 

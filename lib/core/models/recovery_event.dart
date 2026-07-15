@@ -19,13 +19,14 @@ class ProgressEvent extends RecoveryEvent {
 class FileFoundEvent extends RecoveryEvent {
   final String fileType;   // "JPEG", "MP4"...
   final String filename;
+  final String modifiedTime;
   final int fileSize;
   final int sectorOffset;
-  FileFoundEvent({required this.fileType, required this.filename,
+  FileFoundEvent({required this.fileType, required this.filename, required this.modifiedTime,
     required this.fileSize, required this.sectorOffset});
 
   @override
-  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, size: $fileSize, sector: $sectorOffset)';
+  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, modified: $modifiedTime, size: $fileSize, sector: $sectorOffset)';
 }
 
 class ErrorEvent extends RecoveryEvent {

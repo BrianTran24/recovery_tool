@@ -162,6 +162,15 @@ class _FileGrid extends StatelessWidget {
                         _formatSize(file.fileSize),
                         style: const TextStyle(fontSize: 9, color: Colors.grey),
                       ),
+                      if (file.modifiedTime.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          file.modifiedTime,
+                          style: const TextStyle(fontSize: 8, color: Colors.grey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),

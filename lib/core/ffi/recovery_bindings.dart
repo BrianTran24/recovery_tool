@@ -17,6 +17,9 @@ final class RecoveryEventNative extends Struct {
   @Array(256)
   external Array<Uint8> filename;
 
+  @Array(32)
+  external Array<Uint8> modifiedTime;
+
   @Int64()  external int fileSize;
   @Int64()  external int sectorOffset;
   @Int32()  external int errorCode;
@@ -42,11 +45,13 @@ typedef ScanNative = Int32 Function(
     Int32 handle, Pointer<Utf8> outputDir,
     Pointer<NativeFunction<CallbackNative>> callback,
     Int32 enableFat, Int32 enableCarve,
+    Int32 scanMode,
     );
 typedef ScanDart = int Function(
     int handle, Pointer<Utf8> outputDir,
     Pointer<NativeFunction<CallbackNative>> callback,
     int enableFat, int enableCarve,
+    int scanMode,
     );
 
 typedef VoidIntNative = Void Function(Int32);

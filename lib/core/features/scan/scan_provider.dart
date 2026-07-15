@@ -15,10 +15,11 @@ final scanStreamProvider = StreamProvider.autoDispose
     .family<RecoveryEvent, ScanParams>((ref, params) {
   final service = ref.watch(recoveryServiceProvider);
   return service.startScan(
-    devicePath:  params.devicePath,
+    sourcePath:  params.sourcePath,
     outputDir:   params.outputDir,
     enableFat:   params.enableFat,
     enableCarve: params.enableCarve,
+    scanMode:    params.scanMode,
   );
 });
 
@@ -36,13 +37,15 @@ class FoundFilesNotifier extends StateNotifier<List<FileFoundEvent>> {
 
 // Params class
 class ScanParams {
-  final String devicePath, outputDir;
+  final String sourcePath, outputDir;
   final bool enableFat, enableCarve;
+  final int scanMode;
   const ScanParams({
-    required this.devicePath,
+    required this.sourcePath,
     required this.outputDir,
     this.enableFat = true,
     this.enableCarve = true,
+    this.scanMode = 1,
   });
 
   @override
@@ -50,15 +53,17 @@ class ScanParams {
       identical(this, other) ||
       other is ScanParams &&
           runtimeType == other.runtimeType &&
-          devicePath == other.devicePath &&
+          sourcePath == other.sourcePath &&
           outputDir == other.outputDir &&
           enableFat == other.enableFat &&
-          enableCarve == other.enableCarve;
+          enableCarve == other.enableCarve &&
+          scanMode == other.scanMode;
 
   @override
   int get hashCode =>
-      devicePath.hashCode ^
+      sourcePath.hashCode ^
       outputDir.hashCode ^
       enableFat.hashCode ^
-      enableCarve.hashCode;
+      enableCarve.hashCode ^
+      scanMode.hashCode;
 }

@@ -1,10 +1,51 @@
 #include "fat32_parser.h"
 #include "platform_config.h"
-#include "carver.h" // Để lấy MIN_FILE_SIZE
+#include "carver.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
+
+#ifdef _WIN32
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
+
+// Recursive mkdir
+static void mkdir_p(const char *path) {
+    char tmp[1024];
+    char *p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    len = strlen(tmp);
+    if (len == 0) return;
+    if (tmp[len - 1] == PATH_SEP) tmp[len - 1] = 0;
+
+    p = tmp;
+#ifdef _WIN32
+    if (len >= 3 && isalpha(tmp[0]) && tmp[1] == ':' && tmp[2] == PATH_SEP) {
+        p = tmp + 3;
+    }
+#endif
+    if (*p == PATH_SEP) p++;
+
+    for (; *p; p++) {
+        if (*p == PATH_SEP) {
+            *p = 0;
+            MKDIR(tmp, 0755);
+            *p = PATH_SEP;
+        }
+    }
+    MKDIR(tmp, 0755);
+}
 
 // Packed struct map thẳng vào 512 bytes đầu của disk
 #pragma pack(push, 1)
@@ -53,6 +94,7 @@ typedef struct {
     uint32_t data_start_sector;  // Sector bắt đầu Data region
     uint32_t root_cluster;       // Cluster đầu tiên của root dir
     uint32_t total_clusters;
+    int64_t  baseSector;         // LBA bắt đầu của partition
 } FAT32_Info;
 
 int IsExFAT(const uint8_t* sector0) {
@@ -131,10 +173,10 @@ int IsClusterFree(const uint32_t* fat, uint32_t cluster) {
     return (fat[cluster] & FAT32_MASK) == FAT32_FREE;
 }
 
-// Tính sector đầu tiên của cluster N
+// Tính sector đầu tiên của cluster N (Tuyệt đối trên đĩa)
 uint32_t ClusterToSector(const FAT32_Info* info, uint32_t cluster) {
     // Cluster 2 = data_start_sector (cluster đánh số từ 2)
-    return info->data_start_sector
+    return (uint32_t)info->baseSector + info->data_start_sector
            + (cluster - 2) * info->sectors_per_cluster;
 }
 
@@ -171,24 +213,104 @@ uint32_t GetFirstCluster(const FAT32_DirEntry* entry) {
            | entry->first_cluster_low;
 }
 
-// Kiểm tra entry có phải file đã bị xóa không
-int IsDeletedFile(const FAT32_DirEntry* entry) {
-    return entry->name[0] == 0xE5           // Dấu hiệu đã xóa
-           && entry->attributes != ATTR_LFN    // Không phải LFN entry
-           && !(entry->attributes & ATTR_DIRECTORY) // Không phải thư mục
-           && entry->file_size > 0             // Có dữ liệu
-           && GetFirstCluster(entry) >= 2;     // Cluster hợp lệ
+// Kiểm tra entry có phải file phù hợp với chế độ quét không
+int MatchFile(const FAT32_DirEntry* entry, int scan_mode) {
+    if (entry->attributes == ATTR_LFN) return 0;
+    if (entry->attributes & ATTR_DIRECTORY) return 0;
+    if (entry->file_size == 0) return 0;
+    if (GetFirstCluster(entry) < 2) return 0;
+
+    int isDeleted = (entry->name[0] == 0xE5);
+
+    if (scan_mode == 1) return isDeleted;      // SCAN_MODE_DELETED
+    if (scan_mode == 2) return !isDeleted;     // SCAN_MODE_EXISTING
+    return 1;                                 // SCAN_MODE_BOTH
 }
 
-// Build tên file từ entry (tên bị đánh dấu xóa, byte[0] = 0xE5)
-void GetDeletedFileName(const FAT32_DirEntry* entry, char* out, size_t outSize) {
+typedef struct {
+    uint16_t name[260];
+    int      expected_seq;
+    uint8_t  checksum;
+    int      is_valid;
+} LFN_State;
+
+static void ResetLFN(LFN_State* lfn) {
+    memset(lfn, 0, sizeof(LFN_State));
+    lfn->expected_seq = -1;
+}
+
+static uint8_t CalculateChecksum(const uint8_t* shortName) {
+    uint8_t sum = 0;
+    for (int i = 11; i > 0; i--) {
+        sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + *shortName++;
+    }
+    return sum;
+}
+
+static void ProcessLFNEntry(const uint8_t* entry, LFN_State* lfn) {
+    uint8_t seq = entry[0];
+    if (seq & 0x40) { // First LFN entry (last part of name)
+        ResetLFN(lfn);
+        lfn->expected_seq = seq & 0x1F;
+        lfn->checksum = entry[13];
+        lfn->is_valid = 1;
+    } else if (!lfn->is_valid || seq != lfn->expected_seq - 1 || entry[13] != lfn->checksum) {
+        lfn->is_valid = 0;
+        return;
+    }
+
+    lfn->expected_seq = seq & 0x1F;
+    int start_index = (lfn->expected_seq - 1) * 13;
+    if (start_index + 13 > 255) {
+        lfn->is_valid = 0;
+        return;
+    }
+
+    const uint8_t* p = entry + 1;
+    for (int i = 0; i < 5; i++) lfn->name[start_index++] = p[i*2] | (p[i*2+1] << 8);
+    p = entry + 14;
+    for (int i = 0; i < 6; i++) lfn->name[start_index++] = p[i*2] | (p[i*2+1] << 8);
+    p = entry + 28;
+    for (int i = 0; i < 2; i++) lfn->name[start_index++] = p[i*2] | (p[i*2+1] << 8);
+}
+
+static void GetLFN(LFN_State* lfn, const uint8_t* shortName, char* out, size_t outSize) {
+    if (!lfn->is_valid || lfn->expected_seq != 1 || lfn->checksum != CalculateChecksum(shortName)) {
+        out[0] = '\0';
+        return;
+    }
+
+    size_t written = 0;
+    for (int i = 0; i < 255 && lfn->name[i] != 0 && written + 4 < outSize; i++) {
+        uint16_t cp = lfn->name[i];
+        if (cp < 0x80) {
+            out[written++] = (char)cp;
+        } else if (cp < 0x800) {
+            out[written++] = (char)(0xC0 | (cp >> 6));
+            out[written++] = (char)(0x80 | (cp & 0x3F));
+        } else {
+            out[written++] = (char)(0xE0 | (cp >> 12));
+            out[written++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+            out[written++] = (char)(0x80 | (cp & 0x3F));
+        }
+    }
+    out[written] = '\0';
+}
+
+// Build tên file từ entry
+void GetFileName(const FAT32_DirEntry* entry, LFN_State* lfn, char* out, size_t outSize) {
+    GetLFN(lfn, (const uint8_t*)entry, out, outSize);
+    if (out[0] != '\0') return;
+
     char name[9] = {0};
     char ext[4]  = {0};
 
-    // Byte 0 bị xóa thành 0xE5, thay bằng '_'
-    name[0] = '_';
-    for (int i = 1; i < 8; i++) {
-        name[i] = (entry->name[i] == ' ') ? '\0' : entry->name[i];
+    for (int i = 0; i < 8; i++) {
+        if (i == 0 && entry->name[0] == 0xE5) {
+            name[0] = '_';
+        } else {
+            name[i] = (entry->name[i] == ' ') ? '\0' : entry->name[i];
+        }
     }
     for (int i = 0; i < 3; i++) {
         ext[i] = (entry->ext[i] == ' ') ? '\0' : entry->ext[i];
@@ -208,6 +330,22 @@ typedef struct {
     uint16_t write_date;
     uint16_t write_time;
 } DeletedFileInfo;
+
+static void FormatFatTimestamp(uint16_t date, uint16_t time, char* out, size_t outSize) {
+    uint32_t year = ((uint32_t)(date >> 9) & 0x7F) + 1980U;
+    uint32_t month = ((uint32_t)(date >> 5) & 0x0F);
+    uint32_t day = (uint32_t)(date & 0x1F);
+    uint32_t hour = ((uint32_t)(time >> 11) & 0x1F);
+    uint32_t minute = ((uint32_t)(time >> 5) & 0x3F);
+    uint32_t second = ((uint32_t)(time & 0x1F) * 2U);
+
+    if (year < 1980U || month == 0U || month > 12U || day == 0U || day > 31U) {
+        if (outSize > 0) out[0] = '\0';
+        return;
+    }
+
+    snprintf(out, outSize, "%04u-%02u-%02u %02u:%02u:%02u", year, month, day, hour, minute, second);
+}
 
 static void EmitFatProgress(FatProgressCallback on_progress, void* context, uint32_t total_clusters, int visited_clusters, double progress_start, double progress_end, int64_t scanned_bytes) {
     if (!on_progress) return;
@@ -243,13 +381,15 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                    double progress_end,
                    int* visited_clusters,
                    const char* outputDir,
+                   const char* relPath,
                    volatile int* cancelled,
-                   int* recoveredCount);
+                   int* recoveredCount,
+                   int scan_mode);
 
 #ifdef _WIN32
-#define PATH_SEP '\\'
+#define PATH_SEP_UNUSED '\\'
 #else
-#define PATH_SEP '/'
+#define PATH_SEP_UNUSED '/'
 #endif
 
 // Scan một directory cluster — tìm entry có 0xE5
@@ -264,10 +404,14 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                           double progress_end,
                           int* visited_clusters,
                           const char* outputDir,
+                          const char* relPath,
                           volatile int* cancelled,
-                          int* recoveredCount) {
+                          int* recoveredCount,
+                          int scan_mode) {
     uint32_t entriesPerCluster = info->bytes_per_cluster / sizeof(FAT32_DirEntry);
     FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
+    LFN_State lfn = {0};
+    lfn.expected_seq = -1;
 
     for (uint32_t i = 0; i < entriesPerCluster; i++) {
         if (cancelled && *cancelled) return;
@@ -275,15 +419,39 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
 
         if (e->name[0] == 0x00) break; // Hết directory
 
-        if (IsDeletedFile(e) && e->file_size >= MIN_FILE_SIZE) {
-            char filename[64];
-            GetDeletedFileName(e, filename, sizeof(filename));
-            uint32_t first_cluster = GetFirstCluster(e);
+        if (e->attributes == ATTR_LFN) {
+            ProcessLFNEntry((const uint8_t*)e, &lfn);
+            continue;
+        }
 
-            char savedFilename[256];
-            snprintf(savedFilename, sizeof(savedFilename), "fat_%04d_%s", *recoveredCount, filename);
-            char outPath[512];
-            snprintf(outPath, sizeof(outPath), "%s%c%s", outputDir, PATH_SEP, savedFilename);
+        if (MatchFile(e, scan_mode)) {
+            char filename[256];
+            GetFileName(e, &lfn, filename, sizeof(filename));
+            uint32_t first_cluster = GetFirstCluster(e);
+            char modifiedTime[32] = {0};
+            FormatFatTimestamp(e->write_date, e->write_time, modifiedTime, sizeof(modifiedTime));
+
+            int isDeleted = (e->name[0] == 0xE5);
+            uint32_t sector_offset = ClusterToSector(info, first_cluster);
+
+            char displayPath[512];
+            if (relPath && relPath[0]) {
+                snprintf(displayPath, sizeof(displayPath), "%s%c%s", relPath, PATH_SEP, filename);
+            } else {
+                snprintf(displayPath, sizeof(displayPath), "%s", filename);
+            }
+
+            char outPath[1024];
+            if (isDeleted) {
+                // Deleted files go to a special folder to avoid name collisions with live files
+                char delDir[1024];
+                snprintf(delDir, sizeof(delDir), "%s%cDELETED", outputDir, PATH_SEP);
+                mkdir_p(delDir);
+                snprintf(outPath, sizeof(outPath), "%s%c%u_%s", delDir, PATH_SEP, sector_offset, filename);
+            } else {
+                mkdir_p(outputDir);
+                snprintf(outPath, sizeof(outPath), "%s%c%s", outputDir, PATH_SEP, filename);
+            }
 
             // Recover file
             FILE* out = fopen(outPath, "wb");
@@ -303,32 +471,57 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                         curr = FATNextCluster(fat, curr);
                     } else {
                         curr++;
+                        // If we are following a "ghost" chain (deleted file),
+                        // stop if we hit a cluster that is actually in use by another file.
+                        if (curr < info->total_clusters + 2 && !IsClusterFree(fat, curr)) {
+                            break;
+                        }
                     }
                 }
                 fclose(out);
                 free(fileBuf);
 
                 if (on_file) {
-                    on_file(context, "FAT", savedFilename, (int64_t)e->file_size, (int64_t)ClusterToSector(info, first_cluster));
+                    int64_t num_clusters = (e->file_size + info->bytes_per_cluster - 1) / info->bytes_per_cluster;
+                    int64_t sector_count = num_clusters * info->sectors_per_cluster;
+                    on_file(context, (isDeleted ? "FAT_DEL" : "FAT"), displayPath, modifiedTime, (int64_t)e->file_size, (int64_t)sector_offset, sector_count);
                 }
                 (*recoveredCount)++;
                 if (visited_clusters) {
                 EmitFatProgress(on_progress, context, info->total_clusters, *visited_clusters, progress_start, progress_end, (int64_t)(*visited_clusters) * info->bytes_per_cluster);
                 }
+            } else {
+                printf("ERROR: FAT32 could not open file for writing: %s\n", outPath);
             }
         }
 
-        // Nếu là thư mục còn sống → đi vào đệ quy
+        // Nếu là thư mục còn sống (không bị xóa) → đi vào đệ quy
         if (e->name[0] != 0xE5
             && (e->attributes & ATTR_DIRECTORY)
             && !(e->attributes & ATTR_VOLUME_ID)
             && e->name[0] != '.') {
             uint32_t subCluster = GetFirstCluster(e);
+            char subDir[1024];
+            char subFolderName[256];
+            LFN_State tempLfn = lfn; // Use current LFN for the folder name
+            GetFileName(e, &tempLfn, subFolderName, sizeof(subFolderName));
+            snprintf(subDir, sizeof(subDir), "%s%c%s", outputDir, PATH_SEP, subFolderName);
+
+            char subRelPath[512];
+            if (relPath && relPath[0]) {
+                snprintf(subRelPath, sizeof(subRelPath), "%s%c%s", relPath, PATH_SEP, subFolderName);
+            } else {
+                snprintf(subRelPath, sizeof(subRelPath), "%s", subFolderName);
+            }
+
             // Cần buffer riêng cho đệ quy để không ghi đè buffer hiện tại
             uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
-            ScanDirectory(fd, info, fat, subCluster, subBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, outputDir, cancelled, recoveredCount);
+            ScanDirectory(fd, info, fat, subCluster, subBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, subDir, subRelPath, cancelled, recoveredCount, scan_mode);
             free(subBuf);
         }
+
+        // Reset LFN for next entry if it wasn't an LFN entry
+        ResetLFN(&lfn);
     }
 }
 
@@ -344,8 +537,10 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                    double progress_end,
                    int* visited_clusters,
                    const char* outputDir,
+                   const char* relPath,
                    volatile int* cancelled,
-                   int* recoveredCount) {
+                   int* recoveredCount,
+                   int scan_mode) {
     uint32_t cluster = startCluster;
     int maxChain = 65536; // Giới hạn phòng loop vô hạn
 
@@ -357,18 +552,35 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                 EmitFatProgress(on_progress, context, info->total_clusters, *visited_clusters, progress_start, progress_end, (int64_t)(cluster - 2) * info->bytes_per_cluster);
             }
             ScanDirectoryCluster(fd, info, fat, cluster,
-                                 clusterBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, outputDir, cancelled, recoveredCount);
+                                 clusterBuf, context, on_file, on_progress, progress_start, progress_end, visited_clusters, outputDir, relPath, cancelled, recoveredCount, scan_mode);
         }
         cluster = FATNextCluster(fat, cluster);
     }
 }
 
-int RecoverAllDeletedFiles(int fd, const uint8_t* sector0,
-                           const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled) {
+static int IsFatDirCluster(const uint8_t* buf, uint32_t sz) {
+    int dirEntries = 0;
+    for (uint32_t off = 0; off + 32 <= sz; off += 32) {
+        const uint8_t* e = buf + off;
+        // Kiểm tra attributes và cấu trúc cơ bản của FAT dir entry
+        if (e[0] == 0x00) break;
+        if (e[11] == 0x0F) continue; // LFN
+        if (e[11] & 0x08) continue;  // Volume ID
+        // Nếu cluster đầu hợp lệ và kích thước file hợp lý cho dir
+        uint32_t first = ((uint32_t)e[20] << 16) | e[26];
+        if (first >= 2) dirEntries++;
+    }
+    return (dirEntries >= 1);
+}
+
+
+int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0,
+                           const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode) {
     // 1. Parse BPB
     FAT32_BPB bpb;
     FAT32_Info info;
     if (ParseBPB(sector0, &bpb, &info) < 0) return 0;
+    info.baseSector = baseSector;
 
     // 2. Load FAT table
     uint32_t* fat = LoadFATTable(fd, &info);
@@ -387,7 +599,26 @@ int RecoverAllDeletedFiles(int fd, const uint8_t* sector0,
     int visited_clusters = 0;
     // 5. Bắt đầu scan từ root directory (cluster 2)
     ScanDirectory(fd, &info, fat, info.root_cluster,
-                  clusterBuf, context, on_file, on_progress, 0.0, 100.0, &visited_clusters, outputDir, cancelled, &recoveredCount);
+                  clusterBuf, context, on_file, on_progress, 0.0, 30.0, &visited_clusters, outputDir, "", cancelled, &recoveredCount, scan_mode);
+
+    // 6. Directory Hunting cho FAT32 (Tương tự exFAT)
+    for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
+        // Chỉ quét các cluster được đánh dấu là FREE trong FAT để tìm thư mục đã bị format/xóa
+        if (IsClusterFree(fat, c)) {
+            if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
+                if (IsFatDirCluster(clusterBuf, info.bytes_per_cluster)) {
+                    char folderName[32]; snprintf(folderName, sizeof(folderName), "found_%u", c);
+                    // useFatChain = 0 vì là thư mục mồ côi
+                    ScanDirectoryCluster(fd, &info, fat, c, clusterBuf, context, on_file, on_progress, 30.0, 100.0, NULL, outputDir, folderName, cancelled, &recoveredCount, scan_mode);
+                }
+            }
+        }
+        if (on_progress && (c % 2000 == 0)) {
+            double pct = 30.0 + ((double)c / info.total_clusters) * 70.0;
+            on_progress(context, pct, (int64_t)c * info.bytes_per_cluster, 0);
+        }
+    }
+
 
     free(clusterBuf);
     free(fat);
