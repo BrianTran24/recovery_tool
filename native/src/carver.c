@@ -49,7 +49,8 @@ static void mkdir_p(const char *path) {
 typedef enum {
     STRATEGY_FOOTER,
     STRATEGY_SIZE_FIELD,
-    STRATEGY_MAX_SIZE
+    STRATEGY_MAX_SIZE,
+    STRATEGY_SMART_VIDEO
 } CarveStrategy;
 
 typedef struct {
@@ -154,6 +155,57 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
     return 0;
 }
 
+// SMART CARVER: Quét NAL units để xử lý phân mảnh
+// Logic: Tìm các start code 00 00 00 01 và kiểm tra NAL type
+// Nếu gặp vùng dữ liệu lạ, thử tìm start code tiếp theo trong phạm vi 1MB
+static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+    uint64_t pos = file_start;
+    uint64_t last_valid_pos = file_start;
+    uint8_t chunk[1024 * 64];
+    const size_t chunk_size = sizeof(chunk);
+    int found_sps = 0;
+    int found_idr = 0;
+    int continuous_errors = 0;
+
+    // Giới hạn quét tối đa 2GB cho smart carving (tránh treo)
+    uint64_t max_scan = 2000ULL * 1024 * 1024;
+    if (pos + max_scan > ctx->disk_size) max_scan = ctx->disk_size - pos;
+
+    while (pos < file_start + max_scan) {
+        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        ssize_t n = READ(ctx->fd, chunk, chunk_size);
+        if (n < 16) break;
+
+        int found_nal_in_chunk = 0;
+        for (size_t i = 0; i < (size_t)n - 4; i++) {
+            // Tìm Start Code: 00 00 00 01
+            if (chunk[i] == 0x00 && chunk[i+1] == 0x00 && chunk[i+2] == 0x00 && chunk[i+3] == 0x01) {
+                uint8_t nal_type = chunk[i+4] & 0x1F;
+                // Các NAL type hợp lệ của H.264
+                if (nal_type >= 1 && nal_type <= 12) {
+                    if (nal_type == 7) found_sps = 1;
+                    if (nal_type == 5) found_idr = 1;
+
+                    last_valid_pos = pos + i + 5;
+                    found_nal_in_chunk = 1;
+                    continuous_errors = 0;
+                }
+            }
+        }
+
+        if (!found_nal_in_chunk) {
+            continuous_errors++;
+            // Nếu quá 2MB không thấy NAL nào, coi như kết thúc file hoặc quá phân mảnh
+            if (continuous_errors > 32) break;
+        }
+
+        pos += n - 4; // Trồng lấn 4 byte để không sót start code
+    }
+
+    if (found_sps && found_idr) return last_valid_pos - file_start;
+    return 0;
+}
+
 #define JPEG_MIN_SIZE (50ULL * 1024) // Reduced from 150KB to catch more valid photos
 #define PNG_MIN_SIZE  (16ULL * 1024)
 
@@ -232,6 +284,12 @@ static FileSignature SIGNATURES[] = {
         .strategy = STRATEGY_MAX_SIZE, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
         .read_size = mp4_read_size,
         .validate = mp4_validate
+    },
+    {
+        .name = "Video (Smart)", .extension = ".mp4",
+        .header = {0x00, 0x00, 0x00, 0x01, 0x67}, .header_len = 5,
+        .strategy = STRATEGY_SMART_VIDEO, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
+        .read_size = h264_smart_carve_size,
     }
 };
 
@@ -403,7 +461,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                     if (sig->strategy == STRATEGY_FOOTER) {
                         uint64_t end = FindFooter(&ctx, file_start, sig);
                         if (end > file_start) file_size = end - file_start;
-                    } else if (sig->strategy == STRATEGY_MAX_SIZE) {
+                    } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO) {
                         if (sig->read_size) {
                             uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
                             if (s_field > 0) file_size = s_field;

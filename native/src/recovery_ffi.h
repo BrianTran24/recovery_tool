@@ -79,3 +79,8 @@ EXPORT void recovery_free_string(char* ptr);
 
 // Lưu file carved vào đường dẫn đích
 EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t file_size, const char* output_path);
+
+/**
+ * Repairs a broken video file using a reference file.
+ */
+EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referencePath, const char* outputPath);

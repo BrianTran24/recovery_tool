@@ -56,6 +56,7 @@ add_library(recovery SHARED
     "${NATIVE_SRC_DIR}/fat32_parser.c"
     "${NATIVE_SRC_DIR}/exfat_parser.c"
     "${NATIVE_SRC_DIR}/carver.c"
+    "${NATIVE_SRC_DIR}/video_repair.c"
     "${NATIVE_SRC_DIR}/recovery_ffi.c"
 )
 target_include_directories(recovery PRIVATE "${NATIVE_SRC_DIR}")

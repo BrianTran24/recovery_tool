@@ -3,6 +3,7 @@
 #include "carver.h"
 #include "fat32_parser.h"
 #include "exfat_parser.h"
+#include "video_repair.h"
 #include "platform_config.h"
 #include <stdlib.h>
 #include <string.h>
@@ -324,4 +325,8 @@ EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t
         start_byte = (uint64_t)sector_offset * geo.bytesPerSector;
     }
     return ExtractFileRange(g_sessions[handle].fd, start_byte, (uint64_t)file_size, output_path);
+}
+
+EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referencePath, const char* outputPath) {
+    return RepairVideo(brokenPath, referencePath, outputPath);
 }

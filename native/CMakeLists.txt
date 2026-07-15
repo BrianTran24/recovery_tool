@@ -11,6 +11,7 @@ add_library(recovery SHARED
         src/fat32_parser.c
         src/exfat_parser.c
         src/carver.c
+        src/video_repair.c
         src/recovery_ffi.c
 )
 
