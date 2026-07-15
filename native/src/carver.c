@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 
 #ifdef _WIN32
@@ -75,6 +76,322 @@ typedef struct {
     uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len);
     int (*validate)(const uint8_t* buf, size_t len);
 } FileSignature;
+
+static int file_exists(const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return 0;
+    fclose(f);
+    return 1;
+}
+
+static void make_unique_path(char* path, size_t pathSize) {
+    char dir[1024];
+    char leaf[256];
+    char stem[256];
+    char ext[128];
+
+    if (!path || pathSize == 0 || !file_exists(path)) return;
+
+    const char* lastSep = strrchr(path, PATH_SEP);
+    if (lastSep) {
+        size_t dirLen = (size_t)(lastSep - path);
+        if (dirLen >= sizeof(dir)) dirLen = sizeof(dir) - 1;
+        memcpy(dir, path, dirLen);
+        dir[dirLen] = '\0';
+        snprintf(leaf, sizeof(leaf), "%s", lastSep + 1);
+    } else {
+        dir[0] = '\0';
+        snprintf(leaf, sizeof(leaf), "%s", path);
+    }
+
+    const char* lastDot = strrchr(leaf, '.');
+    if (lastDot && lastDot != leaf) {
+        size_t stemLen = (size_t)(lastDot - leaf);
+        if (stemLen >= sizeof(stem)) stemLen = sizeof(stem) - 1;
+        memcpy(stem, leaf, stemLen);
+        stem[stemLen] = '\0';
+        snprintf(ext, sizeof(ext), "%s", lastDot);
+    } else {
+        snprintf(stem, sizeof(stem), "%s", leaf);
+        ext[0] = '\0';
+    }
+
+    for (unsigned i = 1; i < 10000; i++) {
+        char candidate[2048];
+        if (dir[0]) {
+            if (ext[0]) snprintf(candidate, sizeof(candidate), "%s%c%s_%u%s", dir, PATH_SEP, stem, i, ext);
+            else snprintf(candidate, sizeof(candidate), "%s%c%s_%u", dir, PATH_SEP, stem, i);
+        } else if (ext[0]) {
+            snprintf(candidate, sizeof(candidate), "%s_%u%s", stem, i, ext);
+        } else {
+            snprintf(candidate, sizeof(candidate), "%s_%u", stem, i);
+        }
+        if (!file_exists(candidate)) {
+            snprintf(path, pathSize, "%s", candidate);
+            return;
+        }
+    }
+}
+
+static uint16_t read_be16(const uint8_t* p) {
+    return (uint16_t)(((uint16_t)p[0] << 8) | p[1]);
+}
+
+static uint32_t read_be32(const uint8_t* p) {
+    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
+}
+
+static uint64_t read_be64(const uint8_t* p) {
+    return ((uint64_t)read_be32(p) << 32) | (uint64_t)read_be32(p + 4);
+}
+
+static int read_prefix(const CarverContext* ctx, uint64_t file_start, uint8_t* buf, size_t want, size_t* got) {
+    if (LSEEK(ctx->fd, (off_t_64)file_start, SEEK_SET) < 0) return -1;
+    ssize_t n = READ(ctx->fd, buf, (uint32_t)want);
+    if (n < 0) return -1;
+    if (got) *got = (size_t)n;
+    return 0;
+}
+
+static int format_unix_time_name(time_t value, char* out, size_t outSize) {
+    struct tm tmv;
+#ifdef _WIN32
+    if (gmtime_s(&tmv, &value) != 0) return 0;
+#else
+    if (!gmtime_r(&value, &tmv)) return 0;
+#endif
+    return strftime(out, outSize, "%Y%m%d_%H%M%S", &tmv) > 0;
+}
+
+static int parse_exif_datetime(const char* raw, char* out, size_t outSize) {
+    int y, m, d, hh, mm, ss;
+    if (sscanf(raw, "%4d:%2d:%2d %2d:%2d:%2d", &y, &m, &d, &hh, &mm, &ss) == 6) {
+        if (y >= 1980 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+            snprintf(out, outSize, "%04d%02d%02d_%02d%02d%02d", y, m, d, hh, mm, ss);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int jpeg_extract_ascii_datetime_from_ptr(const uint8_t* src, uint32_t count, char* out, size_t outSize) {
+    size_t copy = 0;
+    char raw[64];
+
+    if (count == 0) return 0;
+    if (count > sizeof(raw) - 1) count = (uint32_t)(sizeof(raw) - 1);
+
+    memcpy(raw, src, count);
+    copy = count;
+    raw[copy] = '\0';
+    return parse_exif_datetime(raw, out, outSize);
+}
+
+static int jpeg_parse_ifd(const uint8_t* tiff, size_t tiffLen, uint32_t ifdOffset, int little, char* out, size_t outSize) {
+    if (ifdOffset + 2 > tiffLen) return 0;
+    uint16_t entries = little ? (uint16_t)(tiff[ifdOffset] | (tiff[ifdOffset + 1] << 8)) : read_be16(tiff + ifdOffset);
+    size_t pos = ifdOffset + 2;
+    uint32_t exifIfdOffset = 0;
+
+    for (uint16_t i = 0; i < entries; i++) {
+        if (pos + 12 > tiffLen) break;
+        const uint8_t* e = tiff + pos;
+        uint16_t tag = little ? (uint16_t)(e[0] | (e[1] << 8)) : read_be16(e);
+        uint16_t type = little ? (uint16_t)(e[2] | (e[3] << 8)) : read_be16(e + 2);
+        uint32_t count = little ? (uint32_t)e[4] | ((uint32_t)e[5] << 8) | ((uint32_t)e[6] << 16) | ((uint32_t)e[7] << 24) : read_be32(e + 4);
+        uint32_t value = little ? (uint32_t)e[8] | ((uint32_t)e[9] << 8) | ((uint32_t)e[10] << 16) | ((uint32_t)e[11] << 24) : read_be32(e + 8);
+
+        if ((tag == 0x9003 || tag == 0x9004 || tag == 0x0132) && type == 2 && count > 0) {
+            if (count <= 4) {
+                if (jpeg_extract_ascii_datetime_from_ptr(e + 8, count, out, outSize)) return 1;
+            } else if (value < tiffLen && value + count <= tiffLen) {
+                if (jpeg_extract_ascii_datetime_from_ptr(tiff + value, count, out, outSize)) return 1;
+            }
+        } else if (tag == 0x8769 && count > 0) {
+            exifIfdOffset = value;
+        }
+        pos += 12;
+    }
+
+    if (exifIfdOffset > 0 && exifIfdOffset + 2 <= tiffLen) {
+        entries = little ? (uint16_t)(tiff[exifIfdOffset] | (tiff[exifIfdOffset + 1] << 8)) : read_be16(tiff + exifIfdOffset);
+        pos = exifIfdOffset + 2;
+        for (uint16_t i = 0; i < entries; i++) {
+            if (pos + 12 > tiffLen) break;
+            const uint8_t* e = tiff + pos;
+            uint16_t tag = little ? (uint16_t)(e[0] | (e[1] << 8)) : read_be16(e);
+            uint16_t type = little ? (uint16_t)(e[2] | (e[3] << 8)) : read_be16(e + 2);
+            uint32_t count = little ? (uint32_t)e[4] | ((uint32_t)e[5] << 8) | ((uint32_t)e[6] << 16) | ((uint32_t)e[7] << 24) : read_be32(e + 4);
+            uint32_t value = little ? (uint32_t)e[8] | ((uint32_t)e[9] << 8) | ((uint32_t)e[10] << 16) | ((uint32_t)e[11] << 24) : read_be32(e + 8);
+            if ((tag == 0x9003 || tag == 0x9004 || tag == 0x0132) && type == 2 && count > 0) {
+                if (count <= 4) {
+                    if (jpeg_extract_ascii_datetime_from_ptr(e + 8, count, out, outSize)) return 1;
+                } else if (value < tiffLen && value + count <= tiffLen) {
+                    if (jpeg_extract_ascii_datetime_from_ptr(tiff + value, count, out, outSize)) return 1;
+                }
+            }
+            pos += 12;
+        }
+    }
+
+    return 0;
+}
+
+static int extract_jpeg_metadata(const CarverContext* ctx, uint64_t file_start, char* out, size_t outSize) {
+    size_t want = 64 * 1024;
+    uint8_t* buf = (uint8_t*)malloc(want);
+    size_t got = 0;
+
+    if (!buf) return 0;
+    if (read_prefix(ctx, file_start, buf, want, &got) != 0 || got < 4) {
+        free(buf);
+        return 0;
+    }
+
+    size_t pos = 2;
+    while (pos + 4 <= got) {
+        if (buf[pos] != 0xFF) {
+            pos++;
+            continue;
+        }
+        while (pos < got && buf[pos] == 0xFF) pos++;
+        if (pos + 1 >= got) break;
+
+        uint8_t marker = buf[pos];
+        if (marker == 0xD9 || marker == 0xDA) break;
+        if (pos < 2) break;
+        if (pos + 2 > got) break;
+
+        if (marker == 0xD8 || marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+            pos += 1;
+            continue;
+        }
+
+        if (pos + 4 > got) break;
+        uint16_t segLen = read_be16(buf + pos + 1);
+        if (segLen < 2 || pos + 1 + segLen > got) break;
+
+        if (marker == 0xE1 && segLen >= 8 && memcmp(buf + pos + 4, "Exif\0\0", 6) == 0) {
+            const uint8_t* tiff = buf + pos + 10;
+            size_t tiffLen = segLen - 8;
+            if (tiffLen >= 8) {
+                int little = (tiff[0] == 'I' && tiff[1] == 'I');
+                if ((little || (tiff[0] == 'M' && tiff[1] == 'M')) && ((little && tiff[2] == 0x2A && tiff[3] == 0x00) || (!little && tiff[2] == 0x00 && tiff[3] == 0x2A))) {
+                    uint32_t ifd0 = little ? (uint32_t)tiff[4] | ((uint32_t)tiff[5] << 8) | ((uint32_t)tiff[6] << 16) | ((uint32_t)tiff[7] << 24) : read_be32(tiff + 4);
+                    if (ifd0 + 8 <= tiffLen && jpeg_parse_ifd(tiff, tiffLen, ifd0, little, out, outSize)) {
+                        free(buf);
+                        return 1;
+                    }
+                }
+            }
+        }
+
+        pos += (size_t)segLen + 3;
+    }
+
+    free(buf);
+    return 0;
+}
+
+static int mp4_find_box(const uint8_t* buf, size_t len, const char* target, size_t* outPos, size_t* outSize) {
+    size_t pos = 0;
+
+    while (pos + 8 <= len) {
+        uint64_t boxSize = read_be32(buf + pos);
+        char type[5] = { (char)buf[pos + 4], (char)buf[pos + 5], (char)buf[pos + 6], (char)buf[pos + 7], 0 };
+        size_t header = 8;
+
+        if (boxSize == 1) {
+            if (pos + 16 > len) return 0;
+            boxSize = read_be64(buf + pos + 8);
+            header = 16;
+        } else if (boxSize == 0) {
+            boxSize = len - pos;
+        }
+
+        if (boxSize < header || pos + boxSize > len) return 0;
+
+        if (memcmp(type, target, 4) == 0) {
+            if (outPos) *outPos = pos;
+            if (outSize) *outSize = (size_t)boxSize;
+            return 1;
+        }
+
+        if (memcmp(type, "moov", 4) == 0 || memcmp(type, "trak", 4) == 0 || memcmp(type, "udta", 4) == 0 || memcmp(type, "mdia", 4) == 0 || memcmp(type, "meta", 4) == 0) {
+            size_t childStart = pos + header;
+            if (memcmp(type, "meta", 4) == 0 && childStart + 4 <= pos + boxSize) childStart += 4;
+            if (childStart < pos + boxSize) {
+                size_t childLen = (size_t)((pos + boxSize) - childStart);
+                size_t relPos = 0, relSize = 0;
+                if (mp4_find_box(buf + childStart, childLen, target, &relPos, &relSize)) {
+                    if (outPos) *outPos = childStart + relPos;
+                    if (outSize) *outSize = relSize;
+                    return 1;
+                }
+            }
+        }
+
+        pos += (size_t)boxSize;
+    }
+
+    return 0;
+}
+
+static int extract_mp4_metadata(const CarverContext* ctx, uint64_t file_start, uint64_t file_size, char* out, size_t outSize) {
+    size_t want = (file_size < (4ULL * 1024ULL * 1024ULL)) ? (size_t)file_size : (size_t)(4ULL * 1024ULL * 1024ULL);
+    uint8_t* buf = (uint8_t*)malloc(want);
+    size_t got = 0;
+
+    if (!buf) return 0;
+    if (want < 32 || read_prefix(ctx, file_start, buf, want, &got) != 0 || got < 32) {
+        free(buf);
+        return 0;
+    }
+
+    size_t moovPos = 0, moovSize = 0;
+    if (!mp4_find_box(buf, got, "moov", &moovPos, &moovSize)) {
+        free(buf);
+        return 0;
+    }
+
+    size_t mvhdPos = 0, mvhdSize = 0;
+    if (!mp4_find_box(buf + moovPos, moovSize, "mvhd", &mvhdPos, &mvhdSize) || mvhdPos + 24 > moovSize) {
+        free(buf);
+        return 0;
+    }
+
+    const uint8_t* mvhd = buf + moovPos + mvhdPos;
+    uint8_t version = mvhd[8];
+    uint64_t creation = 0;
+    if (version == 1 && mvhdPos + 32 <= moovSize) {
+        creation = read_be64(mvhd + 12);
+    } else {
+        creation = (uint64_t)read_be32(mvhd + 12);
+    }
+
+    if (creation < 2082844800ULL) {
+        free(buf);
+        return 0;
+    }
+
+    time_t unixTime = (time_t)(creation - 2082844800ULL);
+    int ok = format_unix_time_name(unixTime, out, outSize);
+    free(buf);
+    return ok;
+}
+
+static int extract_internal_metadata(const CarverContext* ctx, const FileSignature* sig, uint64_t file_start, uint64_t file_size, char* out, size_t outSize) {
+    if (!sig || !out || outSize == 0) return 0;
+
+    if (sig->extension && strcmp(sig->extension, ".jpg") == 0) {
+        return extract_jpeg_metadata(ctx, file_start, out, outSize);
+    }
+    if (sig->extension && strcmp(sig->extension, ".mp4") == 0) {
+        return extract_mp4_metadata(ctx, file_start, file_size, out, outSize);
+    }
+
+    return 0;
+}
 
 #define MAX_SIGNATURE_CANDIDATES 8
 
@@ -590,9 +907,14 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                     uint64_t min_size = sig->min_size ? sig->min_size : MIN_FILE_SIZE;
                     if (file_size >= min_size) {
                         char filename[256];
+                        char nameStem[128];
                         uint64_t sector_index = file_start / sector_size;
-                        // Use GoPro style naming: GOPR[Sector].EXT
-                        snprintf(filename, sizeof(filename), "GOPR%06llu%s", (unsigned long long)sector_index, sig->extension);
+                        if (extract_internal_metadata(&ctx, sig, file_start, file_size, nameStem, sizeof(nameStem))) {
+                            snprintf(filename, sizeof(filename), "%s%s", nameStem, sig->extension ? sig->extension : "");
+                        } else {
+                            // Use GoPro style naming as the final fallback
+                            snprintf(filename, sizeof(filename), "GOPR%06llu%s", (unsigned long long)sector_index, sig->extension ? sig->extension : "");
+                        }
 
                         char carvedDir[1024];
                         snprintf(carvedDir, sizeof(carvedDir), "%s%cCARVED", output_dir, PATH_SEP);
@@ -600,10 +922,14 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
 
                         char outPath[1024];
                         snprintf(outPath, sizeof(outPath), "%s%c%s", carvedDir, PATH_SEP, filename);
+                        make_unique_path(outPath, sizeof(outPath));
 
                         printf("DEBUG: Saving carved file to %s, size: %llu bytes\n", outPath, (unsigned long long)file_size);
                         if (ExtractFileRange(fd, file_start, file_size, outPath) == 0) {
-                            if (on_file) on_file(context, sig->name, filename, "", file_size, sector_index);
+                            if (on_file) {
+                                const char* savedName = strrchr(outPath, PATH_SEP);
+                                on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", file_size, sector_index);
+                            }
                             total_found++;
                         }
 

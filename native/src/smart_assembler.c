@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef _WIN32
 #define PATH_SEP '\\'
@@ -45,6 +46,136 @@ static void mkdir_p(const char *path) {
         }
     }
     MKDIR(tmp, 0755);
+}
+
+static int is_path_sep(char c) {
+    return c == '/' || c == '\\';
+}
+
+static void sanitize_path_component(const char* src, char* dst, size_t dstSize) {
+    size_t written = 0;
+
+    if (!dst || dstSize == 0) return;
+    dst[0] = '\0';
+    if (!src) return;
+
+    while (*src && written + 1 < dstSize) {
+        unsigned char ch = (unsigned char)*src++;
+        if (ch < 32 || ch == '<' || ch == '>' || ch == ':' || ch == '"' ||
+            ch == '|' || ch == '?' || ch == '*' || ch == '/' || ch == '\\') {
+            ch = '_';
+        }
+        dst[written++] = (char)ch;
+    }
+    dst[written] = '\0';
+
+    while (written > 0 && (dst[written - 1] == ' ' || dst[written - 1] == '.')) {
+        dst[--written] = '\0';
+    }
+
+    if (written == 0 || strcmp(dst, ".") == 0 || strcmp(dst, "..") == 0) {
+        snprintf(dst, dstSize, "_");
+    }
+}
+
+static void sanitize_relative_path(const char* relPath, char* out, size_t outSize) {
+    size_t written = 0;
+
+    if (!out || outSize == 0) return;
+    out[0] = '\0';
+    if (!relPath || !*relPath) return;
+
+    while (*relPath) {
+        while (*relPath && is_path_sep(*relPath)) relPath++;
+        if (!*relPath) break;
+
+        const char* start = relPath;
+        while (*relPath && !is_path_sep(*relPath)) relPath++;
+
+        char segment[256];
+        size_t len = (size_t)(relPath - start);
+        if (len >= sizeof(segment)) len = sizeof(segment) - 1;
+        memcpy(segment, start, len);
+        segment[len] = '\0';
+        sanitize_path_component(segment, segment, sizeof(segment));
+        if (segment[0] == '\0') continue;
+
+        size_t segLen = strlen(segment);
+        if (written > 0 && written + 1 < outSize) {
+            out[written++] = PATH_SEP;
+        }
+        if (written + segLen >= outSize) segLen = outSize - written - 1;
+        memcpy(out + written, segment, segLen);
+        written += segLen;
+        out[written] = '\0';
+        if (written + 1 >= outSize) break;
+    }
+}
+
+static void sanitize_filename(const char* src, char* dst, size_t dstSize, const char* fallback) {
+    sanitize_path_component(src, dst, dstSize);
+    if (dst[0] == '\0' && fallback) {
+        snprintf(dst, dstSize, "%s", fallback);
+    }
+}
+
+static int file_exists(const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return 0;
+    fclose(f);
+    return 1;
+}
+
+static void make_unique_path(char* path, size_t pathSize) {
+    char dir[1024];
+    char leaf[256];
+    char stem[256];
+    char ext[128];
+
+    if (!path || pathSize == 0 || !file_exists(path)) return;
+
+    const char* lastSep = strrchr(path, PATH_SEP);
+    if (lastSep) {
+        size_t dirLen = (size_t)(lastSep - path);
+        if (dirLen >= sizeof(dir)) dirLen = sizeof(dir) - 1;
+        memcpy(dir, path, dirLen);
+        dir[dirLen] = '\0';
+        snprintf(leaf, sizeof(leaf), "%s", lastSep + 1);
+    } else {
+        dir[0] = '\0';
+        snprintf(leaf, sizeof(leaf), "%s", path);
+    }
+
+    const char* lastDot = strrchr(leaf, '.');
+    if (lastDot && lastDot != leaf) {
+        size_t stemLen = (size_t)(lastDot - leaf);
+        if (stemLen >= sizeof(stem)) stemLen = sizeof(stem) - 1;
+        memcpy(stem, leaf, stemLen);
+        stem[stemLen] = '\0';
+        snprintf(ext, sizeof(ext), "%s", lastDot);
+    } else {
+        snprintf(stem, sizeof(stem), "%s", leaf);
+        ext[0] = '\0';
+    }
+
+    for (unsigned i = 1; i < 10000; i++) {
+        char candidate[2048];
+        if (dir[0]) {
+            if (ext[0]) {
+                snprintf(candidate, sizeof(candidate), "%s%c%s_%u%s", dir, PATH_SEP, stem, i, ext);
+            } else {
+                snprintf(candidate, sizeof(candidate), "%s%c%s_%u", dir, PATH_SEP, stem, i);
+            }
+        } else if (ext[0]) {
+            snprintf(candidate, sizeof(candidate), "%s_%u%s", stem, i, ext);
+        } else {
+            snprintf(candidate, sizeof(candidate), "%s_%u", stem, i);
+        }
+        if (!file_exists(candidate)) {
+            snprintf(path, pathSize, "%s", candidate);
+            return;
+        }
+    }
 }
 
 static int AssembleHealthy(int fd, FileInfo* info, const char* outPath, uint32_t bytesPerCluster, uint32_t sectorsPerCluster, int64_t dataStartSector, uint8_t* mask, int64_t totalSectors) {
@@ -158,13 +289,27 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
         FileInfo* fi = &collector->files[i];
 
         char outDir[1024];
-        if (fi->status == FILE_STATUS_ORPHANED) snprintf(outDir, sizeof(outDir), "%s%cORPHANED", outputDir, PATH_SEP);
-        else if (fi->is_deleted) snprintf(outDir, sizeof(outDir), "%s%cDELETED", outputDir, PATH_SEP);
-        else snprintf(outDir, sizeof(outDir), "%s%c%s", outputDir, PATH_SEP, fi->rel_path);
+        if (fi->status == FILE_STATUS_ORPHANED) {
+            snprintf(outDir, sizeof(outDir), "%s%cORPHANED", outputDir, PATH_SEP);
+        } else if (fi->is_deleted) {
+            snprintf(outDir, sizeof(outDir), "%s%cDELETED", outputDir, PATH_SEP);
+        } else if (fi->rel_path[0]) {
+            char safeRel[512];
+            sanitize_relative_path(fi->rel_path, safeRel, sizeof(safeRel));
+            if (safeRel[0]) snprintf(outDir, sizeof(outDir), "%s%c%s", outputDir, PATH_SEP, safeRel);
+            else snprintf(outDir, sizeof(outDir), "%s", outputDir);
+        } else {
+            snprintf(outDir, sizeof(outDir), "%s", outputDir);
+        }
         mkdir_p(outDir);
 
         char outPath[2048];
-        snprintf(outPath, sizeof(outPath), "%s%c%s", outDir, PATH_SEP, fi->filename);
+        char safeName[256];
+        char fallback[32];
+        snprintf(fallback, sizeof(fallback), "FILE_%u", fi->starting_cluster);
+        sanitize_filename(fi->filename, safeName, sizeof(safeName), fallback);
+        snprintf(outPath, sizeof(outPath), "%s%c%s", outDir, PATH_SEP, safeName);
+        make_unique_path(outPath, sizeof(outPath));
 
         int res = -1;
         if (fi->status == FILE_STATUS_HEALTHY && fi->chain_length > 0) {
@@ -177,7 +322,8 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
             recovered++;
             if (on_file) {
                 int64_t sector_offset = dataStart + (int64_t)(fi->starting_cluster - 2) * spc;
-                on_file(context, (fi->status == FILE_STATUS_ORPHANED ? "ORPHAN" : "FAT"), fi->filename, fi->modified_time, fi->file_size, sector_offset, (fi->file_size + bpc - 1) / bpc * spc);
+                const char* savedName = strrchr(outPath, PATH_SEP);
+                on_file(context, (fi->status == FILE_STATUS_ORPHANED ? "ORPHAN" : "FAT"), savedName ? savedName + 1 : outPath, fi->modified_time, fi->file_size, sector_offset, (fi->file_size + bpc - 1) / bpc * spc);
             }
         }
 

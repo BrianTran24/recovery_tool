@@ -588,10 +588,13 @@ static void AddToFileCollector(FileCollector* collector, FileInfo* info) {
 static void PopulateFileInfo(FileInfo* info, const FAT32_DirEntry* e, LFN_State* lfn, const char* relPath, int status) {
     memset(info, 0, sizeof(FileInfo));
     GetFileName(e, lfn, info->filename, sizeof(info->filename));
-    if (relPath) strncpy(info->rel_path, relPath, sizeof(info->rel_path) - 1);
+    info->starting_cluster = GetFirstCluster(e);
+    if (info->filename[0] == '\0') {
+        snprintf(info->filename, sizeof(info->filename), "FILE_%u", info->starting_cluster);
+    }
+    if (relPath) snprintf(info->rel_path, sizeof(info->rel_path), "%s", relPath);
     FormatFatTimestamp(e->write_date, e->write_time, info->modified_time, sizeof(info->modified_time));
     info->file_size = (int64_t)e->file_size;
-    info->starting_cluster = GetFirstCluster(e);
     info->status = status;
     info->is_deleted = (e->name[0] == 0xE5);
 }
