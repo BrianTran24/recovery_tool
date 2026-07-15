@@ -14,6 +14,11 @@
 #define EVENT_ERROR      3
 #define EVENT_DONE       4
 
+// File Status
+#define FILE_STATUS_HEALTHY  1
+#define FILE_STATUS_ORPHANED 2
+#define FILE_STATUS_CARVED   3
+
 // Scan modes
 #define SCAN_MODE_DELETED  1
 #define SCAN_MODE_EXISTING 2
@@ -21,6 +26,19 @@
 
 // Struct truyền qua callback — packed để Dart struct alignment dễ map
 #pragma pack(push, 1)
+
+typedef struct {
+    char     filename[256];
+    char     rel_path[512];
+    char     modified_time[32];
+    int64_t  file_size;
+    uint32_t starting_cluster;
+    uint32_t* cluster_chain;
+    uint32_t chain_length;
+    int32_t  status; // FILE_STATUS_*
+    int32_t  is_deleted;
+} FileInfo;
+
 typedef struct {
     int32_t  event_type;
     double   percent;          // EVENT_PROGRESS
@@ -31,6 +49,7 @@ typedef struct {
     char     modified_time[32];
     int64_t  file_size;
     int64_t  sector_offset;
+    int32_t  status;           // NEW: FILE_STATUS_*
     int32_t  error_code;
     char     error_msg[256];
     int32_t  total_found;

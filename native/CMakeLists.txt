@@ -10,6 +10,7 @@ add_library(recovery SHARED
         src/sector_reader.c
         src/fat32_parser.c
         src/exfat_parser.c
+        src/smart_assembler.c
         src/carver.c
         src/video_repair.c
         src/recovery_ffi.c

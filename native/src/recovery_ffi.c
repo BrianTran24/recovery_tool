@@ -3,6 +3,7 @@
 #include "carver.h"
 #include "fat32_parser.h"
 #include "exfat_parser.h"
+#include "smart_assembler.h"
 #include "video_repair.h"
 #include "platform_config.h"
 #include <stdlib.h>
@@ -56,7 +57,7 @@ static void EmitPhaseProgress(ScanSession* s, double pct, int64_t scanned, int32
     EmitProgress(s, mapped, scanned, speed);
 }
 
-static void EmitFileFound(ScanSession* s, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
+static void EmitFileFound(ScanSession* s, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int32_t status) {
     RecoveryEvent ev = {0};
     ev.event_type  = EVENT_FILE_FOUND;
     strncpy(ev.file_type, type, 15);
@@ -66,6 +67,7 @@ static void EmitFileFound(ScanSession* s, const char* type, const char* name, co
     }
     ev.file_size     = size;
     ev.sector_offset = sector;
+    ev.status        = status;
     PostEvent(s, &ev);
 }
 
@@ -89,14 +91,14 @@ static void on_fat_progress(void* ctx, double pct, int64_t scanned, int32_t spee
 
 static void on_carve_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, modifiedTime, size, sector);
+    EmitFileFound(s, type, name, modifiedTime, size, sector, FILE_STATUS_CARVED);
     s->carve_count++;
 }
 
 static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, modifiedTime, size, sector);
-    MarkSectorsUsed(s, sector, sector_count);
+    int32_t status = (type && strcmp(type, "ORPHAN") == 0) ? FILE_STATUS_ORPHANED : FILE_STATUS_HEALTHY;
+    EmitFileFound(s, type, name, modifiedTime, size, sector, status);
     s->fat_count++;
 }
 
@@ -110,32 +112,37 @@ static int RecoverVolumeFiles(
 ) {
     if (!enable_fat) return 0;
 
+    FileCollector collector = {0};
+
+    // Module 1: Collect Healthy Files
     if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
-        return RecoverExfatAllFiles(
-            s->fd,
-            baseSector,
-            sector0,
-            512,
-            output_dir,
-            s,
-            on_fat_file,
-            on_fat_progress,
-            &s->cancelled,
-            scan_mode
-        );
+        CollectHealthyFilesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
+    } else {
+        CollectHealthyFilesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
     }
 
-    return RecoverAllFiles(
-        s->fd,
-        baseSector,
-        sector0,
-        output_dir,
-        s,
-        on_fat_file,
-        on_fat_progress,
-        &s->cancelled,
-        scan_mode
-    );
+    // Module 2: Collect Orphaned Entries
+    if (!s->cancelled) {
+        if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
+            ScanOrphanedEntriesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
+        } else {
+            ScanOrphanedEntriesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
+        }
+    }
+
+    // Module 3: Smart Assembler
+    int recovered = 0;
+    if (!s->cancelled && collector.count > 0) {
+        recovered = ProcessFiles(s->fd, baseSector, &collector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled, s->sector_mask, s->total_sectors);
+    }
+
+    // Free collector
+    for (uint32_t i = 0; i < collector.count; i++) {
+        if (collector.files[i].cluster_chain) free(collector.files[i].cluster_chain);
+    }
+    if (collector.files) free(collector.files);
+
+    return recovered;
 }
 
 EXPORT int32_t recovery_unmount(const char* device_path) {

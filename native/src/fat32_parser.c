@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -393,7 +394,7 @@ void ScanDirectory(int fd, const FAT32_Info* info,
 #endif
 
 // Scan một directory cluster — tìm entry có 0xE5
-void ScanDirectoryCluster(int fd, const FAT32_Info* info,
+static void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                           const uint32_t* fat,
                           uint32_t cluster,
                           uint8_t* clusterBuf,
@@ -460,9 +461,46 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                 uint32_t remaining = e->file_size;
                 uint32_t curr = first_cluster;
                 int useFATChain = !IsClusterFree(fat, curr);
+                double last_entropy = -1.0;
 
                 while (remaining > 0 && curr >= 2 && curr < 0x0FFFFFF8) {
                     if (ReadCluster(fd, info, curr, fileBuf) < 0) break;
+
+                    // GUIDED CARVING: Kiểm tra phân mảnh nếu là file xóa
+                    if (isDeleted && !useFATChain) {
+                        // 1. Kiểm tra nếu cluster hiện tại chứa header của file khác
+                        if (is_cluster_header(fileBuf, info->bytes_per_cluster)) {
+                            printf("DEBUG: FAT32 Guided Carving - Fragmentation detected at cluster %u (Found new header). Searching for next free cluster...\n", curr);
+                            // Tìm cluster FREE tiếp theo có entropy tương đồng (nếu có thể)
+                            uint32_t next_gap = curr + 1;
+                            int found_gap = 0;
+                            while (next_gap < info->total_clusters + 2 && next_gap < curr + 1024) { // Giới hạn tìm kiếm 1024 clusters
+                                if (IsClusterFree(fat, next_gap)) {
+                                    // Ở đây có thể thêm kiểm tra entropy nếu muốn chính xác hơn
+                                    curr = next_gap;
+                                    found_gap = 1;
+                                    break;
+                                }
+                                next_gap++;
+                            }
+                            if (!found_gap) break; // Không tìm thấy vùng trống nào tiếp theo
+                            if (ReadCluster(fd, info, curr, fileBuf) < 0) break;
+                        }
+
+                        // 2. Kiểm tra Entropy (nếu file đủ lớn và không phải cluster đầu)
+                        if (last_entropy > 0 && remaining > info->bytes_per_cluster) {
+                            double current_entropy = calculate_entropy(fileBuf, info->bytes_per_cluster);
+                            // Nếu entropy thay đổi quá đột ngột (> 50% cho dữ liệu nén/phức tạp), có thể là vùng rác
+                            if (last_entropy > 6.0 && current_entropy < 4.0) {
+                                printf("DEBUG: FAT32 Guided Carving - Low entropy detected at cluster %u (%.2f vs %.2f). Potential fragment end.\n", curr, current_entropy, last_entropy);
+                                // Có thể thử tìm cluster tiếp theo hoặc dừng lại
+                            }
+                            last_entropy = current_entropy;
+                        } else {
+                            last_entropy = calculate_entropy(fileBuf, info->bytes_per_cluster);
+                        }
+                    }
+
                     uint32_t writeSize = (remaining < info->bytes_per_cluster) ? remaining : info->bytes_per_cluster;
                     fwrite(fileBuf, 1, writeSize, out);
                     remaining -= writeSize;
@@ -474,9 +512,21 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                         // If we are following a "ghost" chain (deleted file),
                         // stop if we hit a cluster that is actually in use by another file.
                         if (curr < info->total_clusters + 2 && !IsClusterFree(fat, curr)) {
-                            break;
+                            // Cố gắng nhảy qua vùng đang bận (Gap Search)
+                            uint32_t jump = curr;
+                            int jumped = 0;
+                            while (jump < info->total_clusters + 2 && jump < curr + 512) {
+                                if (IsClusterFree(fat, jump)) {
+                                    curr = jump;
+                                    jumped = 1;
+                                    break;
+                                }
+                                jump++;
+                            }
+                            if (!jumped) break;
                         }
                     }
+                    if (cancelled && *cancelled) break;
                 }
                 fclose(out);
                 free(fileBuf);
@@ -526,7 +576,118 @@ void ScanDirectoryCluster(int fd, const FAT32_Info* info,
 }
 
 // Scan toàn bộ directory (follow cluster chain)
-void ScanDirectory(int fd, const FAT32_Info* info,
+static void AddToFileCollector(FileCollector* collector, FileInfo* info) {
+    if (collector->count >= collector->capacity) {
+        uint32_t newCap = collector->capacity == 0 ? 128 : collector->capacity * 2;
+        collector->files = (FileInfo*)realloc(collector->files, newCap * sizeof(FileInfo));
+        collector->capacity = newCap;
+    }
+    collector->files[collector->count++] = *info;
+}
+
+static void PopulateFileInfo(FileInfo* info, const FAT32_DirEntry* e, LFN_State* lfn, const char* relPath, int status) {
+    memset(info, 0, sizeof(FileInfo));
+    GetFileName(e, lfn, info->filename, sizeof(info->filename));
+    if (relPath) strncpy(info->rel_path, relPath, sizeof(info->rel_path) - 1);
+    FormatFatTimestamp(e->write_date, e->write_time, info->modified_time, sizeof(info->modified_time));
+    info->file_size = (int64_t)e->file_size;
+    info->starting_cluster = GetFirstCluster(e);
+    info->status = status;
+    info->is_deleted = (e->name[0] == 0xE5);
+}
+
+static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode);
+
+static void CollectFromDirectory(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t startCluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode) {
+    uint32_t cluster = startCluster;
+    int maxChain = 65536;
+    while (cluster >= 2 && cluster < 0x0FFFFFF8 && maxChain-- > 0) {
+        if (cancelled && *cancelled) return;
+        if (ReadCluster(fd, info, cluster, clusterBuf) == 0) {
+            CollectFromCluster(fd, info, fat, cluster, clusterBuf, collector, relPath, cancelled, scan_mode);
+        }
+        cluster = FATNextCluster(fat, cluster);
+    }
+}
+
+static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode) {
+    uint32_t entriesPerCluster = info->bytes_per_cluster / sizeof(FAT32_DirEntry);
+    FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
+    LFN_State lfn = {0};
+    lfn.expected_seq = -1;
+
+    for (uint32_t i = 0; i < entriesPerCluster; i++) {
+        if (cancelled && *cancelled) return;
+        FAT32_DirEntry* e = &entries[i];
+        if (e->name[0] == 0x00) break;
+
+        if (e->attributes == ATTR_LFN) {
+            ProcessLFNEntry((const uint8_t*)e, &lfn);
+            continue;
+        }
+
+        if (MatchFile(e, scan_mode)) {
+            FileInfo fi;
+            PopulateFileInfo(&fi, e, &lfn, relPath, FILE_STATUS_HEALTHY);
+
+            // For healthy files, we can follow the FAT chain if the file is NOT deleted
+            // or if the FAT chain is still valid (rare for deleted files but possible).
+            if (!fi.is_deleted) {
+                // Count chain length
+                uint32_t curr = fi.starting_cluster;
+                uint32_t len = 0;
+                while (curr >= 2 && curr < 0x0FFFFFF8 && len < 1000000) { // Safety limit
+                    len++;
+                    curr = FATNextCluster(fat, curr);
+                }
+                if (len > 0) {
+                    fi.chain_length = len;
+                    fi.cluster_chain = (uint32_t*)malloc(len * sizeof(uint32_t));
+                    curr = fi.starting_cluster;
+                    for (uint32_t j = 0; j < len; j++) {
+                        fi.cluster_chain[j] = curr;
+                        curr = FATNextCluster(fat, curr);
+                    }
+                }
+            }
+            AddToFileCollector(collector, &fi);
+        }
+
+        if (e->name[0] != 0xE5 && (e->attributes & ATTR_DIRECTORY) && !(e->attributes & ATTR_VOLUME_ID) && e->name[0] != '.') {
+            uint32_t subCluster = GetFirstCluster(e);
+            char subFolderName[256];
+            LFN_State tempLfn = lfn;
+            GetFileName(e, &tempLfn, subFolderName, sizeof(subFolderName));
+
+            char subRelPath[512];
+            if (relPath && relPath[0]) snprintf(subRelPath, sizeof(subRelPath), "%s%c%s", relPath, PATH_SEP, subFolderName);
+            else snprintf(subRelPath, sizeof(subRelPath), "%s", subFolderName);
+
+            uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
+            CollectFromDirectory(fd, info, fat, subCluster, subBuf, collector, subRelPath, cancelled, scan_mode);
+            free(subBuf);
+        }
+        ResetLFN(&lfn);
+    }
+}
+
+static void ScanDirectoryCluster(int fd, const FAT32_Info* info,
+                          const uint32_t* fat,
+                          uint32_t cluster,
+                          uint8_t* clusterBuf,
+                          void* context,
+                          FatFileCallback on_file,
+                          FatProgressCallback on_progress,
+                          double progress_start,
+                          double progress_end,
+                          int* visited_clusters,
+                          const char* outputDir,
+                          const char* relPath,
+                          volatile int* cancelled,
+                          int* recoveredCount,
+                          int scan_mode);
+
+static void ScanDirectory(int fd, const FAT32_Info* info,
                    const uint32_t* fat,
                    uint32_t startCluster,
                    uint8_t* clusterBuf,
@@ -542,7 +703,7 @@ void ScanDirectory(int fd, const FAT32_Info* info,
                    int* recoveredCount,
                    int scan_mode) {
     uint32_t cluster = startCluster;
-    int maxChain = 65536; // Giới hạn phòng loop vô hạn
+    int maxChain = 65536;
 
     while (cluster >= 2 && cluster < 0x0FFFFFF8 && maxChain-- > 0) {
         if (cancelled && *cancelled) return;
@@ -573,6 +734,98 @@ static int IsFatDirCluster(const uint8_t* buf, uint32_t sz) {
     return (dirEntries >= 1);
 }
 
+void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode) {
+    FAT32_BPB bpb;
+    FAT32_Info info;
+    if (ParseBPB(sector0, &bpb, &info) < 0) return;
+    info.baseSector = baseSector;
+
+    uint32_t* fat = LoadFATTable(fd, &info);
+    if (!fat) return;
+
+    uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
+    if (!clusterBuf) { free(fat); return; }
+
+    CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, scan_mode);
+
+    // Also hunt for "lost" directories that are marked as FREE but look like directories
+    for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
+        if (IsClusterFree(fat, c)) {
+            if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
+                if (IsFatDirCluster(clusterBuf, info.bytes_per_cluster)) {
+                    char folderName[32]; snprintf(folderName, sizeof(folderName), "found_%u", c);
+                    CollectFromCluster(fd, &info, fat, c, clusterBuf, collector, folderName, cancelled, scan_mode);
+                }
+            }
+        }
+        if (on_progress && (c % 5000 == 0)) {
+            on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
+        }
+    }
+
+    free(clusterBuf);
+    free(fat);
+}
+
+void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled) {
+    FAT32_BPB bpb;
+    FAT32_Info info;
+    if (ParseBPB(sector0, &bpb, &info) < 0) return;
+    info.baseSector = baseSector;
+
+    uint32_t* fat = LoadFATTable(fd, &info);
+    if (!fat) return;
+
+    uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
+    if (!clusterBuf) { free(fat); return; }
+
+    LFN_State lfn = {0};
+    lfn.expected_seq = -1;
+
+    for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
+        // We look for directory entries everywhere in data region,
+        // especially in clusters not already identified as directories by Module 1.
+        if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
+            // Is it a directory cluster? (Check for common entry signatures)
+            FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
+            int potentialEntries = 0;
+            for (uint32_t i = 0; i < info.bytes_per_cluster / 32; i++) {
+                FAT32_DirEntry* e = &entries[i];
+                if (e->name[0] == 0x00) break;
+                if (e->attributes == ATTR_LFN) {
+                    ProcessLFNEntry((const uint8_t*)e, &lfn);
+                    continue;
+                }
+
+                // If it looks like a valid file but it's not in the FS tree
+                if (MatchFile(e, SCAN_MODE_BOTH)) {
+                    // Check if we already have this starting cluster in our collector
+                    int exists = 0;
+                    uint32_t first_cluster = GetFirstCluster(e);
+                    for (uint32_t j = 0; j < collector->count; j++) {
+                        if (collector->files[j].starting_cluster == first_cluster) {
+                            exists = 1; break;
+                        }
+                    }
+
+                    if (!exists) {
+                        FileInfo fi;
+                        PopulateFileInfo(&fi, e, &lfn, "ORPHANED", FILE_STATUS_ORPHANED);
+                        AddToFileCollector(collector, &fi);
+                        potentialEntries++;
+                    }
+                }
+                ResetLFN(&lfn);
+            }
+        }
+        if (on_progress && (c % 5000 == 0)) {
+            on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
+        }
+    }
+
+    free(clusterBuf);
+    free(fat);
+}
 
 int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0,
                            const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode) {

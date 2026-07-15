@@ -50,7 +50,8 @@ typedef enum {
     STRATEGY_FOOTER,
     STRATEGY_SIZE_FIELD,
     STRATEGY_MAX_SIZE,
-    STRATEGY_SMART_VIDEO
+    STRATEGY_SMART_VIDEO,
+    STRATEGY_SMART_JPEG
 } CarveStrategy;
 
 typedef struct {
@@ -209,6 +210,100 @@ static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_st
 #define JPEG_MIN_SIZE (50ULL * 1024) // Reduced from 150KB to catch more valid photos
 #define PNG_MIN_SIZE  (16ULL * 1024)
 
+// JPEG Smart Carving support
+#include <math.h>
+
+double calculate_entropy(const uint8_t* data, size_t len) {
+    if (len == 0) return 0.0;
+    uint32_t counts[256] = {0};
+    for (size_t i = 0; i < len; i++) counts[data[i]]++;
+
+    double entropy = 0;
+    for (int i = 0; i < 256; i++) {
+        if (counts[i] > 0) {
+            double p = (double)counts[i] / len;
+            entropy -= p * (log(p) / log(2.0));
+        }
+    }
+    return entropy;
+}
+
+static double jpeg_calculate_entropy(const uint8_t* data, size_t len) {
+    return calculate_entropy(data, len);
+}
+
+static uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+    uint64_t pos = file_start;
+    uint8_t marker_buf[4];
+
+    // 1. Skip FF D8
+    pos += 2;
+
+    // 2. Parse Markers until SOS (FF DA)
+    while (pos + 4 < ctx->disk_size) {
+        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        if (READ(ctx->fd, marker_buf, 4) != 4) break;
+
+        if (marker_buf[0] != 0xFF) break; // Invalid marker
+        uint8_t marker = marker_buf[1];
+        if (marker == 0xDA) { // Start of Scan
+            pos += 2; // Move to scan data
+            break;
+        }
+
+        if (marker == 0xD8) { pos += 2; continue; } // Extra SOI?
+        if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) { // No length markers
+            pos += 2;
+            continue;
+        }
+
+        uint32_t marker_len = (marker_buf[2] << 8) | marker_buf[3];
+        pos += marker_len + 2;
+    }
+
+    // 3. Scan compressed data (Entropy-based)
+    uint64_t last_valid_pos = pos;
+    uint8_t chunk[16 * 1024];
+    int continuous_low_entropy = 0;
+    int found_eoi = 0;
+
+    while (pos < file_start + (50ULL * 1024 * 1024)) { // Max 50MB for JPEG
+        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        ssize_t n = READ(ctx->fd, chunk, sizeof(chunk));
+        if (n < 64) break;
+
+        // Check entropy of the chunk
+        double entropy = jpeg_calculate_entropy(chunk, (size_t)n);
+
+        // JPEG compressed data usually has entropy > 7.0
+        if (entropy < 6.0) {
+            continuous_low_entropy++;
+            if (continuous_low_entropy > 4) break; // ~64KB of low entropy = fragmentation/end
+        } else {
+            continuous_low_entropy = 0;
+            last_valid_pos = pos + (uint64_t)n;
+        }
+
+        // Look for EOI (FF D9) in chunk
+        for (size_t i = 0; i < (size_t)n - 1; i++) {
+            if (chunk[i] == 0xFF && chunk[i+1] == 0xD9) {
+                found_eoi = 1;
+                return pos + (uint64_t)i + 2 - file_start;
+            }
+            // Check for restart markers if fragmented
+            if (chunk[i] == 0xFF && chunk[i+1] >= 0xD0 && chunk[i+1] <= 0xD7) {
+                last_valid_pos = pos + (uint64_t)i + 2;
+            }
+        }
+
+        pos += (uint64_t)n;
+        if (pos > ctx->disk_size) break;
+    }
+
+    if (last_valid_pos > file_start) return last_valid_pos - file_start;
+    return 0;
+}
+
 static int jpeg_get_dimensions(const uint8_t* buf, size_t len, uint32_t* width, uint32_t* height) {
     if (len < 10) return 0;
     size_t pos = 2; // Skip FF D8
@@ -269,7 +364,8 @@ static FileSignature SIGNATURES[] = {
         .name = "JPEG", .extension = ".jpg",
         .header = {0xFF, 0xD8, 0xFF}, .header_len = 3,
         .footer = {0xFF, 0xD9}, .footer_len = 2,
-        .strategy = STRATEGY_FOOTER, .max_size = 100ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
+        .strategy = STRATEGY_SMART_JPEG, .max_size = 100ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
+        .read_size = jpeg_smart_carve_size,
         .validate = jpeg_validate
     },
     {
@@ -389,6 +485,24 @@ static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const 
     return 0;
 }
 
+int is_cluster_header(const uint8_t* buf, size_t len) {
+    if (len < 8) return 0;
+    for (size_t s = 0; s < NUM_SIGNATURES; s++) {
+        const FileSignature* sig = &SIGNATURES[s];
+        if (sig->header_len > 0 && sig->header_offset + sig->header_len <= len) {
+            if (memcmp(buf + sig->header_offset, sig->header, sig->header_len) == 0) {
+                // Potential header found, validate if it has a validator
+                if (sig->validate) {
+                    if (sig->validate(buf, len)) return 1;
+                    else continue;
+                }
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask) {
     const uint32_t chunk_size = 4U * 1024U * 1024U;
     CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = chunk_size };
@@ -461,7 +575,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                     if (sig->strategy == STRATEGY_FOOTER) {
                         uint64_t end = FindFooter(&ctx, file_start, sig);
                         if (end > file_start) file_size = end - file_start;
-                    } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO) {
+                    } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO || sig->strategy == STRATEGY_SMART_JPEG) {
                         if (sig->read_size) {
                             uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
                             if (s_field > 0) file_size = s_field;
