@@ -15,6 +15,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
   int _scanMode = 1; // 1=Deleted, 2=Existing, 3=Both
   String? _outputDir;
   final TextEditingController _pathController = TextEditingController();
+  final TextEditingController _refController = TextEditingController();
+  String _referenceVideo = r'assets\GX011168.MP4';
 
   @override
   void initState() {
@@ -22,6 +24,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     // Mặc định folder khôi phục là E:\test theo yêu cầu
     _outputDir = r'E:\test';
     _pathController.text = _outputDir!;
+    // Mặc định video tham chiếu (dùng để repair video thiếu moov).
+    _refController.text = _referenceVideo;
   }
 
   Future<void> _pickDirectory() async {
@@ -30,6 +34,20 @@ class _ConfigScreenState extends State<ConfigScreen> {
       setState(() {
         _outputDir = result;
         _pathController.text = result;
+      });
+    }
+  }
+
+  Future<void> _pickReferenceVideo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp4', 'mov', 'MP4', 'MOV'],
+    );
+    final picked = result?.files.single.path;
+    if (picked != null) {
+      setState(() {
+        _referenceVideo = picked;
+        _refController.text = picked;
       });
     }
   }
@@ -57,6 +75,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           enableFat: true,
           enableCarve: true,
           scanMode: _scanMode,
+          referenceVideo: _referenceVideo,
         ),
       ),
     );
@@ -173,6 +192,35 @@ class _ConfigScreenState extends State<ConfigScreen> {
                   onPressed: _pickDirectory,
                   icon: const Icon(Icons.folder_open),
                   label: const Text('Duyệt'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+            Text('Video tham chiếu (để sửa video lỗi)', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Dùng một video khỏe cùng máy quay để tự động dựng lại các video bị mất chỉ mục (moov) khi khôi phục.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _refController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: _pickReferenceVideo,
+                  icon: const Icon(Icons.movie_outlined),
+                  label: const Text('Chọn'),
                 ),
               ],
             ),

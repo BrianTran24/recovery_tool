@@ -11,6 +11,21 @@
 #include <time.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+#define FFI_PATH_SEP '\\'
+#else
+#define FFI_PATH_SEP '/'
+#endif
+
+// Nhận diện VBR filesystem bằng NỘI DUNG (không dựa vào partition type byte của MBR).
+// Trả về 1 nếu sector trông giống Boot Sector của FAT/exFAT hợp lệ.
+static int LooksLikeFsVbr(const uint8_t* vbr) {
+    if (vbr[510] != 0x55 || vbr[511] != 0xAA) return 0;
+    if (memcmp(vbr + 3, "EXFAT   ", 8) == 0) return 1;        // exFAT
+    if (vbr[0] == 0xEB || vbr[0] == 0xE9) return 1;           // FAT12/16/32 jump
+    return 0;
+}
+
 typedef struct {
     int      fd;
     volatile int cancelled;
@@ -22,6 +37,7 @@ typedef struct {
     double   progress_span;
     uint8_t* sector_mask;
     int64_t  total_sectors;
+    char     reference_video[1024];
 } ScanSession;
 
 static ScanSession g_sessions[8] = {0};
@@ -57,13 +73,16 @@ static void EmitPhaseProgress(ScanSession* s, double pct, int64_t scanned, int32
     EmitProgress(s, mapped, scanned, speed);
 }
 
-static void EmitFileFound(ScanSession* s, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int32_t status) {
+static void EmitFileFound(ScanSession* s, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int32_t status, const char* folder) {
     RecoveryEvent ev = {0};
     ev.event_type  = EVENT_FILE_FOUND;
     strncpy(ev.file_type, type, 15);
     strncpy(ev.filename,  name, 255);
     if (modifiedTime) {
         strncpy(ev.modified_time, modifiedTime, 31);
+    }
+    if (folder) {
+        strncpy(ev.folder, folder, 255);
     }
     ev.file_size     = size;
     ev.sector_offset = sector;
@@ -91,14 +110,14 @@ static void on_fat_progress(void* ctx, double pct, int64_t scanned, int32_t spee
 
 static void on_carve_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, modifiedTime, size, sector, FILE_STATUS_CARVED);
+    EmitFileFound(s, type, name, modifiedTime, size, sector, FILE_STATUS_CARVED, "");
     s->carve_count++;
 }
 
-static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count) {
+static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count, const char* folder) {
     ScanSession* s = (ScanSession*)ctx;
     int32_t status = (type && strcmp(type, "ORPHAN") == 0) ? FILE_STATUS_ORPHANED : FILE_STATUS_HEALTHY;
-    EmitFileFound(s, type, name, modifiedTime, size, sector, status);
+    EmitFileFound(s, type, name, modifiedTime, size, sector, status, folder);
     s->fat_count++;
 }
 
@@ -114,6 +133,8 @@ static int RecoverVolumeFiles(
 
     FileCollector collector = {0};
 
+    fprintf(stderr, "[DBG] RVF enter base=%lld exfat=%d\n", (long long)baseSector, memcmp(sector0+3,"EXFAT   ",8)==0); fflush(stderr);
+
     // Module 1: Collect Healthy Files
     if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
         CollectHealthyFilesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
@@ -121,8 +142,12 @@ static int RecoverVolumeFiles(
         CollectHealthyFilesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
     }
 
+    fprintf(stderr, "[DBG] after Module1 collector.count=%u\n", collector.count); fflush(stderr);
+
     // Module 2: Collect Orphaned Entries
-    if (!s->cancelled) {
+    // Skipped for the fast "Existing" scan: it linearly reads the whole volume to find
+    // orphaned/deleted directory clusters, which is only relevant for deleted-file recovery.
+    if (!s->cancelled && scan_mode != SCAN_MODE_EXISTING) {
         if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
             ScanOrphanedEntriesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
         } else {
@@ -130,11 +155,15 @@ static int RecoverVolumeFiles(
         }
     }
 
+    fprintf(stderr, "[DBG] after Module2 collector.count=%u\n", collector.count); fflush(stderr);
+
     // Module 3: Smart Assembler
     int recovered = 0;
     if (!s->cancelled && collector.count > 0) {
         recovered = ProcessFiles(s->fd, baseSector, &collector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled, s->sector_mask, s->total_sectors);
     }
+
+    fprintf(stderr, "[DBG] after Module3 recovered=%d\n", recovered); fflush(stderr);
 
     // Free collector
     for (uint32_t i = 0; i < collector.count; i++) {
@@ -143,6 +172,42 @@ static int RecoverVolumeFiles(
     if (collector.files) free(collector.files);
 
     return recovered;
+}
+
+static int ReadSectorAt(int fd, int64_t sector, uint8_t* buf) {
+    if (sector < 0) return 0;
+    if (LSEEK(fd, sector * 512, SEEK_SET) < 0) return 0;
+    return READ(fd, buf, 512) == 512;
+}
+
+// Thử phục hồi một phân vùng bắt đầu tại `base`.
+//  1) Dùng VBR CHÍNH tại `base`.
+//  2) Nếu VBR chính hỏng/không parse được → dùng BACKUP BOOT SECTOR
+//     (exFAT: base+12, FAT32: base+6) NHƯNG vẫn giữ `base` là điểm bắt đầu
+//     phân vùng thật (không lấy vị trí backup làm base — đây là bug cũ khiến
+//     toàn bộ cluster-heap bị lệch và không ra file nào).
+static int RecoverPartition(ScanSession* s, int64_t base, const char* out, int enable_fat, int scan_mode) {
+    uint8_t vbr[512];
+
+    if (ReadSectorAt(s->fd, base, vbr) && LooksLikeFsVbr(vbr)) {
+        if (RecoverVolumeFiles(s, vbr, base, out, enable_fat, scan_mode) > 0) return 1;
+    }
+
+    // exFAT: backup boot region tại base+12 (nội dung giống hệt VBR chính).
+    uint8_t bk[512];
+    if (ReadSectorAt(s->fd, base + 12, bk) &&
+        bk[510] == 0x55 && bk[511] == 0xAA &&
+        memcmp(bk + 3, "EXFAT   ", 8) == 0) {
+        if (RecoverVolumeFiles(s, bk, base, out, enable_fat, scan_mode) > 0) return 1;
+    }
+
+    // FAT32: backup boot sector mặc định tại base+6 (trường backup_boot_sector).
+    if (ReadSectorAt(s->fd, base + 6, bk) &&
+        LooksLikeFsVbr(bk) && memcmp(bk + 3, "EXFAT   ", 8) != 0) {
+        if (RecoverVolumeFiles(s, bk, base, out, enable_fat, scan_mode) > 0) return 1;
+    }
+
+    return 0;
 }
 
 EXPORT int32_t recovery_unmount(const char* device_path) {
@@ -178,7 +243,11 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     s->fat_count  = 0;
     s->carve_count = 0;
     s->progress_base = 0.0;
-    s->progress_span = enable_carve ? 60.0 : 100.0;
+    // Carve chỉ thực sự chạy khi bật carve VÀ không phải chế độ quét nhanh (Existing).
+    // Dùng chung biến này cho cả progress span, mốc kết thúc pha FS, và quyết định chạy
+    // carve — tránh lệch pha khiến thanh tiến trình kẹt ở 24% khi quét nhanh.
+    int32_t will_carve = (enable_carve && scan_mode != SCAN_MODE_EXISTING) ? 1 : 0;
+    s->progress_span = will_carve ? 60.0 : 100.0;
 
     DiskGeometry geo;
     if (GetDiskGeometry(s->fd, &geo) < 0) {
@@ -197,6 +266,11 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     if (enable_fat && !s->cancelled) {
         uint8_t sector[512];
         int found_fat = 0;
+
+        // Tách hẳn output quét nhanh (cấu trúc FS) vào thư mục riêng để quét sâu (carve)
+        // — vốn ghi vào <output_dir>\CARVED — không bao giờ chạm tới file quét nhanh.
+        char fat_output_dir[1024];
+        snprintf(fat_output_dir, sizeof(fat_output_dir), "%s%cSTRUCTURED", output_dir, FFI_PATH_SEP);
 
         EmitPhaseProgress(s, 0.5, 0, 0);
 
@@ -220,11 +294,8 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                             static const uint8_t BASIC_DATA_GUID[16] = {0xA2, 0xA0, 0xD0, 0xEB, 0xE5, 0xB9, 0x33, 0x44, 0x87, 0xC0, 0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7};
                             if (memcmp(entry, BASIC_DATA_GUID, 16) == 0) {
                                 uint64_t start_lba = *((uint64_t*)&entry[32]);
-                                uint8_t vbr[512];
-                                if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                                    if (RecoverVolumeFiles(s, vbr, (int64_t)start_lba, output_dir, enable_fat, scan_mode) > 0) {
-                                        found_fat = 1;
-                                    }
+                                if (RecoverPartition(s, (int64_t)start_lba, fat_output_dir, enable_fat, scan_mode)) {
+                                    found_fat = 1;
                                 }
                             }
                         }
@@ -237,56 +308,73 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
                 for (int i = 0; i < 4; i++) {
                     uint8_t* entry = &sector[446 + (i * 16)];
                     uint8_t type = entry[4];
-                    if (type == 0x0B || type == 0x0C) {
-                        uint32_t start_lba = *((uint32_t*)&entry[8]);
-                        uint8_t vbr[512];
-                        if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
-                            if (RecoverVolumeFiles(s, vbr, (int64_t)start_lba, output_dir, enable_fat, scan_mode) > 0) {
-                                found_fat = 1;
-                            }
-                        }
+                    uint32_t start_lba = *((uint32_t*)&entry[8]);
+
+                    // Bỏ qua entry rỗng, GPT protective (0xEE), và extended partition (0x05/0x0F).
+                    if (type == 0x00 || type == 0xEE || type == 0x05 || type == 0x0F) continue;
+                    if (start_lba == 0 || (int64_t)start_lba >= s->total_sectors) continue;
+
+                    // Nhận diện & phục hồi qua VBR chính; nếu VBR chính hỏng,
+                    // RecoverPartition tự động thử backup boot sector (exFAT +12 /
+                    // FAT32 +6) với base đúng.
+                    if (RecoverPartition(s, (int64_t)start_lba, fat_output_dir, enable_fat, scan_mode)) {
+                        found_fat = 1;
                     }
                 }
             }
 
             if (!found_fat && !s->cancelled) {
-                if (RecoverVolumeFiles(s, sector, 0, output_dir, enable_fat, scan_mode) > 0) {
+                if (RecoverPartition(s, 0, fat_output_dir, enable_fat, scan_mode)) {
                     found_fat = 1;
                 }
             }
         }
 
         if (!found_fat && !s->cancelled) {
-            for (int i = 1; i < 32768; i++) {
+            // Fallback brute-force: dò VBR khi MBR/GPT không dùng được.
+            // Lưu ý: partition thường bắt đầu ở 2048/8192/32768/65536... nên phải quét
+            // ĐỦ XA và BAO GỒM biên (bug cũ dừng ở <32768 nên trượt VBR ở đúng sector 32768).
+            int64_t scan_limit = 1048576; // tối đa 512MB đầu
+            if (scan_limit > s->total_sectors) scan_limit = s->total_sectors;
+            for (int64_t i = 1; i < scan_limit; i++) {
                 if (s->cancelled) break;
-                if (LSEEK(s->fd, (int64_t)i * 512, SEEK_SET) < 0) break;
-                if (READ(s->fd, sector, 512) != 512) break;
+                if (LSEEK(s->fd, i * 512, SEEK_SET) < 0) break;
+                // Sector lỗi thì bỏ qua và đi tiếp thay vì dừng cả vòng dò.
+                if (READ(s->fd, sector, 512) != 512) continue;
 
-                if ((i & 255) == 0) {
-                    double pct = 12.0 + ((double)i / 32767.0) * 28.0;
-                    EmitPhaseProgress(s, pct, (int64_t)i * 512, 0);
+                if ((i & 8191) == 0) {
+                    double pct = 12.0 + ((double)i / (double)scan_limit) * 28.0;
+                    EmitPhaseProgress(s, pct, i * 512, 0);
                 }
 
-                if (sector[510] == 0x55 && sector[511] == 0xAA) {
-                    if (sector[0] == 0xEB || sector[0] == 0xE9) {
-                        if (RecoverVolumeFiles(s, sector, (int64_t)i, output_dir, enable_fat, scan_mode) > 0) {
-                            found_fat = 1;
-                            break;
-                        }
+                if (LooksLikeFsVbr(sector)) {
+                    // Thử coi sector này là VBR chính (base = i).
+                    if (RecoverPartition(s, i, fat_output_dir, enable_fat, scan_mode)) {
+                        found_fat = 1;
+                        break;
+                    }
+                    // Hoặc đây là backup boot sector → base phân vùng thật nằm trước đó
+                    // (exFAT: i-12, FAT32: i-6). Dùng chính nội dung sector này với base
+                    // đã hiệu chỉnh thay vì lấy i làm base (bug cũ → lệch cluster-heap).
+                    int is_exfat = memcmp(sector + 3, "EXFAT   ", 8) == 0;
+                    int64_t real_base = i - (is_exfat ? 12 : 6);
+                    if (real_base >= 0 &&
+                        RecoverVolumeFiles(s, sector, real_base, fat_output_dir, enable_fat, scan_mode) > 0) {
+                        found_fat = 1;
+                        break;
                     }
                 }
             }
         }
 
-        EmitPhaseProgress(s, enable_carve ? 40.0 : 100.0, 0, 0);
+        // Kết thúc pha FS = phase 100%. Khi không carve → span 100 → 100%.
+        // Khi có carve → span 60 → 60%, sau đó carve lấp 60..100 (đơn điệu, không tụt lùi).
+        EmitPhaseProgress(s, 100.0, 0, 0);
     }
 
-    // Luôn chạy Carve ngoại trừ chế độ SCAN_MODE_EXISTING (vì file hiện có đã có trong FS rồi)
-    int32_t final_carve = (scan_mode == SCAN_MODE_EXISTING) ? 0 : 1;
-
-    if (final_carve && !s->cancelled) {
+    if (will_carve && !s->cancelled) {
         double carve_start = 60.0; // FS scan chiếm 60%
-        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask);
+        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask, s->reference_video[0] ? s->reference_video : NULL);
     }
 
     if (s->sector_mask) {
@@ -336,4 +424,16 @@ EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t
 
 EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referencePath, const char* outputPath) {
     return RepairVideo(brokenPath, referencePath, outputPath);
+}
+
+EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath) {
+    if (handle < 0 || handle >= 8) return -1;
+    ScanSession* s = &g_sessions[handle];
+    if (referencePath && referencePath[0]) {
+        strncpy(s->reference_video, referencePath, sizeof(s->reference_video) - 1);
+        s->reference_video[sizeof(s->reference_video) - 1] = '\0';
+    } else {
+        s->reference_video[0] = '\0';
+    }
+    return 0;
 }

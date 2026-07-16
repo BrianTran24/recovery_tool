@@ -1,5 +1,6 @@
 #include "carver.h"
 #include "platform_config.h"
+#include "video_repair.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,7 +74,7 @@ typedef struct {
     CarveStrategy strategy;
     uint64_t      max_size;
     uint64_t      min_size;
-    uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len);
+    uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len, int* out_has_moov);
     int (*validate)(const uint8_t* buf, size_t len);
 } FileSignature;
 
@@ -82,6 +83,20 @@ static int file_exists(const char* path) {
     if (!f) return 0;
     fclose(f);
     return 1;
+}
+
+static int64_t file_size_of(const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return -1;
+#ifdef _WIN32
+    _fseeki64(f, 0, SEEK_END);
+    int64_t s = _ftelli64(f);
+#else
+    fseeko(f, 0, SEEK_END);
+    int64_t s = (int64_t)ftello(f);
+#endif
+    fclose(f);
+    return s;
 }
 
 static void make_unique_path(char* path, size_t pathSize) {
@@ -143,6 +158,127 @@ static uint32_t read_be32(const uint8_t* p) {
 
 static uint64_t read_be64(const uint8_t* p) {
     return ((uint64_t)read_be32(p) << 32) | (uint64_t)read_be32(p + 4);
+}
+
+// === HEVC (H.265) SPS Parser to distinguish GoPro Main vs LRV ===
+
+typedef struct {
+    const uint8_t* buf;
+    size_t len;
+    size_t pos; // bit position
+} BitStream;
+
+static uint32_t bs_read_bit(BitStream* bs) {
+    if (bs->pos / 8 >= bs->len) return 0;
+    uint32_t bit = (bs->buf[bs->pos / 8] >> (7 - (bs->pos % 8))) & 1;
+    bs->pos++;
+    return bit;
+}
+
+static uint32_t bs_read_bits(BitStream* bs, int n) {
+    uint32_t val = 0;
+    for (int i = 0; i < n; i++) val = (val << 1) | bs_read_bit(bs);
+    return val;
+}
+
+static uint32_t bs_read_ue(BitStream* bs) {
+    int zeros = 0;
+    while (bs_read_bit(bs) == 0 && zeros < 32) zeros++;
+    if (zeros == 0) return 0;
+    return (uint32_t)((1 << zeros) - 1 + bs_read_bits(bs, zeros));
+}
+
+static void bs_skip_profile_tier_level(BitStream* bs, int max_sub_layers) {
+    bs_read_bits(bs, 2); // general_profile_space
+    bs_read_bit(bs);     // general_tier_flag
+    bs_read_bits(bs, 5); // general_profile_idc
+    bs->pos += 32;       // general_profile_compatibility_flag[32]
+    bs_read_bit(bs);     // general_progressive_source_flag
+    bs_read_bit(bs);     // general_interlaced_source_flag
+    bs_read_bit(bs);     // general_non_packed_constraint_flag
+    bs_read_bit(bs);     // general_frame_only_constraint_flag
+    bs->pos += 44;       // constraint flags + reserved
+    bs_read_bits(bs, 8); // general_level_idc
+
+    uint8_t sub_layer_profile_present_flag[8];
+    uint8_t sub_layer_level_present_flag[8];
+    for (int i = 0; i < max_sub_layers; i++) {
+        sub_layer_profile_present_flag[i] = (uint8_t)bs_read_bit(bs);
+        sub_layer_level_present_flag[i] = (uint8_t)bs_read_bit(bs);
+    }
+    if (max_sub_layers > 0) bs->pos += (8 - max_sub_layers) * 2;
+
+    for (int i = 0; i < max_sub_layers; i++) {
+        if (sub_layer_profile_present_flag[i]) bs->pos += 88;
+        if (sub_layer_level_present_flag[i]) bs->pos += 8;
+    }
+}
+
+static int parse_hevc_sps_dims(const uint8_t* sps, size_t len, int* w, int* h) {
+    if (len < 20) return 0;
+    BitStream bs = { .buf = sps, .len = len, .pos = 0 };
+
+    // HEVC NAL Header is 2 bytes: F(1) + Type(6) + LayerId(6) + Tid(3)
+    // For SPS, Type = 33 (0x21). Byte 1: 0x42, Byte 2: 0x01
+    if (bs_read_bits(&bs, 1) != 0) return 0; // forbidden_zero_bit
+    if (bs_read_bits(&bs, 6) != 33) return 0; // sps_nal_unit_type
+    bs_read_bits(&bs, 6); // layer_id
+    bs_read_bits(&bs, 3); // temporal_id_plus1
+
+    bs_read_bits(&bs, 4); // sps_video_parameter_set_id
+    int max_sub_layers = bs_read_bits(&bs, 3);
+    bs_read_bit(&bs); // sps_temporal_id_nesting_flag
+
+    bs_skip_profile_tier_level(&bs, max_sub_layers);
+
+    bs_read_ue(&bs); // sps_seq_parameter_set_id
+    uint32_t chroma = bs_read_ue(&bs);
+    if (chroma == 3) bs_read_bit(&bs);
+
+    *w = (int)bs_read_ue(&bs);
+    *h = (int)bs_read_ue(&bs);
+
+    return (*w > 0 && *h > 0);
+}
+
+typedef enum {
+    GOPRO_MAIN,
+    GOPRO_LRV,
+    GOPRO_METADATA,
+    GOPRO_UNKNOWN
+} GoProClusterType;
+
+static GoProClusterType classify_gopro_cluster(const uint8_t* buf, size_t len) {
+    // 1. Check for Metadata (GoPro uses DEVC/GPMF)
+    if (len >= 12) {
+        if (memcmp(buf, "DEVC", 4) == 0 || memcmp(buf + 8, "DEVC", 4) == 0) return GOPRO_METADATA;
+    }
+
+    // 2. Search for HEVC SPS NAL unit to distinguish resolution
+    // Standard Start Code: 00 00 01 (3 bytes) or 00 00 00 01 (4 bytes)
+    for (size_t i = 0; i < len - 32; i++) {
+        if (buf[i] == 0x00 && buf[i+1] == 0x00 && (buf[i+2] == 0x01 || (buf[i+2] == 0x00 && buf[i+3] == 0x01))) {
+            size_t start_code_len = (buf[i+2] == 0x01) ? 3 : 4;
+            const uint8_t* nalu = buf + i + start_code_len;
+            // Byte 1 of HEVC NAL header: Forbidden(1) + Type(6) + LayerId_High(1)
+            // SPS Type is 33 (0x21). Byte 1 = (33 << 1) = 66 (0x42)
+            if (nalu[0] == 0x42 && nalu[1] == 0x01) {
+                int w = 0, h = 0;
+                if (parse_hevc_sps_dims(nalu, len - (i + start_code_len), &w, &h)) {
+                    if (w >= 1920) return GOPRO_MAIN;
+                    if (w > 0 && w <= 1280) return GOPRO_LRV;
+                }
+            }
+        }
+    }
+
+    // 3. Check for ftyp headers
+    if (len >= 16 && memcmp(buf + 4, "ftyp", 4) == 0) {
+        // GoPro Main often has "gopro" or "mp42"
+        if (memcmp(buf + 8, "gopro", 5) == 0) return GOPRO_MAIN;
+    }
+
+    return GOPRO_UNKNOWN;
 }
 
 static int read_prefix(const CarverContext* ctx, uint64_t file_start, uint8_t* buf, size_t want, size_t* got) {
@@ -416,15 +552,47 @@ static int mp4_read_bytes(const CarverContext* ctx, uint64_t pos, const uint8_t*
     return (READ(ctx->fd, out, (uint32_t)need) == (ssize_t)need) ? 0 : -1;
 }
 
-static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+// Quét tiến tìm box MP4 hợp lệ kế tiếp (dùng để nhảy qua khoảng phân mảnh).
+// Trả về vị trí tuyệt đối của box, hoặc 0 nếu không thấy trong cửa sổ.
+static uint64_t mp4_find_next_box(const CarverContext* ctx, uint64_t from, uint64_t max_scan) {
+    static const char* types[] = { "moov", "mdat", "free", "skip", "wide", "ftyp", "uuid" };
+    uint8_t win[65536];
+    uint64_t pos = from;
+    uint64_t end = from + max_scan;
+    if (end > ctx->disk_size) end = ctx->disk_size;
+
+    while (pos + 8 <= end) {
+        size_t want = sizeof(win);
+        if (pos + want > end) want = (size_t)(end - pos);
+        if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        ssize_t n = READ(ctx->fd, win, (uint32_t)want);
+        if (n < 8) break;
+
+        for (size_t i = 0; i + 8 <= (size_t)n; i++) {
+            const uint8_t* t = win + i + 4;
+            for (size_t k = 0; k < sizeof(types) / sizeof(types[0]); k++) {
+                if (memcmp(t, types[k], 4) == 0) {
+                    uint32_t bs = read_be32(win + i);
+                    if (bs >= 8 && (uint64_t)bs <= ctx->disk_size) return pos + i;
+                    if (bs == 1) return pos + i; // 64-bit size box
+                }
+            }
+        }
+        pos += (n > 8) ? (size_t)(n - 7) : (size_t)n; // chồng lấn 7 byte
+    }
+    return 0;
+}
+
+static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
     uint64_t pos = file_start;
     uint64_t total_size = 0;
     uint8_t box_header[16];
     int found_moov = 0;
     int found_mdat = 0;
+    int frag_jumps = 0;
 
     // Duyệt qua các box của MP4 trực tiếp trên đĩa để tìm kích thước thực
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 400; i++) {
         if (pos + 8 > ctx->disk_size) break;
 
         if (mp4_read_bytes(ctx, pos, buf, len, file_start, box_header, 8) != 0) break;
@@ -450,22 +618,42 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
             }
         }
 
-        if (!valid_type || (box_size < 8 && box_size != 0)) break;
-
-        // KIỂM TRA HỢP LỆ: Box size không được lớn hơn disk_size
-        if (box_size > ctx->disk_size) break;
+        // #5 XỬ LÝ PHÂN MẢNH: box không hợp lệ / kích thước sai → thử nhảy qua khoảng
+        // phân mảnh để tìm box hợp lệ kế tiếp (đặc biệt hữu ích khi moov nằm cuối).
+        if (!valid_type || (box_size < 8 && box_size != 0) || box_size > ctx->disk_size) {
+            if (!found_moov && frag_jumps < 8) {
+                uint64_t nxt = mp4_find_next_box(ctx, pos + 4, 128ULL * 1024 * 1024);
+                if (nxt > pos) {
+                    frag_jumps++;
+                    pos = nxt;
+                    total_size = pos - file_start;
+                    continue;
+                }
+            }
+            break;
+        }
 
         if (strcmp(type, "moov") == 0) found_moov = 1;
         if (strcmp(type, "mdat") == 0) found_mdat = 1;
 
-        if (box_size == 0) break; // Box kéo dài đến hết file
+        if (box_size == 0) { // Box kéo dài đến hết file
+            pos = ctx->disk_size; // Chấp nhận box đến hết đĩa
+            total_size = pos - file_start;
+            break;
+        }
 
         pos += box_size;
         total_size = pos - file_start;
 
-        if (found_moov && found_mdat && total_size > 1024 * 1024) return total_size;
-        if (total_size > 10000ULL * 1024 * 1024) break; // Giới hạn an toàn 10GB
+        // Nếu tìm thấy moov, khả năng cao là đã đủ thông tin để play
+        if (found_moov && found_mdat && total_size > 1024 * 1024) {
+            if (out_has_moov) *out_has_moov = 1;
+            return total_size;
+        }
+        if (total_size > 20000ULL * 1024 * 1024) break; // Tăng giới hạn lên 20GB cho video 4K
     }
+
+    if (out_has_moov) *out_has_moov = found_moov;
 
     // CẢI TIẾN: Trả về kích thước ngay cả khi thiếu moov (nhưng có mdat)
     // để cứu được dữ liệu thô của các video bị lỗi/crashed
@@ -476,7 +664,8 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
 // SMART CARVER: Quét NAL units để xử lý phân mảnh
 // Logic: Tìm các start code 00 00 00 01 và kiểm tra NAL type
 // Nếu gặp vùng dữ liệu lạ, thử tìm start code tiếp theo trong phạm vi 1MB
-static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
+    if (out_has_moov) *out_has_moov = 0;
     uint64_t pos = file_start;
     uint64_t last_valid_pos = file_start;
     uint8_t chunk[1024 * 64];
@@ -491,7 +680,7 @@ static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_st
 
     while (pos < file_start + max_scan) {
         if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
-        ssize_t n = READ(ctx->fd, chunk, chunk_size);
+        ssize_t n = READ(ctx->fd, chunk, (uint32_t)chunk_size);
         if (n < 16) break;
 
         int found_nal_in_chunk = 0;
@@ -549,7 +738,8 @@ static double jpeg_calculate_entropy(const uint8_t* data, size_t len) {
     return calculate_entropy(data, len);
 }
 
-static uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len) {
+static uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
+    if (out_has_moov) *out_has_moov = 0;
     uint64_t pos = file_start;
     uint8_t marker_buf[4];
 
@@ -666,13 +856,18 @@ static int jpeg_validate(const uint8_t* buf, size_t len) {
 
 
 static int mp4_validate(const uint8_t* buf, size_t len) {
-    if (len < 12) return 0;
+    if (len < 32) return 0;
     // Kiểm tra ftyp brand (phải là ký tự in được)
     for (int i = 8; i < 12; i++) {
         if (buf[i] != 0 && (buf[i] < 32 || buf[i] > 126)) return 0;
     }
     // Brand không được rỗng
     if (buf[8] == 0 && buf[9] == 0 && buf[10] == 0 && buf[11] == 0) return 0;
+
+    // Kiểm tra cấu trúc box đầu tiên (ftyp)
+    uint32_t ftypSize = read_be32(buf);
+    if (ftypSize < 8 || ftypSize > 1024) return 0; // ftyp thường nhỏ
+
     return 1;
 }
 
@@ -699,7 +894,7 @@ static FileSignature SIGNATURES[] = {
         .validate = mp4_validate
     },
     {
-        .name = "Video (Smart)", .extension = ".mp4",
+        .name = "Video (Smart)", .extension = ".h264",
         .header = {0x00, 0x00, 0x00, 0x01, 0x67}, .header_len = 5,
         .strategy = STRATEGY_SMART_VIDEO, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
         .read_size = h264_smart_carve_size,
@@ -745,6 +940,68 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
     fclose(out);
     free(buf);
     return (remaining == 0) ? 0 : -1;
+}
+
+// === GOPRO DE-INTERLEAVING EXTRACTOR ===
+// This tool extracts the main video stream by skipping interleaved LRV (Low-Res) clusters.
+// This is critical for GoPro 13 because repair tools fail when GX and GL data are mixed.
+int ExtractGoProVideo(int fd, uint64_t start_byte, uint64_t max_size, const char* output_path, uint64_t* out_written) {
+    FILE* out = fopen(output_path, "wb");
+    if (!out) return -1;
+
+    // GoPro 13 on exFAT uses 128KB or 256KB clusters. We'll use 64KB as a base unit.
+    const size_t cluster_size = 64 * 1024;
+    uint8_t* buf = (uint8_t*)malloc(cluster_size);
+    if (!buf) { fclose(out); return -1; }
+
+    uint64_t pos = start_byte;
+    uint64_t end = start_byte + max_size;
+    uint64_t total_written = 0;
+    int consecutive_lrv = 0;
+    int consecutive_main = 0;
+
+    // First chunk is the header, always keep it.
+    if (LSEEK(fd, (off_t_64)pos, SEEK_SET) >= 0 && READ(fd, buf, (uint32_t)cluster_size) == (ssize_t)cluster_size) {
+        fwrite(buf, 1, cluster_size, out);
+        total_written += cluster_size;
+        pos += cluster_size;
+    }
+
+    while (pos < end) {
+        if (LSEEK(fd, (off_t_64)pos, SEEK_SET) < 0) break;
+        ssize_t n = READ(fd, buf, (uint32_t)cluster_size);
+        if (n <= 0) break;
+
+        GoProClusterType type = classify_gopro_cluster(buf, (size_t)n);
+
+        if (type == GOPRO_MAIN || type == GOPRO_METADATA) {
+            fwrite(buf, 1, (size_t)n, out);
+            total_written += (size_t)n;
+            consecutive_main++;
+            consecutive_lrv = 0;
+        } else if (type == GOPRO_LRV) {
+            // Skip LRV cluster to de-interleave the stream
+            consecutive_lrv++;
+            consecutive_main = 0;
+        } else {
+            // Unknown cluster: Video data without SPS.
+            // Since Main Video bitrate is much higher, most "unknown" clusters are Main Video.
+            if (consecutive_lrv == 0) {
+                fwrite(buf, 1, (size_t)n, out);
+                total_written += (size_t)n;
+            }
+        }
+
+        pos += (uint64_t)n;
+
+        // Safety break: if we skip too much or find another file header
+        if (consecutive_lrv > 200) break; // 12MB of LRV is unlikely
+    }
+
+    fclose(out);
+    free(buf);
+    if (out_written) *out_written = total_written;
+    return 0;
 }
 
 static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const FileSignature* sig) {
@@ -802,6 +1059,40 @@ static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const 
     return 0;
 }
 
+// Xác định file MP4 có phải nguồn GoPro (interleaved LRV) hay không.
+// Chỉ khi đúng GoPro mới nên dùng bộ lọc de-interleaving ExtractGoProVideo,
+// vì filter này sẽ hủy hoại byte-stream của MP4 thông thường.
+static int is_gopro_video(int fd, uint64_t file_start) {
+    const size_t probe = 64 * 1024;
+    uint8_t* p = (uint8_t*)malloc(probe);
+    if (!p) return 0;
+
+    if (LSEEK(fd, (off_t_64)file_start, SEEK_SET) < 0) { free(p); return 0; }
+    ssize_t n = READ(fd, p, (uint32_t)probe);
+    if (n < 32) { free(p); return 0; }
+    size_t got = (size_t)n;
+
+    int is_gopro = 0;
+
+    // 1. ftyp brand chứa "gopro"
+    if (got >= 16 && memcmp(p + 4, "ftyp", 4) == 0) {
+        if (memcmp(p + 8, "gopro", 5) == 0 || memcmp(p + 8, "GoPro", 5) == 0) {
+            is_gopro = 1;
+        }
+    }
+
+    // 2. Tìm chuỗi nhận diện GoPro (GPMF "GPRO"/"DEVC") hoặc firmware tag trong header
+    if (!is_gopro && got >= 8) {
+        for (size_t i = 0; i + 4 <= got; i++) {
+            if (memcmp(p + i, "GoPro", 5 <= got - i ? 5 : got - i) == 0 && (got - i) >= 5) { is_gopro = 1; break; }
+            if (memcmp(p + i, "DEVC", 4) == 0) { is_gopro = 1; break; }
+        }
+    }
+
+    free(p);
+    return is_gopro;
+}
+
 int is_cluster_header(const uint8_t* buf, size_t len) {
     if (len < 8) return 0;
     for (size_t s = 0; s < NUM_SIGNATURES; s++) {
@@ -820,7 +1111,7 @@ int is_cluster_header(const uint8_t* buf, size_t len) {
     return 0;
 }
 
-int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask) {
+int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask, const char* reference_video) {
     const uint32_t chunk_size = 4U * 1024U * 1024U;
     CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = chunk_size };
     uint8_t* buf = (uint8_t*)malloc((size_t)chunk_size + 1024);
@@ -889,12 +1180,13 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
 
                     uint64_t file_start = pos + i;
                     uint64_t file_size = 0;
+                    int has_moov = 0;
                     if (sig->strategy == STRATEGY_FOOTER) {
                         uint64_t end = FindFooter(&ctx, file_start, sig);
                         if (end > file_start) file_size = end - file_start;
                     } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO || sig->strategy == STRATEGY_SMART_JPEG) {
                         if (sig->read_size) {
-                            uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i);
+                            uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i, &has_moov);
                             if (s_field > 0) file_size = s_field;
                             else continue;
                         } else {
@@ -925,10 +1217,57 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                         make_unique_path(outPath, sizeof(outPath));
 
                         printf("DEBUG: Saving carved file to %s, size: %llu bytes\n", outPath, (unsigned long long)file_size);
-                        if (ExtractFileRange(fd, file_start, file_size, outPath) == 0) {
+
+                        int extract_ok = -1;
+                        uint64_t final_size = file_size;
+
+                        int is_mp4 = (sig->extension && strcmp(sig->extension, ".mp4") == 0);
+
+                        if (is_mp4 && !has_moov) {
+                            // #4/#7 Video thiếu `moov` → không mở được. Thử repair tự động
+                            // bằng video tham chiếu (frame-rebuild, fallback best-effort).
+                            int repaired = 0;
+                            if (reference_video && reference_video[0]) {
+                                char brokenPath[1200];
+                                snprintf(brokenPath, sizeof(brokenPath), "%s.broken", outPath);
+                                if (ExtractFileRange(fd, file_start, file_size, brokenPath) == 0) {
+                                    if (RepairVideo(brokenPath, reference_video, outPath) == 0) {
+                                        repaired = 1;
+                                        extract_ok = 0;
+                                        int64_t rsz = file_size_of(outPath);
+                                        if (rsz > 0) final_size = (uint64_t)rsz;
+                                    }
+                                    remove(brokenPath);
+                                }
+                            }
+                            if (!repaired) {
+                                // Không repair được → lưu dữ liệu thô vào NEEDS_REPAIR để cứu.
+                                char needDir[1200];
+                                snprintf(needDir, sizeof(needDir), "%s%cNEEDS_REPAIR", carvedDir, PATH_SEP);
+                                mkdir_p(needDir);
+                                const char* leaf = strrchr(outPath, PATH_SEP);
+                                char rawPath[1400];
+                                snprintf(rawPath, sizeof(rawPath), "%s%c%s", needDir, PATH_SEP, leaf ? leaf + 1 : filename);
+                                make_unique_path(rawPath, sizeof(rawPath));
+                                // #6 Chỉ de-interleave GoPro khi thiếu moov (carve thô).
+                                if (is_gopro_video(fd, file_start)) {
+                                    uint64_t written = 0;
+                                    extract_ok = ExtractGoProVideo(fd, file_start, file_size, rawPath, &written);
+                                    final_size = written;
+                                } else {
+                                    extract_ok = ExtractFileRange(fd, file_start, file_size, rawPath);
+                                }
+                                snprintf(outPath, sizeof(outPath), "%s", rawPath);
+                            }
+                        } else {
+                            // Có moov (hoặc không phải MP4) → copy nguyên khối, giữ container.
+                            extract_ok = ExtractFileRange(fd, file_start, file_size, outPath);
+                        }
+
+                        if (extract_ok == 0) {
                             if (on_file) {
                                 const char* savedName = strrchr(outPath, PATH_SEP);
-                                on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", file_size, sector_index);
+                                on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", final_size, sector_index);
                             }
                             total_found++;
                         }

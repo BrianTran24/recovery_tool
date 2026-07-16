@@ -158,8 +158,12 @@ uint32_t* LoadFATTable(int fd, const FAT32_Info* info) {
     if (!fat) return NULL;
 
     off_t_64 offset = (off_t_64)info->fat_start_sector * info->bytes_per_sector;
-    LSEEK(fd, offset, SEEK_SET);
-    READ(fd, fat, fatBytes);
+    if (LSEEK(fd, offset, SEEK_SET) < 0 || READ(fd, fat, fatBytes) != (ssize_t)fatBytes) {
+        // Vùng FAT hỏng/không đọc được (thẻ lỗi ghi): zero-fill để coi mọi cluster là
+        // FREE. Nhờ đó pha "hunt" bên dưới quét toàn bộ cluster-heap và dựng lại cây
+        // thư mục trực tiếp từ directory entry (metadata) — giống cách DMDE quét nhanh.
+        memset(fat, 0, fatBytes);
+    }
 
     return fat; // Caller chịu trách nhiệm free()
 }
@@ -534,7 +538,7 @@ static void ScanDirectoryCluster(int fd, const FAT32_Info* info,
                 if (on_file) {
                     int64_t num_clusters = (e->file_size + info->bytes_per_cluster - 1) / info->bytes_per_cluster;
                     int64_t sector_count = num_clusters * info->sectors_per_cluster;
-                    on_file(context, (isDeleted ? "FAT_DEL" : "FAT"), displayPath, modifiedTime, (int64_t)e->file_size, (int64_t)sector_offset, sector_count);
+                    on_file(context, (isDeleted ? "FAT_DEL" : "FAT"), displayPath, modifiedTime, (int64_t)e->file_size, (int64_t)sector_offset, sector_count, "");
                 }
                 (*recoveredCount)++;
                 if (visited_clusters) {
@@ -599,21 +603,40 @@ static void PopulateFileInfo(FileInfo* info, const FAT32_DirEntry* e, LFN_State*
     info->is_deleted = (e->name[0] == 0xE5);
 }
 
-static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode);
+// Giới hạn độ sâu đệ quy thư mục để chống stack-overflow trên FS hỏng/cross-linked.
+#define FAT32_MAX_DIR_DEPTH 100
 
-static void CollectFromDirectory(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t startCluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode) {
+// Bitmap "visited" theo cluster thư mục đã duyệt — chống đệ quy vô hạn (vòng lặp,
+// cross-link) và chống thu thập trùng lặp giữa các pha quét.
+static inline int VisitedTest(const uint8_t* v, uint32_t c) {
+    return v ? (v[c >> 3] & (1 << (c & 7))) : 0;
+}
+static inline void VisitedSet(uint8_t* v, uint32_t c) {
+    if (v) v[c >> 3] |= (uint8_t)(1 << (c & 7));
+}
+
+static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, uint8_t* visited, int depth);
+
+static void CollectFromDirectory(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t startCluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, uint8_t* visited, int depth) {
+    if (depth > FAT32_MAX_DIR_DEPTH) return;
     uint32_t cluster = startCluster;
     int maxChain = 65536;
     while (cluster >= 2 && cluster < 0x0FFFFFF8 && maxChain-- > 0) {
         if (cancelled && *cancelled) return;
+        // Nếu cluster thư mục này đã được duyệt → gặp vòng lặp/cross-link, dừng lại
+        // để không đệ quy vô hạn và không thu thập trùng (rò rỉ cluster_chain).
+        if (cluster < info->total_clusters + 2) {
+            if (VisitedTest(visited, cluster)) return;
+            VisitedSet(visited, cluster);
+        }
         if (ReadCluster(fd, info, cluster, clusterBuf) == 0) {
-            CollectFromCluster(fd, info, fat, cluster, clusterBuf, collector, relPath, cancelled, scan_mode);
+            CollectFromCluster(fd, info, fat, cluster, clusterBuf, collector, relPath, cancelled, scan_mode, visited, depth);
         }
         cluster = FATNextCluster(fat, cluster);
     }
 }
 
-static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode) {
+static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* fat, uint32_t cluster, uint8_t* clusterBuf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, uint8_t* visited, int depth) {
     uint32_t entriesPerCluster = info->bytes_per_cluster / sizeof(FAT32_DirEntry);
     FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
     LFN_State lfn = {0};
@@ -667,8 +690,10 @@ static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* f
             else snprintf(subRelPath, sizeof(subRelPath), "%s", subFolderName);
 
             uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
-            CollectFromDirectory(fd, info, fat, subCluster, subBuf, collector, subRelPath, cancelled, scan_mode);
-            free(subBuf);
+            if (subBuf) {
+                CollectFromDirectory(fd, info, fat, subCluster, subBuf, collector, subRelPath, cancelled, scan_mode, visited, depth + 1);
+                free(subBuf);
+            }
         }
         ResetLFN(&lfn);
     }
@@ -749,15 +774,21 @@ void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0
     uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
     if (!clusterBuf) { free(fat); return; }
 
-    CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, scan_mode);
+    // Bitmap theo dõi cluster thư mục đã duyệt, dùng chung cho cả pha quét cây thư mục
+    // lẫn pha "hunt" free-cluster bên dưới → chống đệ quy vô hạn và thu thập trùng.
+    uint8_t* visited = (uint8_t*)calloc(((size_t)info.total_clusters + 2) / 8 + 1, 1);
+
+    CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, scan_mode, visited, 0);
 
     // Also hunt for "lost" directories that are marked as FREE but look like directories
     for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
+        if (VisitedTest(visited, c)) continue; // đã xử lý ở pha cây thư mục
         if (IsClusterFree(fat, c)) {
             if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
                 if (IsFatDirCluster(clusterBuf, info.bytes_per_cluster)) {
+                    VisitedSet(visited, c);
                     char folderName[32]; snprintf(folderName, sizeof(folderName), "found_%u", c);
-                    CollectFromCluster(fd, &info, fat, c, clusterBuf, collector, folderName, cancelled, scan_mode);
+                    CollectFromCluster(fd, &info, fat, c, clusterBuf, collector, folderName, cancelled, scan_mode, visited, 0);
                 }
             }
         }
@@ -768,6 +799,7 @@ void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0
 
     free(clusterBuf);
     free(fat);
+    if (visited) free(visited);
 }
 
 void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled) {

@@ -23,6 +23,7 @@ class RecoveryService {
     bool enableFat = true,
     bool enableCarve = true,
     int scanMode = 1, // 1=Deleted, 2=Existing, 3=Both
+    String referenceVideo = '',
   }) {
     final controller = StreamController<RecoveryEvent>(
       onCancel: () {
@@ -36,6 +37,7 @@ class RecoveryService {
       enableFat: enableFat,
       enableCarve: enableCarve,
       scanMode: scanMode,
+      referenceVideo: referenceVideo,
       controller: controller,
     );
 
@@ -48,6 +50,7 @@ class RecoveryService {
     required bool enableFat,
     required bool enableCarve,
     required int scanMode,
+    required String referenceVideo,
     required StreamController<RecoveryEvent> controller,
   }) async {
     debugPrint('DEBUG: _startScanInternal (FFI Native) started for $sourcePath');
@@ -85,6 +88,15 @@ class RecoveryService {
       return;
     }
     _activeHandle = handle;
+
+    // Đặt video tham chiếu để repair tự động các video thiếu `moov` khi carve.
+    // g_sessions là global trong DLL (cùng process) nên set ở đây có hiệu lực cho
+    // cả isolate worker.
+    if (referenceVideo.isNotEmpty) {
+      final refPtr = referenceVideo.toNativeUtf8();
+      _bindings.setReferenceVideo(handle, refPtr);
+      malloc.free(refPtr);
+    }
 
     // Phát sự kiện bắt đầu ngay để UI không bị stuck ở loading
     controller.add(ProgressEvent(percent: 0, scannedBytes: 0, speedMbps: 0));
@@ -197,6 +209,7 @@ class RecoveryService {
           modifiedTime: _arrayToStringStatic(ev.modifiedTime, 32),
           fileSize: ev.fileSize,
           sectorOffset: ev.sectorOffset,
+          folder: _arrayToStringStatic(ev.folder, 256),
         );
       case _kError:
         return ErrorEvent(

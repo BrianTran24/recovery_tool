@@ -157,6 +157,23 @@ class _FileGrid extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                       ),
+                      if (file.folder.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Row(
+                          children: [
+                            const Icon(Icons.folder_outlined, size: 9, color: Colors.amber),
+                            const SizedBox(width: 2),
+                            Expanded(
+                              child: Text(
+                                file.folder,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 8, color: Colors.amber),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 2),
                       Text(
                         _formatSize(file.fileSize),

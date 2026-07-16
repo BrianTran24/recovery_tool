@@ -56,6 +56,7 @@ typedef struct {
     int32_t  fat_count;
     int32_t  carve_count;
     int64_t  duration_ms;
+    char     folder[256];      // EVENT_FILE_FOUND: rel_path thư mục (vd "DCIM"), "" nếu gốc
 } RecoveryEvent;
 #pragma pack(pop)
 
@@ -103,3 +104,9 @@ EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t
  * Repairs a broken video file using a reference file.
  */
 EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referencePath, const char* outputPath);
+
+/**
+ * Đặt video tham chiếu dùng để repair tự động các video thiếu `moov` khi scan.
+ * Gọi TRƯỚC recovery_scan. Truyền NULL/"" để tắt repair tự động.
+ */
+EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath);

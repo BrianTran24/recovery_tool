@@ -26,7 +26,8 @@ int CarveFilesWithProgress(
     volatile int* cancelled,
     double progress_start,
     double progress_end,
-    const uint8_t* used_mask
+    const uint8_t* used_mask,
+    const char* reference_video
 );
 
 int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char* output_path);

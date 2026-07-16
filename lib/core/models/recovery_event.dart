@@ -22,11 +22,12 @@ class FileFoundEvent extends RecoveryEvent {
   final String modifiedTime;
   final int fileSize;
   final int sectorOffset;
+  final String folder;     // rel_path thư mục (vd "DCIM"), rỗng nếu ở gốc
   FileFoundEvent({required this.fileType, required this.filename, required this.modifiedTime,
-    required this.fileSize, required this.sectorOffset});
+    required this.fileSize, required this.sectorOffset, this.folder = ''});
 
   @override
-  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, modified: $modifiedTime, size: $fileSize, sector: $sectorOffset)';
+  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, folder: $folder, modified: $modifiedTime, size: $fileSize, sector: $sectorOffset)';
 }
 
 class ErrorEvent extends RecoveryEvent {

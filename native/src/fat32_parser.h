@@ -3,7 +3,7 @@
 #include "recovery_ffi.h"
 
 // Forward declaration của RecoveryCallback từ recovery_ffi.h (tránh include vòng)
-typedef void (*FatFileCallback)(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count);
+typedef void (*FatFileCallback)(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count, const char* folder);
 typedef void (*FatProgressCallback)(void* ctx, double pct, int64_t scanned, int32_t speed);
 
 // New unified collector type

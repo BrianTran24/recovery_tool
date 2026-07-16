@@ -12,6 +12,7 @@ class ScanScreen extends ConsumerStatefulWidget {
   final bool enableFat;
   final bool enableCarve;
   final int scanMode;
+  final String referenceVideo;
 
   const ScanScreen({
     super.key,
@@ -20,6 +21,7 @@ class ScanScreen extends ConsumerStatefulWidget {
     this.enableFat = true,
     this.enableCarve = true,
     this.scanMode = 1,
+    this.referenceVideo = '',
   });
 
   @override
@@ -54,6 +56,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       enableFat: widget.enableFat,
       enableCarve: widget.enableCarve,
       scanMode: widget.scanMode,
+      referenceVideo: widget.referenceVideo,
     );
     _logs.add('Khởi tạo phiên quét cho ${widget.sourcePath}');
   }
@@ -86,7 +89,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               _addLog('TÌM THẤY: $filename ($fileType)');
 
             case DoneEvent(:final duration, :final totalFound):
-              setState(() { _done = true; _elapsed = duration; });
+               setState(() { _done = true; _elapsed = duration; _percent = 100; });
               _addLog('HOÀN THÀNH: Tìm thấy $totalFound file trong ${duration.inSeconds}s');
 
             case ErrorEvent(:final message):
@@ -307,7 +310,24 @@ class _FileFoundTile extends StatelessWidget {
       title: Text(event.filename,
           style: const TextStyle(fontSize: 13),
           overflow: TextOverflow.ellipsis),
-      subtitle: Text(details.join(' · '), style: const TextStyle(fontSize: 11)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (event.folder.isNotEmpty)
+            Row(
+              children: [
+                const Icon(Icons.folder_outlined, size: 12, color: Colors.amber),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(event.folder,
+                      style: const TextStyle(fontSize: 11, color: Colors.amber),
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          Text(details.join(' · '), style: const TextStyle(fontSize: 11)),
+        ],
+      ),
       dense: true,
     );
   }
