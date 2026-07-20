@@ -38,5 +38,7 @@
   "selectLanguage": "Select Language",
   "vietnamese": "Vietnamese",
   "english": "English",
-  "developing": "DEVELOPING"
+  "developing": "DEVELOPING",
+  "gcTrimWarningTitle": "WARNING: GARBAGE COLLECTION RISK",
+  "gcTrimWarningDesc": "Modern SD cards may automatically erase deleted data during idle time (Trim/GC). Recommended: Clone the entire card to an .img file immediately to preserve data."
 }

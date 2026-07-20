@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:disks_desktop/disks_desktop.dart';
 import '../../scan_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class ConfigScreen extends StatefulWidget {
   final Disk disk;
@@ -132,6 +133,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
               ),
             ),
             
+            // GC/Trim Warning
+            if (widget.disk.raw.startsWith('/dev/')) ...[
+              const SizedBox(height: 16),
+              _buildGCTrimWarning(),
+            ],
+            
             const SizedBox(height: 32),
             _buildSectionHeader('Chế độ khôi phục'),
             _buildScanModeSelector(),
@@ -176,6 +183,49 @@ class _ConfigScreenState extends State<ConfigScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium,
+      ),
+    );
+  }
+
+  Widget _buildGCTrimWarning() {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.gcTrimWarningTitle,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.gcTrimWarningDesc,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.amber.shade800,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -38,5 +38,7 @@
   "selectLanguage": "Chọn ngôn ngữ",
   "vietnamese": "Tiếng Việt",
   "english": "Tiếng Anh",
-  "developing": "ĐANG PHÁT TRIỂN"
+  "developing": "ĐANG PHÁT TRIỂN",
+  "gcTrimWarningTitle": "CẢNH BÁO: RỦI RO GARBAGE COLLECTION",
+  "gcTrimWarningDesc": "Thẻ nhớ hiện đại có thể tự động xóa vật lý dữ liệu đã xóa trong lúc nhàn rỗi (Trim/GC). Khuyên dùng: Hãy clone toàn bộ thẻ sang file .img ngay lập tức để bảo toàn dữ liệu."
 }

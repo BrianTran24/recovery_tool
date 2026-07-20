@@ -11,6 +11,12 @@ Trước khi tiến hành các bước khôi phục logic, hệ thống thực h
 - **Kiểm tra Dung lượng**: So sánh dung lượng vật lý báo cáo bởi Controller với dung lượng định danh. Trường hợp dung lượng 0MB hoặc báo cáo sai lệch lớn (vài KB) thường là dấu hiệu của hỏng FTL (Flash Translation Layer).
 - **Phép thử Đọc Cơ bản (Sanity Read)**: Thử nghiệm đọc các sector tại các vị trí chiến lược (đầu, giữa, cuối). Nếu xảy ra lỗi I/O liên tục, hệ thống sẽ đề xuất dừng lại để tránh làm hỏng chip NAND.
 
+### 1.2. Rủi ro Ghi đè & Garbage Collection (GC) / Trim
+Một yếu tố quan trọng ảnh hưởng đến tỷ lệ thành công của việc khôi phục dữ liệu trên các thiết bị lưu trữ hiện đại (SD Card, SSD):
+- **Cơ chế GC/Trim**: Các thẻ nhớ cao cấp (UHS-II) và SSD có cơ chế tự động dọn dẹp các khối dữ liệu "rảnh" ở tầng vật lý ngay cả khi người dùng chưa ghi dữ liệu mới. Quá trình này diễn ra âm thầm trong nền (background) khi thiết bị có điện.
+- **Hậu quả**: Dữ liệu sau khi xóa có thể bị mất vĩnh viễn do bộ điều khiển (Controller) xóa sạch vật lý các cell nhớ để tối ưu hiệu suất ghi sau này.
+- **Khuyến nghị**: Luôn thực hiện **Clone toàn bộ thẻ vật lý** sang một file ảnh đĩa (`.img`) ngay khi bắt đầu quy trình khôi phục. Việc thao tác trên file ảnh giúp bảo vệ dữ liệu gốc khỏi cơ chế tự hủy của Controller.
+
 - **Frontend**: Flutter (Dart) - Đảm nhiệm UI/UX và quản lý trạng thái.
 - **Backend Core**: C++ (Native Library) - Thực hiện các tác vụ xử lý cấp thấp, đọc sector và phân tích bitstream.
 - **Giao tiếp**: Dart FFI (Foreign Function Interface) - Cầu nối hiệu năng cao giữa Dart và C++.
