@@ -4,6 +4,7 @@
 #include "fat32_parser.h"
 #include "exfat_parser.h"
 #include "smart_assembler.h"
+#include "partition_detector.h"
 #include "video_repair.h"
 #include "platform_config.h"
 #include "hardware_health_checker.h"
@@ -297,7 +298,16 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
 
         EmitPhaseProgress(s, 0.5, 0, 0);
 
-        if (LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
+        // --- NEW: Partition Boundary Detection ---
+        PartitionCandidate candidates[16];
+        int cand_count = DetectPartitions(s->fd, s->total_sectors, candidates, 16);
+        for (int i = 0; i < cand_count; i++) {
+            if (RecoverPartition(s, candidates[i].start_sector, fat_output_dir, enable_fat, scan_mode)) {
+                found_fat = 1;
+            }
+        }
+
+        if (!found_fat && LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
             uint8_t sector1[512];
             if (LSEEK(s->fd, 512, SEEK_SET) == 512 && READ(s->fd, sector1, 512) == 512) {
                 if (memcmp(sector1, "EFI PART", 8) == 0) {
