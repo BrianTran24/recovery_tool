@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:disks_desktop/disks_desktop.dart';
 import '../../scan_screen.dart';
+import '../../core/theme/app_theme.dart';
 
 class ConfigScreen extends StatefulWidget {
   final Disk disk;
@@ -21,10 +22,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
   @override
   void initState() {
     super.initState();
-    // Mặc định folder khôi phục là E:\test theo yêu cầu
     _outputDir = r'E:\test';
     _pathController.text = _outputDir!;
-    // Mặc định video tham chiếu (dùng để repair video thiếu moov).
     _refController.text = _referenceVideo;
   }
 
@@ -85,163 +84,212 @@ class _ConfigScreenState extends State<ConfigScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cấu hình quét'),
+        title: const Text('Cấu hình Quét'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thông tin ổ đĩa
+            // Disk Info Card
+            _buildSectionHeader('Thiết bị nguồn'),
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.storage, color: Colors.blue),
-                title: Text(
-                  widget.disk.raw.startsWith('/dev/')
-                      ? (widget.disk.devicePath ?? 'Unknown')
-                      : 'Ảnh backup: ${widget.disk.devicePath ?? 'Unknown'}',
-                ),
-                subtitle: Text(
-                  widget.disk.raw.startsWith('/dev/')
-                      ? 'Dung lượng: ${(widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024)} GB'
-                      : 'Làm việc trên ảnh chỉ đọc, không ghi vào thẻ gốc',
-                ),
-              ),
-            ),
-            if (!widget.disk.raw.startsWith('/dev/')) ...[
-              const SizedBox(height: 12),
-              const Card(
-                color: Color(0xFFE8F4FF),
-                child: ListTile(
-                  leading: Icon(Icons.lock_outline, color: Colors.blue),
-                  title: Text('Chế độ an toàn'),
-                  subtitle: Text('Nguồn là file .img nên mọi thao tác sẽ chạy trên bản sao.'),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            
-            const Card(
-              color: Color(0xFFF0F7FF),
-              child: ListTile(
-                leading: Icon(Icons.auto_fix_high, color: Colors.blue),
-                title: Text('Chế độ khôi phục thông minh'),
-                subtitle: Text('Hệ thống sẽ tự động kết hợp Quét cấu trúc (để giữ tên file) và Quét sâu (để tìm file bị mất dấu vết).'),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            Text('Trạng thái file cần tìm', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-              ),
-              child: Column(
-                children: [
-                  RadioListTile<int>(
-                    secondary: const Icon(Icons.delete_outline, color: Colors.red),
-                    title: const Text('Chỉ file đã xóa'),
-                    subtitle: const Text('Tìm kiếm những file đã bị xóa trước đó.'),
-                    value: 1,
-                    groupValue: _scanMode,
-                    onChanged: (v) => setState(() => _scanMode = v!),
-                  ),
-                  const Divider(indent: 64, endIndent: 16, height: 1),
-                  RadioListTile<int>(
-                    secondary: const Icon(Icons.file_present, color: Colors.green),
-                    title: const Text('Chỉ file hiện có'),
-                    subtitle: const Text('Quét những file chưa bị xóa (file đang tồn tại).'),
-                    value: 2,
-                    groupValue: _scanMode,
-                    onChanged: (v) => setState(() => _scanMode = v!),
-                  ),
-                  const Divider(indent: 64, endIndent: 16, height: 1),
-                  RadioListTile<int>(
-                    secondary: const Icon(Icons.all_inclusive, color: Colors.blue),
-                    title: const Text('Tất cả file'),
-                    subtitle: const Text('Quét cả file đã xóa và file hiện có.'),
-                    value: 3,
-                    groupValue: _scanMode,
-                    onChanged: (v) => setState(() => _scanMode = v!),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            Text('Thư mục lưu trữ', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _pathController,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.storage_rounded, color: AppTheme.primaryColor),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _pickDirectory,
-                  icon: const Icon(Icons.folder_open),
-                  label: const Text('Duyệt'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-            Text('Video tham chiếu (để sửa video lỗi)', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              'Dùng một video khỏe cùng máy quay để tự động dựng lại các video bị mất chỉ mục (moov) khi khôi phục.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _refController,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.disk.raw.startsWith('/dev/')
+                                ? (widget.disk.devicePath ?? 'Unknown Device')
+                                : 'Ảnh backup: ${widget.disk.devicePath ?? 'Unknown'}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.disk.raw.startsWith('/dev/')
+                                ? 'Dung lượng: ${(widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024)} GB'
+                                : 'Chế độ chỉ đọc - An toàn tuyệt đối',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _pickReferenceVideo,
-                  icon: const Icon(Icons.movie_outlined),
-                  label: const Text('Chọn'),
-                ),
-              ],
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            _buildSectionHeader('Chế độ khôi phục'),
+            _buildScanModeSelector(),
+            
+            const SizedBox(height: 32),
+            _buildSectionHeader('Cấu hình lưu trữ'),
+            _buildPathSelector(
+              label: 'Thư mục đầu ra',
+              controller: _pathController,
+              onTap: _pickDirectory,
+              icon: Icons.folder_open_rounded,
+            ),
+            
+            const SizedBox(height: 24),
+            _buildSectionHeader('Video tham chiếu (Tùy chọn)'),
+            _buildPathSelector(
+              label: 'Chọn video khỏe cùng loại để sửa lỗi moov',
+              controller: _refController,
+              onTap: _pickReferenceVideo,
+              icon: Icons.movie_filter_rounded,
+              isSmall: true,
             ),
             
             const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,
-              height: 56,
               child: ElevatedButton(
                 onPressed: _startScan,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: const Text('BẮT ĐẦU QUÉT NGAY'),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+    );
+  }
+
+  Widget _buildScanModeSelector() {
+    return Card(
+      child: Column(
+        children: [
+          _buildScanModeItem(
+            value: 1,
+            icon: Icons.delete_sweep_rounded,
+            title: 'Chỉ file đã xóa',
+            subtitle: 'Tìm kiếm các tệp tin đã bị xóa khỏi hệ thống.',
+            color: Colors.red.shade400,
+          ),
+          Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+          _buildScanModeItem(
+            value: 2,
+            icon: Icons.file_present_rounded,
+            title: 'Chỉ file hiện có',
+            subtitle: 'Quét và liệt kê các tệp tin đang tồn tại.',
+            color: Colors.green.shade400,
+          ),
+          Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+          _buildScanModeItem(
+            value: 3,
+            icon: Icons.all_inclusive_rounded,
+            title: 'Tất cả file',
+            subtitle: 'Kết hợp quét cả file hiện có và file đã xóa.',
+            color: AppTheme.primaryColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanModeItem({
+    required int value,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: () => setState(() => _scanMode = value),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: RadioListTile<int>(
+          value: value,
+          groupValue: _scanMode,
+          onChanged: (v) => setState(() => _scanMode = v!),
+          activeColor: AppTheme.primaryColor,
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          controlAffinity: ListTileControlAffinity.trailing,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPathSelector({
+    required String label,
+    required TextEditingController controller,
+    required VoidCallback onTap,
+    required IconData icon,
+    bool isSmall = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isSmall)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          ),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                readOnly: true,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: label,
+                  prefixIcon: Icon(icon, size: 20),
                 ),
-                child: const Text('BẮT ĐẦU QUÉT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.primaryColor,
+                  side: BorderSide(color: Colors.grey.shade200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: const Icon(Icons.edit_note_rounded),
               ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

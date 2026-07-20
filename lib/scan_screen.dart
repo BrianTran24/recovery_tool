@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'preview_screen.dart';
 import 'core/features/scan/scan_provider.dart';
-import '../../core/models/recovery_event.dart';
+import 'core/models/recovery_event.dart';
+import 'core/theme/app_theme.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
   final String sourcePath;
@@ -28,7 +29,7 @@ class ScanScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends ConsumerState<ScanScreen> {
+class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProviderStateMixin {
   late final ScanParams _params;
   double _percent = 0;
   int _speed = 0;
@@ -36,8 +37,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   bool _done = false;
   Duration _elapsed = Duration.zero;
   final List<String> _logs = [];
-
   int _lastLoggedMB = -1;
+
+  late TabController _tabController;
 
   void _addLog(String msg) {
     if (!mounted) return;
@@ -50,6 +52,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _params = ScanParams(
       sourcePath: widget.sourcePath,
       outputDir: widget.outputDir,
@@ -62,11 +65,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Watch để đảm bảo provider luôn active khi widget tồn tại
-    final scanAsync = ref.watch(scanStreamProvider(_params));
+    ref.watch(scanStreamProvider(_params));
     
-    // Lắng nghe stream — mỗi event update local state
     ref.listen(scanStreamProvider(_params), (prev, next) {
       next.when(
         data: (event) {
@@ -94,8 +102,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
             case ErrorEvent(:final message):
               _addLog('LỖI: $message');
-              // Khi bị rút đĩa (detach), ErrorEvent sẽ được gửi. 
-              // Ta cho phép người dùng xem kết quả đã có.
               setState(() { _done = true; });
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
           }
@@ -111,118 +117,94 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: scanAsync.when(
-          data: (_) => Text(_done ? 'Hoàn thành' : 'Đang quét...'),
-          error: (e, _) => const Text('Lỗi khởi tạo'),
-          loading: () => const Text('Đang khởi động...'),
-        ),
+        title: Text(_done ? 'Kết quả Quét' : 'Đang xử lý dữ liệu...'),
         actions: [
           if (!_done)
-            IconButton(
+            TextButton.icon(
               onPressed: () {
                 ref.read(recoveryServiceProvider).cancel();
                 setState(() { _done = true; });
               },
-              icon: const Icon(Icons.stop_circle_outlined, color: Colors.red),
+              icon: const Icon(Icons.stop_circle_rounded, color: Colors.red),
+              label: const Text('Dừng', style: TextStyle(color: Colors.red)),
             ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Column(children: [
-        // ── Progress bar ───────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('${_percent.toStringAsFixed(1)}%',
-                      style: Theme.of(context).textTheme.headlineSmall),
-                  Text('$_speed MB/s',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: _percent / 100,
-                minHeight: 12,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _StatItem(label: 'Tìm thấy', value: '$_found'),
-                  _StatItem(label: 'Thời gian', value: _elapsed.inSeconds > 0 ? '${_elapsed.inMinutes}:${(_elapsed.inSeconds % 60).toString().padLeft(2, '0')}' : '--:--'),
-                ],
-              ),
-            ],
-          ),
-        ),
+      body: Column(
+        children: [
+          // ── Progress & Stats Header ──────────────────────────────
+          _buildProgressHeader(context),
 
-        // Nút xem kết quả - hiện sớm nếu có file, hoặc khi đã xong
-        if (files.isNotEmpty || _done)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PreviewScreen(
-                        outputDir: widget.outputDir,
+          // ── View Results Button ──────────────────────────────────
+          if (files.isNotEmpty || _done)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PreviewScreen(
+                          outputDir: widget.outputDir,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: Icon(_done ? Icons.remove_red_eye : Icons.visibility_outlined),
-                label: Text(
-                  _done ? 'XEM KẾT QUẢ' : 'XEM TRỰC TIẾP ($_found file)', 
-                  style: const TextStyle(fontWeight: FontWeight.bold)
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _done ? Colors.green : Colors.blue,
-                  foregroundColor: Colors.white,
+                    );
+                  },
+                  icon: Icon(_done ? Icons.check_circle_rounded : Icons.visibility_rounded),
+                  label: Text(_done ? 'XEM TOÀN BỘ KẾT QUẢ' : 'XEM TRỰC TIẾP ($_found file)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _done ? Colors.green.shade600 : AppTheme.primaryColor,
+                  ),
                 ),
               ),
             ),
-          ),
 
-        const Divider(height: 1),
-
-        // ── Tab Logs và Files ─────────────────────────────────────
-        Expanded(
-          child: DefaultTabController(
-            length: 2,
+          // ── Tab Section ──────────────────────────────────────────
+          Expanded(
             child: Column(
               children: [
-                const TabBar(
-                  tabs: [
-                    Tab(text: 'Files tìm thấy'),
-                    Tab(text: 'Nhật ký'),
+                TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: 'Tệp tin tìm thấy'),
+                    Tab(text: 'Nhật ký hệ thống'),
                   ],
+                  labelColor: AppTheme.primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppTheme.primaryColor,
                 ),
                 Expanded(
                   child: TabBarView(
+                    controller: _tabController,
                     children: [
                       // List Files
-                      ListView.builder(
-                        itemCount: files.length,
-                        itemBuilder: (ctx, i) => _FileFoundTile(event: files[files.length - 1 - i]),
-                      ),
+                      files.isEmpty 
+                        ? _buildEmptyState(Icons.find_in_page_rounded, 'Đang tìm kiếm tệp tin...')
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: files.length,
+                            separatorBuilder: (context, index) => Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+                            itemBuilder: (ctx, i) => _FileFoundTile(event: files[files.length - 1 - i]),
+                          ),
                       // List Logs
                       Container(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.grey.shade50,
                         child: ListView.builder(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           itemCount: _logs.length,
                           itemBuilder: (ctx, i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(_logs[i], style: const TextStyle(fontFamily: 'Courier', fontSize: 11)),
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              _logs[i], 
+                              style: TextStyle(
+                                fontFamily: 'monospace', 
+                                fontSize: 11, 
+                                color: _logs[i].contains('LỖI') ? Colors.red : Colors.blueGrey.shade700,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -232,27 +214,107 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               ],
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
-}
 
-// ── Widgets phụ ─────────────────────────────────────────────────────
-
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      ],
+  Widget _buildProgressHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_percent.toStringAsFixed(1)}%',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const Text('Tiến độ quét', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$_speed MB/s',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Text('Tốc độ', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: _percent / 100,
+              minHeight: 10,
+              backgroundColor: Colors.blue.shade50,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('TÌM THẤY', '$_found', Icons.insert_drive_file_rounded, Colors.orange)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildStatCard('THỜI GIAN', _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue)),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 48, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(message, style: TextStyle(color: Colors.grey.shade500)),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    if (d == Duration.zero) return '--:--';
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds % 60)}";
   }
 }
 
@@ -261,15 +323,15 @@ class _FileFoundTile extends StatelessWidget {
   const _FileFoundTile({required this.event});
 
   static const _icons = {
-    'JPEG': Icons.image_outlined,
-    'JPG':  Icons.image_outlined,
-    'PNG':  Icons.image_outlined,
-    'CR2':  Icons.camera_outlined,
-    'NEF':  Icons.camera_outlined,
-    'MP4':  Icons.videocam_outlined,
-    'MOV':  Icons.videocam_outlined,
-    'PDF':  Icons.picture_as_pdf_outlined,
-    'DOCX': Icons.description_outlined,
+    'JPEG': Icons.image_rounded,
+    'JPG':  Icons.image_rounded,
+    'PNG':  Icons.image_rounded,
+    'CR2':  Icons.camera_rounded,
+    'NEF':  Icons.camera_rounded,
+    'MP4':  Icons.videocam_rounded,
+    'MOV':  Icons.videocam_rounded,
+    'PDF':  Icons.picture_as_pdf_rounded,
+    'DOCX': Icons.description_rounded,
   };
 
   static const _colors = {
@@ -293,42 +355,64 @@ class _FileFoundTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final normalizedType = canonicalFileType(event.fileType);
-    final color = _colors[normalizedType] ?? Colors.grey;
-    final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_outlined;
-    final details = <String>[
-      normalizedType,
-      _formatSize(event.fileSize),
-      if (event.modifiedTime.isNotEmpty) event.modifiedTime,
-      'sector ${event.sectorOffset}',
-    ];
+    final color = _colors[normalizedType] ?? Colors.blueGrey;
+    final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_rounded;
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color.withValues(alpha: 0.12),
-        child: Icon(icon, color: color, size: 20),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 24),
       ),
-      title: Text(event.filename,
-          style: const TextStyle(fontSize: 13),
-          overflow: TextOverflow.ellipsis),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      title: Text(
+        event.filename,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Wrap(
+          spacing: 8,
+          children: [
+            _buildBadge(normalizedType, color),
+            _buildBadge(_formatSize(event.fileSize), Colors.grey.shade600),
+            if (event.folder.isNotEmpty)
+              _buildBadge(event.folder, Colors.amber.shade800, isFolder: true),
+          ],
+        ),
+      ),
+      trailing: Text(
+        '#${event.sectorOffset}',
+        style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontFamily: 'monospace'),
+      ),
+      dense: false,
+    );
+  }
+
+  Widget _buildBadge(String text, Color color, {bool isFolder = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (event.folder.isNotEmpty)
-            Row(
-              children: [
-                const Icon(Icons.folder_outlined, size: 12, color: Colors.amber),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(event.folder,
-                      style: const TextStyle(fontSize: 11, color: Colors.amber),
-                      overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-          Text(details.join(' · '), style: const TextStyle(fontSize: 11)),
+          if (isFolder) ...[
+            Icon(Icons.folder_rounded, size: 10, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
-      dense: true,
     );
   }
 }
