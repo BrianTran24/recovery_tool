@@ -12,7 +12,7 @@ import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
 import 'package:recovery_tool/features/settings/settings_screen.dart';
 import 'package:recovery_tool/core/providers/locale_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen_genl10n/app_localizations.dart';
+import 'package:recovery_tool/l10n/app_localizations.dart';
 
 void main() {
   runZonedGuarded(() {
@@ -38,7 +38,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
       locale: locale,
-      localizationsDelegates: const [
+      localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
