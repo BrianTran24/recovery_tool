@@ -156,10 +156,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 32),
                     // Branding Area
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 0 : 20),
+                      padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 0 : 24),
                       child: Row(
                         mainAxisAlignment: _isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
                         children: [
@@ -200,7 +200,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 48),
                     // Navigation Items
                     _SidebarItem(
                       icon: Icons.usb_rounded,
@@ -333,172 +333,177 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildDevicesContent() {
     final l10n = AppLocalizations.of(context)!;
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.systemReady,
-                  style: TextStyle(
-                    color: AppTheme.cyberCyan.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 3,
-                    fontSize: 12,
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(32, 32, 32, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.systemReady,
+                style: TextStyle(
+                  color: AppTheme.cyberCyan.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3,
+                  fontSize: 12,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.connectedDevices,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.connectedDevices,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+            ],
           ),
         ),
-        FutureBuilder<List<Disk>>(
-          future: _getRemovableDisks(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator(color: AppTheme.cyberCyan)),
-              );
-            }
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              FutureBuilder<List<Disk>>(
+                future: _getRemovableDisks(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator(color: AppTheme.cyberCyan)),
+                    );
+                  }
 
-            final disks = snapshot.data ?? [];
-            if (disks.isEmpty) {
-              return SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cyberCyan.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.cyberCyan.withValues(alpha: 0.1)),
-                        ),
-                        child: Icon(Icons.usb_off_rounded, size: 64, color: AppTheme.cyberCyan.withValues(alpha: 0.3)),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        l10n.noDevicesDetected,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      OutlinedButton(
-                        onPressed: () => setState(() {}),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppTheme.cyberCyan),
-                          foregroundColor: AppTheme.cyberCyan,
-                        ),
-                        child: Text(l10n.tryRescan),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final disk = disks[index];
-                    final path = (disk.raw.startsWith('/dev/')) ? disk.raw : disk.devicePath;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            if (path == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                  content: Text('Error: Could not identify device path')));
-                              return;
-                            }
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ConfigScreen(disk: disk),
+                  final disks = snapshot.data ?? [];
+                  if (disks.isEmpty) {
+                    return SliverFillRemaining(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cyberCyan.withValues(alpha: 0.05),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.cyberCyan.withValues(alpha: 0.1)),
                               ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cyberGlass,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppTheme.cyberCyan.withValues(alpha: 0.15)),
+                              child: Icon(Icons.usb_off_rounded, size: 64, color: AppTheme.cyberCyan.withValues(alpha: 0.3)),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.cyberCyan.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(Icons.usb_rounded, color: AppTheme.cyberCyan),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        disk.raw.startsWith('/dev/')
-                                            ? (disk.devicePath ?? l10n.unknownDevice)
-                                            : 'Image: ${disk.devicePath ?? l10n.unknownDevice}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${disk.busType} ${l10n.interface} • ${_byteToGB(disk.size ?? 0).toStringAsFixed(2)} GB',
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.5),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.chevron_right_rounded, color: AppTheme.cyberCyan),
-                              ],
+                            const SizedBox(height: 24),
+                            Text(
+                              l10n.noDevicesDetected,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            OutlinedButton(
+                              onPressed: () => setState(() {}),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppTheme.cyberCyan),
+                                foregroundColor: AppTheme.cyberCyan,
+                              ),
+                              child: Text(l10n.tryRescan),
+                            ),
+                          ],
                         ),
                       ),
                     );
-                  },
-                  childCount: disks.length,
-                ),
+                  }
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final disk = disks[index];
+                          final path = (disk.raw.startsWith('/dev/')) ? disk.raw : disk.devicePath;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  if (path == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                        content: Text('Error: Could not identify device path')));
+                                    return;
+                                  }
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ConfigScreen(disk: disk),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.cyberGlass,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: AppTheme.cyberCyan.withValues(alpha: 0.15)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.usb_rounded, color: AppTheme.cyberCyan),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              disk.raw.startsWith('/dev/')
+                                                  ? (disk.devicePath ?? l10n.unknownDevice)
+                                                  : 'Image: ${disk.devicePath ?? l10n.unknownDevice}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${disk.busType} ${l10n.interface} • ${_byteToGB(disk.size ?? 0).toStringAsFixed(2)} GB',
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.5),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(Icons.chevron_right_rounded, color: AppTheme.cyberCyan),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: disks.length,
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ],
+          ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ],
     );
   }
@@ -626,7 +631,7 @@ class _SidebarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8, left: 12, right: 12),
+      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
