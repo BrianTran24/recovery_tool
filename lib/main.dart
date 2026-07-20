@@ -9,6 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/features/config/config_screen.dart';
 import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
+import 'package:recovery_tool/features/settings/settings_screen.dart';
+import 'package:recovery_tool/core/providers/locale_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen_genl10n/app_localizations.dart';
 
 void main() {
   runZonedGuarded(() {
@@ -20,21 +24,34 @@ void main() {
   });
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+
     return MaterialApp(
       title: 'Recovery Tool',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('vi'),
+      ],
       initialRoute: '/onboarding',
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
-        '/home': (context) => const MyHomePage(title: 'RECOVERY TOOL'),
+        '/home': (context) => const MyHomePage(),
       },
     );
   }
@@ -43,9 +60,7 @@ class MyApp extends StatelessWidget {
 enum HomeTool { devices, restore, settings }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -56,10 +71,11 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isCollapsed = false;
 
   Future<void> _pickBackupImage() async {
+    final l10n = AppLocalizations.of(context)!;
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['img', 'bin', 'dd', 'raw'],
-      dialogTitle: 'Chọn file ảnh backup (.img, .bin, .dd, .raw)',
+      dialogTitle: l10n.selectBackupImage,
     );
 
     if (result != null && result.files.single.path != null) {
@@ -110,6 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
@@ -167,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                widget.title,
+                                l10n.appTitle,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
@@ -187,21 +204,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Navigation Items
                     _SidebarItem(
                       icon: Icons.usb_rounded,
-                      label: 'THIẾT BỊ',
+                      label: l10n.sidebarDevices,
                       isSelected: _selectedTool == HomeTool.devices,
                       isCollapsed: _isCollapsed,
                       onTap: () => setState(() => _selectedTool = HomeTool.devices),
                     ),
                     _SidebarItem(
                       icon: Icons.restore_page_rounded,
-                      label: 'KHÔI PHỤC ẢNH',
+                      label: l10n.sidebarRestore,
                       isSelected: _selectedTool == HomeTool.restore,
                       isCollapsed: _isCollapsed,
                       onTap: () => setState(() => _selectedTool = HomeTool.restore),
                     ),
                     _SidebarItem(
                       icon: Icons.settings_rounded,
-                      label: 'CÀI ĐẶT',
+                      label: l10n.sidebarSettings,
                       isSelected: _selectedTool == HomeTool.settings,
                       isCollapsed: _isCollapsed,
                       onTap: () => setState(() => _selectedTool = HomeTool.settings),
@@ -215,7 +232,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           if (!_isCollapsed) ...[
                             Text(
-                              'SYSTEM STATUS',
+                              l10n.systemStatus,
                               style: TextStyle(
                                 color: AppTheme.cyberCyan.withValues(alpha: 0.5),
                                 fontSize: 10,
@@ -244,9 +261,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text(
-                                      'ONLINE',
-                                      style: TextStyle(
+                                    Text(
+                                      l10n.online,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -273,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   color: AppTheme.cyberCyan,
                                   size: 20,
                                 ),
-                                tooltip: _isCollapsed ? 'Mở rộng' : 'Thu gọn',
+                                tooltip: _isCollapsed ? l10n.expand : l10n.collapse,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
@@ -311,11 +328,12 @@ class _MyHomePageState extends State<MyHomePage> {
       case HomeTool.restore:
         return _buildRestoreContent();
       case HomeTool.settings:
-        return const Center(child: Text('CÀI ĐẶT - ĐANG PHÁT TRIỂN', style: TextStyle(color: Colors.white54)));
+        return const SettingsScreen();
     }
   }
 
   Widget _buildDevicesContent() {
+    final l10n = AppLocalizations.of(context)!;
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -325,7 +343,7 @@ class _MyHomePageState extends State<MyHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'HỆ THỐNG SẴN SÀNG',
+                  l10n.systemReady,
                   style: TextStyle(
                     color: AppTheme.cyberCyan.withValues(alpha: 0.7),
                     fontWeight: FontWeight.bold,
@@ -335,7 +353,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Thiết Bị Kết Nối',
+                  l10n.connectedDevices,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 32),
@@ -370,7 +388,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'CHƯA PHÁT HIỆN THIẾT BỊ',
+                        l10n.noDevicesDetected,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.4),
@@ -385,7 +403,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           side: const BorderSide(color: AppTheme.cyberCyan),
                           foregroundColor: AppTheme.cyberCyan,
                         ),
-                        child: const Text('THỬ QUÉT LẠI'),
+                        child: Text(l10n.tryRescan),
                       ),
                     ],
                   ),
@@ -409,7 +427,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           onTap: () {
                             if (path == null) {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                  content: Text('Lỗi: Không xác định được đường dẫn ổ đĩa')));
+                                  content: Text('Error: Could not identify device path')));
                               return;
                             }
                             Navigator.push(
@@ -444,8 +462,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                     children: [
                                       Text(
                                         disk.raw.startsWith('/dev/')
-                                            ? (disk.devicePath ?? 'Unknown Device')
-                                            : 'Image: ${disk.devicePath ?? 'Unknown'}',
+                                            ? (disk.devicePath ?? l10n.unknownDevice)
+                                            : 'Image: ${disk.devicePath ?? l10n.unknownDevice}',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w900,
                                           fontSize: 16,
@@ -456,7 +474,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${disk.busType} INTERFACE • ${_byteToGB(disk.size ?? 0).toStringAsFixed(2)} GB',
+                                        '${disk.busType} ${l10n.interface} • ${_byteToGB(disk.size ?? 0).toStringAsFixed(2)} GB',
                                         style: TextStyle(
                                           color: Colors.white.withValues(alpha: 0.5),
                                           fontSize: 12,
@@ -487,13 +505,14 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildRestoreContent() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'HỆ THỐNG SẴN SÀNG',
+            l10n.systemReady,
             style: TextStyle(
               color: AppTheme.cyberCyan.withValues(alpha: 0.7),
               fontWeight: FontWeight.bold,
@@ -503,7 +522,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Khôi Phục Dữ Liệu',
+            l10n.restoreData,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 32),
@@ -547,9 +566,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: const Icon(Icons.file_copy_rounded, color: AppTheme.cyberCyan, size: 48),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'CHỌN FILE ẢNH BACKUP',
-                    style: TextStyle(
+                  Text(
+                    l10n.selectBackupImage,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -558,7 +577,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Hỗ trợ .img, .bin, .dd, .raw',
+                    l10n.supportedFormats,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 14,
@@ -571,9 +590,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: AppTheme.cyberCyan,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'DUYỆT FILE',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.browseFile,
+                      style: const TextStyle(
                         color: AppTheme.cyberDeepNavy,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1,

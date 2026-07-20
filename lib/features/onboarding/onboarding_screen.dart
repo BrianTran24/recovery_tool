@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_gen_genl10n/app_localizations.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -12,39 +13,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingData> _pages = [
-    OnboardingData(
-      title: 'RECOVERY SD TOOL',
-      subtitle: 'UNLOCK YOUR LOST DATA!',
-      description: 'Giải pháp khôi phục dữ liệu chuyên nghiệp, nhanh chóng và tin cậy cho mọi thiết bị SD của bạn.',
-      icon: Icons.memory_rounded,
-      color: const Color(0xFF00E5FF), // Cyan Neon
-    ),
-    OnboardingData(
-      title: 'FAST SCAN SYSTEM',
-      subtitle: 'RECOVER WITH EASE',
-      description: 'Thuật toán quét sâu giúp tìm lại ảnh, video và tài liệu bị mất trong tích tắc.',
-      icon: Icons.radar_rounded,
-      color: const Color(0xFF00B0FF), // Bright Blue
-    ),
-    OnboardingData(
-      title: 'PREVIEW FILES',
-      subtitle: 'SEE BEFORE RESTORE',
-      description: 'Xem lại dữ liệu ngay trong quá trình quét để đảm bảo bạn chọn đúng những gì quan trọng nhất.',
-      icon: Icons.visibility_rounded,
-      color: const Color(0xFF76FF03), // Neon Green
-    ),
-    OnboardingData(
-      title: 'SAFE & SECURE',
-      subtitle: 'PROTECT YOUR MEMORY',
-      description: 'Quy trình khôi phục an toàn tuyệt đối, đảm bảo không ghi đè hay làm hỏng dữ liệu gốc.',
-      icon: Icons.security_rounded,
-      color: const Color(0xFFFF3D00), // Neon Orange
-    ),
-  ];
+  List<OnboardingData> _getPages(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      OnboardingData(
+        title: l10n.onboardingTitle1,
+        subtitle: l10n.onboardingSubtitle1,
+        description: l10n.onboardingDesc1,
+        icon: Icons.memory_rounded,
+        color: const Color(0xFF00E5FF), // Cyan Neon
+      ),
+      OnboardingData(
+        title: l10n.onboardingTitle2,
+        subtitle: l10n.onboardingSubtitle2,
+        description: l10n.onboardingDesc2,
+        icon: Icons.radar_rounded,
+        color: const Color(0xFF00B0FF), // Bright Blue
+      ),
+      OnboardingData(
+        title: l10n.onboardingTitle3,
+        subtitle: l10n.onboardingSubtitle3,
+        description: l10n.onboardingDesc3,
+        icon: Icons.visibility_rounded,
+        color: const Color(0xFF76FF03), // Neon Green
+      ),
+      OnboardingData(
+        title: l10n.onboardingTitle4,
+        subtitle: l10n.onboardingSubtitle4,
+        description: l10n.onboardingDesc4,
+        icon: Icons.security_rounded,
+        color: const Color(0xFFFF3D00), // Neon Orange
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final pages = _getPages(context);
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFF020817), // Deep Navy Black
       body: Stack(
@@ -53,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Positioned.fill(
             child: CustomPaint(
               painter: CircuitPainter(
-                color: _pages[_currentPage].color.withValues(alpha: 0.1),
+                color: pages[_currentPage].color.withValues(alpha: 0.1),
                 seed: _currentPage,
               ),
             ),
@@ -70,7 +77,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: _pages[_currentPage].color.withValues(alpha: 0.1),
+                    color: pages[_currentPage].color.withValues(alpha: 0.1),
                     blurRadius: 100,
                     spreadRadius: 50,
                   ),
@@ -86,9 +93,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 _currentPage = page;
               });
             },
-            itemCount: _pages.length,
+            itemCount: pages.length,
             itemBuilder: (context, index) {
-              return CyberOnboardingPage(data: _pages[index]);
+              return CyberOnboardingPage(data: pages[index]);
             },
           ),
           
@@ -99,7 +106,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: TextButton(
               onPressed: () => _finishOnboarding(context),
               child: Text(
-                'SKIP',
+                l10n.skip,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   letterSpacing: 2,
@@ -119,14 +126,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    _pages.length,
-                    (index) => buildCyberDot(index),
+                    pages.length,
+                    (index) => buildCyberDot(index, pages),
                   ),
                 ),
                 const SizedBox(height: 40),
                 GestureDetector(
                   onTap: () {
-                    if (_currentPage == _pages.length - 1) {
+                    if (_currentPage == pages.length - 1) {
                       _finishOnboarding(context);
                     } else {
                       _pageController.nextPage(
@@ -141,14 +148,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _pages[_currentPage].color,
-                          _pages[_currentPage].color.withValues(alpha: 0.6),
+                          pages[_currentPage].color,
+                          pages[_currentPage].color.withValues(alpha: 0.6),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: _pages[_currentPage].color.withValues(alpha: 0.4),
+                          color: pages[_currentPage].color.withValues(alpha: 0.4),
                           blurRadius: 20,
                           offset: const Offset(0, 4),
                         ),
@@ -156,7 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        _currentPage == _pages.length - 1 ? 'START RECOVERY' : 'NEXT STEP',
+                        _currentPage == pages.length - 1 ? l10n.startRecovery : l10n.nextStep,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -179,7 +186,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Navigator.pushReplacementNamed(context, '/home');
   }
 
-  Widget buildCyberDot(int index) {
+  Widget buildCyberDot(int index, List<OnboardingData> pages) {
     bool isSelected = _currentPage == index;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -187,11 +194,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 4,
       width: isSelected ? 40 : 12,
       decoration: BoxDecoration(
-        color: isSelected ? _pages[_currentPage].color : Colors.white.withValues(alpha: 0.2),
+        color: isSelected ? pages[_currentPage].color : Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(2),
         boxShadow: isSelected ? [
           BoxShadow(
-            color: _pages[_currentPage].color.withValues(alpha: 0.5),
+            color: pages[_currentPage].color.withValues(alpha: 0.5),
             blurRadius: 10,
           )
         ] : null,
@@ -223,7 +230,7 @@ class CyberOnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFirstPage = data.title == 'RECOVERY SD TOOL';
+    final isFirstPage = data.icon == Icons.memory_rounded;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40),
