@@ -1,3 +1,0 @@
-C:/Users/PC/StudioProjects/recovery_tool/native/CMakeFiles/recovery.dir
-C:/Users/PC/StudioProjects/recovery_tool/native/CMakeFiles/ALL_BUILD.dir
-C:/Users/PC/StudioProjects/recovery_tool/native/CMakeFiles/ZERO_CHECK.dir

@@ -41,6 +41,17 @@ class RecoveryBindingsGenerated {
   late final _recovery_open = _recovery_openPtr
       .asFunction<int Function(ffi.Pointer<ffi.Char>)>();
 
+  int recovery_unmount(ffi.Pointer<ffi.Char> device_path) {
+    return _recovery_unmount(device_path);
+  }
+
+  late final _recovery_unmountPtr =
+      _lookup<ffi.NativeFunction<ffi.Int32 Function(ffi.Pointer<ffi.Char>)>>(
+        'recovery_unmount',
+      );
+  late final _recovery_unmount = _recovery_unmountPtr
+      .asFunction<int Function(ffi.Pointer<ffi.Char>)>();
+
   int recovery_disk_size(int handle) {
     return _recovery_disk_size(handle);
   }
@@ -58,6 +69,7 @@ class RecoveryBindingsGenerated {
     RecoveryCallback callback,
     int enable_fat,
     int enable_carve,
+    int scan_mode,
   ) {
     return _recovery_scan(
       handle,
@@ -65,6 +77,7 @@ class RecoveryBindingsGenerated {
       callback,
       enable_fat,
       enable_carve,
+      scan_mode,
     );
   }
 
@@ -77,12 +90,20 @@ class RecoveryBindingsGenerated {
             RecoveryCallback,
             ffi.Int32,
             ffi.Int32,
+            ffi.Int32,
           )
         >
       >('recovery_scan');
   late final _recovery_scan = _recovery_scanPtr
       .asFunction<
-        int Function(int, ffi.Pointer<ffi.Char>, RecoveryCallback, int, int)
+        int Function(
+          int,
+          ffi.Pointer<ffi.Char>,
+          RecoveryCallback,
+          int,
+          int,
+          int,
+        )
       >();
 
   void recovery_cancel(int handle) {
@@ -117,6 +138,89 @@ class RecoveryBindingsGenerated {
       );
   late final _recovery_free_string = _recovery_free_stringPtr
       .asFunction<void Function(ffi.Pointer<ffi.Char>)>();
+
+  int recovery_check_hardware(
+    int handle,
+    ffi.Pointer<HardwareHealthInfo> out_info,
+  ) {
+    return _recovery_check_hardware(handle, out_info);
+  }
+
+  late final _recovery_check_hardwarePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(ffi.Int32, ffi.Pointer<HardwareHealthInfo>)
+        >
+      >('recovery_check_hardware');
+  late final _recovery_check_hardware = _recovery_check_hardwarePtr
+      .asFunction<int Function(int, ffi.Pointer<HardwareHealthInfo>)>();
+
+  int recovery_save_file(
+    int handle,
+    int sector_offset,
+    int file_size,
+    ffi.Pointer<ffi.Char> output_path,
+  ) {
+    return _recovery_save_file(handle, sector_offset, file_size, output_path);
+  }
+
+  late final _recovery_save_filePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Int32,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('recovery_save_file');
+  late final _recovery_save_file = _recovery_save_filePtr
+      .asFunction<int Function(int, int, int, ffi.Pointer<ffi.Char>)>();
+
+  /// Repairs a broken video file using a reference file.
+  int recovery_repair_video(
+    ffi.Pointer<ffi.Char> brokenPath,
+    ffi.Pointer<ffi.Char> referencePath,
+    ffi.Pointer<ffi.Char> outputPath,
+  ) {
+    return _recovery_repair_video(brokenPath, referencePath, outputPath);
+  }
+
+  late final _recovery_repair_videoPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('recovery_repair_video');
+  late final _recovery_repair_video = _recovery_repair_videoPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >();
+
+  /// Đặt video tham chiếu dùng để repair tự động các video thiếu `moov` khi scan.
+  /// Gọi TRƯỚC recovery_scan. Truyền NULL/"" để tắt repair tự động.
+  int recovery_set_reference_video(
+    int handle,
+    ffi.Pointer<ffi.Char> referencePath,
+  ) {
+    return _recovery_set_reference_video(handle, referencePath);
+  }
+
+  late final _recovery_set_reference_videoPtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Int32 Function(ffi.Int32, ffi.Pointer<ffi.Char>)>
+      >('recovery_set_reference_video');
+  late final _recovery_set_reference_video = _recovery_set_reference_videoPtr
+      .asFunction<int Function(int, ffi.Pointer<ffi.Char>)>();
 }
 
 final class __mbstate_t extends ffi.Union {
@@ -125,6 +229,24 @@ final class __mbstate_t extends ffi.Union {
 
   @ffi.LongLong()
   external int _mbstateL;
+}
+
+@ffi.Packed(1)
+final class HardwareHealthInfo extends ffi.Struct {
+  @ffi.Int32()
+  external int status;
+
+  @ffi.Int64()
+  external int capacity;
+
+  @ffi.Array.multi([64])
+  external ffi.Array<ffi.Char> controller_id;
+
+  @ffi.Array.multi([32])
+  external ffi.Array<ffi.Char> firmware_version;
+
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Char> error_message;
 }
 
 @ffi.Packed(1)
@@ -148,13 +270,16 @@ final class RecoveryEvent extends ffi.Struct {
   external ffi.Array<ffi.Char> filename;
 
   @ffi.Array.multi([32])
-  external ffi.Array<ffi.Char> modifiedTime;
+  external ffi.Array<ffi.Char> modified_time;
 
   @ffi.Int64()
   external int file_size;
 
   @ffi.Int64()
   external int sector_offset;
+
+  @ffi.Int32()
+  external int status;
 
   @ffi.Int32()
   external int error_code;
@@ -173,6 +298,9 @@ final class RecoveryEvent extends ffi.Struct {
 
   @ffi.Int64()
   external int duration_ms;
+
+  @ffi.Array.multi([256])
+  external ffi.Array<ffi.Char> folder;
 }
 
 typedef RecoveryCallback =
@@ -357,3 +485,15 @@ const int EVENT_FILE_FOUND = 2;
 const int EVENT_ERROR = 3;
 
 const int EVENT_DONE = 4;
+
+const int FILE_STATUS_HEALTHY = 1;
+
+const int FILE_STATUS_ORPHANED = 2;
+
+const int FILE_STATUS_CARVED = 3;
+
+const int SCAN_MODE_DELETED = 1;
+
+const int SCAN_MODE_EXISTING = 2;
+
+const int SCAN_MODE_BOTH = 3;

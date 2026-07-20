@@ -3,6 +3,24 @@ import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
 
+@Packed(1)
+final class HardwareHealthInfoNative extends Struct {
+  @Int32()
+  external int status;
+
+  @Int64()
+  external int capacity;
+
+  @Array(64)
+  external Array<Uint8> controllerId;
+
+  @Array(32)
+  external Array<Uint8> firmwareVersion;
+
+  @Array(256)
+  external Array<Uint8> errorMessage;
+}
+
 // ── Struct mapping C RecoveryEvent ──────────────────────────────────
 @Packed(1)
 final class RecoveryEventNative extends Struct {
@@ -69,6 +87,9 @@ typedef SetRefDart   = int   Function(int handle, Pointer<Utf8> referencePath);
 typedef RepairNative = Int32 Function(Pointer<Utf8> brokenPath, Pointer<Utf8> referencePath, Pointer<Utf8> outputPath);
 typedef RepairDart   = int   Function(Pointer<Utf8> brokenPath, Pointer<Utf8> referencePath, Pointer<Utf8> outputPath);
 
+typedef CheckHardwareNative = Int32 Function(Int32 handle, Pointer<HardwareHealthInfoNative> outInfo);
+typedef CheckHardwareDart   = int Function(int handle, Pointer<HardwareHealthInfoNative> outInfo);
+
 // ── Bindings class ───────────────────────────────────────────────────
 class RecoveryBindings {
   late final DynamicLibrary _lib;
@@ -81,6 +102,7 @@ class RecoveryBindings {
   late final SaveFileDart  saveFile;
   late final SetRefDart    setReferenceVideo;
   late final RepairDart    repairVideo;
+  late final CheckHardwareDart checkHardware;
 
   RecoveryBindings() {
     final libPath = Platform.isMacOS
@@ -98,5 +120,6 @@ class RecoveryBindings {
     saveFile = _lib.lookupFunction<SaveFileNative, SaveFileDart>('recovery_save_file');
     setReferenceVideo = _lib.lookupFunction<SetRefNative, SetRefDart>('recovery_set_reference_video');
     repairVideo       = _lib.lookupFunction<RepairNative, RepairDart>('recovery_repair_video');
+    checkHardware     = _lib.lookupFunction<CheckHardwareNative, CheckHardwareDart>('recovery_check_hardware');
   }
 }

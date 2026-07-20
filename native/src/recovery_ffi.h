@@ -28,6 +28,14 @@
 #pragma pack(push, 1)
 
 typedef struct {
+    int32_t status;
+    int64_t capacity;
+    char    controller_id[64];
+    char    firmware_version[32];
+    char    error_message[256];
+} HardwareHealthInfo;
+
+typedef struct {
     char     filename[256];
     char     rel_path[512];
     char     modified_time[32];
@@ -96,6 +104,9 @@ EXPORT void recovery_close(int32_t handle);
 
 // Giải phóng string từ recovery_list_drives
 EXPORT void recovery_free_string(char* ptr);
+
+// Kiểm tra sức khỏe phần cứng
+EXPORT int32_t recovery_check_hardware(int32_t handle, HardwareHealthInfo* out_info);
 
 // Lưu file carved vào đường dẫn đích
 EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t file_size, const char* output_path);

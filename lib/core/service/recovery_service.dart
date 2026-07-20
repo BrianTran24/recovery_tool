@@ -87,6 +87,29 @@ class RecoveryService {
       controller.close();
       return;
     }
+
+    // 1.1. Hardware Health Check
+    final hwInfoPtr = malloc<HardwareHealthInfoNative>();
+    final hwResult = _bindings.checkHardware(handle, hwInfoPtr);
+    final hwInfo = hwInfoPtr.ref;
+
+    if (hwResult != 0) {
+      final errorMsg = _arrayToStringStatic(hwInfo.errorMessage, 256);
+      controller.add(
+        ErrorEvent(
+          code: hwResult,
+          message:
+              'Phát hiện lỗi phần cứng/firmware nghiêm trọng: $errorMsg. Khuyến nghị sử dụng thiết bị chuyên dụng (PC-3000 Flash) để đọc trực tiếp chip NAND.',
+          isHardwareFailure: true,
+        ),
+      );
+      _bindings.close(handle);
+      malloc.free(hwInfoPtr);
+      controller.close();
+      return;
+    }
+    malloc.free(hwInfoPtr);
+
     _activeHandle = handle;
 
     // Đặt video tham chiếu để repair tự động các video thiếu `moov` khi carve.

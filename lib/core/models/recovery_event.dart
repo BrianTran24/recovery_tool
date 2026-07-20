@@ -33,10 +33,16 @@ class FileFoundEvent extends RecoveryEvent {
 class ErrorEvent extends RecoveryEvent {
   final int code;
   final String message;
-  ErrorEvent({required this.code, required this.message});
+  final bool isHardwareFailure;
+
+  ErrorEvent({
+    required this.code,
+    required this.message,
+    this.isHardwareFailure = false,
+  });
 
   @override
-  String toString() => 'ErrorEvent(code: $code, message: $message)';
+  String toString() => 'ErrorEvent(code: $code, message: $message, hw: $isHardwareFailure)';
 }
 
 class DoneEvent extends RecoveryEvent {

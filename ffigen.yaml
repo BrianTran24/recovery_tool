@@ -12,3 +12,4 @@ functions:
 structs:
   include:
     - 'RecoveryEvent'
+    - 'HardwareHealthInfo'

@@ -6,6 +6,7 @@
 #include "smart_assembler.h"
 #include "video_repair.h"
 #include "platform_config.h"
+#include "hardware_health_checker.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -409,6 +410,11 @@ EXPORT void recovery_close(int32_t handle) {
 
 EXPORT void recovery_free_string(char* ptr) {
     if (ptr) free(ptr);
+}
+
+EXPORT int32_t recovery_check_hardware(int32_t handle, HardwareHealthInfo* out_info) {
+    if (handle < 0 || handle >= 8) return -1;
+    return check_hardware_health(g_sessions[handle].fd, out_info);
 }
 
 EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t file_size, const char* output_path) {

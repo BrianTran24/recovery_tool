@@ -100,10 +100,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
                setState(() { _done = true; _elapsed = duration; _percent = 100; });
               _addLog('HOÀN THÀNH: Tìm thấy $totalFound file trong ${duration.inSeconds}s');
 
-            case ErrorEvent(:final message):
+            case ErrorEvent(:final message, :final isHardwareFailure):
               _addLog('LỖI: $message');
-              setState(() { _done = true; });
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+              setState(() {
+                _done = true;
+              });
+              _showErrorDialog(context, message, isHardwareFailure);
           }
         },
         error: (err, stack) {
@@ -315,6 +317,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
     if (d == Duration.zero) return '--:--';
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds % 60)}";
+  }
+
+  void _showErrorDialog(BuildContext context, String message, bool isHardware) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              isHardware ? Icons.memory_rounded : Icons.error_outline_rounded,
+              color: Colors.red,
+            ),
+            const SizedBox(width: 12),
+            Text(isHardware ? 'Lỗi Phần Cứng' : 'Lỗi Hệ Thống'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('ĐÃ HIỂU'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
