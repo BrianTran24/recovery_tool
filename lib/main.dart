@@ -307,7 +307,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Column(
                   children: [
                     // Custom Header
-                    const SizedBox(height: 24),
                     Expanded(
                       child: _buildContent(),
                     ),
@@ -338,7 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(32, 20, 32, 24),
+            padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -499,7 +498,7 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 40)),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ],
     );
   }
