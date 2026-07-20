@@ -13,6 +13,8 @@ add_library(recovery SHARED
         src/smart_assembler.c
         src/carver.c
         src/fragment_validator.c
+        src/signature_registry.c
+        src/device_handlers.c
         src/video_repair.c
         src/hardware_health_checker.c
         src/recovery_ffi.c

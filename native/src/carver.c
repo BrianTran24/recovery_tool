@@ -2,12 +2,17 @@
 #include "platform_config.h"
 #include "video_repair.h"
 #include "fragment_validator.h"
+#include "signature_registry.h"
+#include "device_handlers.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
 #include <math.h>
+
+static SignatureRegistry g_registry;
+static int g_registry_init = 0;
 
 #ifdef _WIN32
 #include <direct.h>
@@ -50,35 +55,7 @@ static void mkdir_p(const char *path) {
     MKDIR(tmp, 0755);
 }
 
-typedef enum {
-    STRATEGY_FOOTER,
-    STRATEGY_SIZE_FIELD,
-    STRATEGY_MAX_SIZE,
-    STRATEGY_SMART_VIDEO,
-    STRATEGY_SMART_JPEG
-} CarveStrategy;
-
-typedef struct {
-    int      fd;
-    uint64_t disk_size;
-    uint32_t sector_size;
-    uint32_t read_chunk;
-} CarverContext;
-
-typedef struct {
-    const char*   name;
-    const char*   extension;
-    uint8_t       header[MAX_HEADER_LEN];
-    size_t        header_len;
-    size_t        header_offset;
-    uint8_t       footer[MAX_FOOTER_LEN];
-    size_t        footer_len;
-    CarveStrategy strategy;
-    uint64_t      max_size;
-    uint64_t      min_size;
-    uint64_t (*read_size)(const CarverContext* ctx, uint64_t file_start, const uint8_t* header_buf, size_t buf_len, int* out_has_moov);
-    int (*validate)(const uint8_t* buf, size_t len);
-} FileSignature;
+// Signature definitions are now in signature_registry.c
 
 static int file_exists(const char* path) {
     FILE* f = fopen(path, "rb");
@@ -216,7 +193,7 @@ static void bs_skip_profile_tier_level(BitStream* bs, int max_sub_layers) {
     }
 }
 
-static int parse_hevc_sps_dims(const uint8_t* sps, size_t len, int* w, int* h) {
+int parse_hevc_sps_dims(const uint8_t* sps, size_t len, int* w, int* h) {
     if (len < 20) return 0;
     BitStream bs = { .buf = sps, .len = len, .pos = 0 };
 
@@ -585,7 +562,7 @@ static uint64_t mp4_find_next_box(const CarverContext* ctx, uint64_t from, uint6
     return 0;
 }
 
-static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
+uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
     uint64_t pos = file_start;
     uint64_t total_size = 0;
     uint8_t box_header[16];
@@ -666,7 +643,7 @@ static uint64_t mp4_read_size(const CarverContext* ctx, uint64_t file_start, con
 // SMART CARVER: Quét NAL units để xử lý phân mảnh
 // Logic: Tìm các start code 00 00 00 01 và kiểm tra NAL type
 // Nếu gặp vùng dữ liệu lạ, thử tìm start code tiếp theo trong phạm vi 1MB
-static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
+uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
     if (out_has_moov) *out_has_moov = 0;
     uint64_t pos = file_start;
     uint64_t last_valid_pos = file_start;
@@ -756,7 +733,7 @@ static double jpeg_calculate_entropy(const uint8_t* data, size_t len) {
     return calculate_entropy(data, len);
 }
 
-static uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
+uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, const uint8_t* buf, size_t len, int* out_has_moov) {
     if (out_has_moov) *out_has_moov = 0;
     uint64_t pos = file_start;
     uint8_t marker_buf[4];
@@ -844,7 +821,7 @@ static int jpeg_get_dimensions(const uint8_t* buf, size_t len, uint32_t* width, 
     return 0;
 }
 
-static int jpeg_validate(const uint8_t* buf, size_t len) {
+int jpeg_validate(const uint8_t* buf, size_t len) {
     // JPEG header: FF D8 FF
     if (len < 10) return 0;
     if (buf[0] != 0xFF || buf[1] != 0xD8 || buf[2] != 0xFF) return 0;
@@ -868,7 +845,7 @@ static int jpeg_validate(const uint8_t* buf, size_t len) {
 }
 
 
-static int mp4_validate(const uint8_t* buf, size_t len) {
+int mp4_validate(const uint8_t* buf, size_t len) {
     if (len < 32) return 0;
     // Kiểm tra ftyp brand (phải là ký tự in được)
     for (int i = 8; i < 12; i++) {
@@ -884,37 +861,7 @@ static int mp4_validate(const uint8_t* buf, size_t len) {
     return 1;
 }
 
-static FileSignature SIGNATURES[] = {
-    {
-        .name = "JPEG", .extension = ".jpg",
-        .header = {0xFF, 0xD8, 0xFF}, .header_len = 3,
-        .footer = {0xFF, 0xD9}, .footer_len = 2,
-        .strategy = STRATEGY_SMART_JPEG, .max_size = 100ULL * 1024 * 1024, .min_size = JPEG_MIN_SIZE,
-        .read_size = jpeg_smart_carve_size,
-        .validate = jpeg_validate
-    },
-    {
-        .name = "PNG", .extension = ".png",
-        .header = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, .header_len = 8,
-        .footer = {0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82}, .footer_len = 8,
-        .strategy = STRATEGY_FOOTER, .max_size = 100ULL * 1024 * 1024, .min_size = PNG_MIN_SIZE,
-    },
-    {
-        .name = "Video", .extension = ".mp4",
-        .header = {0x66, 0x74, 0x79, 0x70}, .header_len = 4, .header_offset = 4,
-        .strategy = STRATEGY_MAX_SIZE, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
-        .read_size = mp4_read_size,
-        .validate = mp4_validate
-    },
-    {
-        .name = "Video (Smart)", .extension = ".h264",
-        .header = {0x00, 0x00, 0x00, 0x01, 0x67}, .header_len = 5,
-        .strategy = STRATEGY_SMART_VIDEO, .max_size = 64000ULL * 1024 * 1024, .min_size = MIN_FILE_SIZE,
-        .read_size = h264_smart_carve_size,
-    }
-};
-
-#define NUM_SIGNATURES (sizeof(SIGNATURES) / sizeof(SIGNATURES[0]))
+// SIGNATURES moved to signature_registry.c
 
 static int ReadChunk(const CarverContext* ctx, uint64_t byte_offset, uint8_t* buf, size_t buf_size, size_t* bytes_read) {
     if (LSEEK(ctx->fd, (off_t_64)byte_offset, SEEK_SET) < 0) return -1;
@@ -953,68 +900,6 @@ int ExtractFileRange(int fd, uint64_t start_byte, uint64_t file_size, const char
     fclose(out);
     free(buf);
     return (remaining == 0) ? 0 : -1;
-}
-
-// === GOPRO DE-INTERLEAVING EXTRACTOR ===
-// This tool extracts the main video stream by skipping interleaved LRV (Low-Res) clusters.
-// This is critical for GoPro 13 because repair tools fail when GX and GL data are mixed.
-int ExtractGoProVideo(int fd, uint64_t start_byte, uint64_t max_size, const char* output_path, uint64_t* out_written) {
-    FILE* out = fopen(output_path, "wb");
-    if (!out) return -1;
-
-    // GoPro 13 on exFAT uses 128KB or 256KB clusters. We'll use 64KB as a base unit.
-    const size_t cluster_size = 64 * 1024;
-    uint8_t* buf = (uint8_t*)malloc(cluster_size);
-    if (!buf) { fclose(out); return -1; }
-
-    uint64_t pos = start_byte;
-    uint64_t end = start_byte + max_size;
-    uint64_t total_written = 0;
-    int consecutive_lrv = 0;
-    int consecutive_main = 0;
-
-    // First chunk is the header, always keep it.
-    if (LSEEK(fd, (off_t_64)pos, SEEK_SET) >= 0 && READ(fd, buf, (uint32_t)cluster_size) == (ssize_t)cluster_size) {
-        fwrite(buf, 1, cluster_size, out);
-        total_written += cluster_size;
-        pos += cluster_size;
-    }
-
-    while (pos < end) {
-        if (LSEEK(fd, (off_t_64)pos, SEEK_SET) < 0) break;
-        ssize_t n = READ(fd, buf, (uint32_t)cluster_size);
-        if (n <= 0) break;
-
-        GoProClusterType type = classify_gopro_cluster(buf, (size_t)n);
-
-        if (type == GOPRO_MAIN || type == GOPRO_METADATA) {
-            fwrite(buf, 1, (size_t)n, out);
-            total_written += (size_t)n;
-            consecutive_main++;
-            consecutive_lrv = 0;
-        } else if (type == GOPRO_LRV) {
-            // Skip LRV cluster to de-interleave the stream
-            consecutive_lrv++;
-            consecutive_main = 0;
-        } else {
-            // Unknown cluster: Video data without SPS.
-            // Since Main Video bitrate is much higher, most "unknown" clusters are Main Video.
-            if (consecutive_lrv == 0) {
-                fwrite(buf, 1, (size_t)n, out);
-                total_written += (size_t)n;
-            }
-        }
-
-        pos += (uint64_t)n;
-
-        // Safety break: if we skip too much or find another file header
-        if (consecutive_lrv > 200) break; // 12MB of LRV is unlikely
-    }
-
-    fclose(out);
-    free(buf);
-    if (out_written) *out_written = total_written;
-    return 0;
 }
 
 static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const FileSignature* sig) {
@@ -1072,44 +957,14 @@ static uint64_t FindFooter(const CarverContext* ctx, uint64_t file_start, const 
     return 0;
 }
 
-// Xác định file MP4 có phải nguồn GoPro (interleaved LRV) hay không.
-// Chỉ khi đúng GoPro mới nên dùng bộ lọc de-interleaving ExtractGoProVideo,
-// vì filter này sẽ hủy hoại byte-stream của MP4 thông thường.
-static int is_gopro_video(int fd, uint64_t file_start) {
-    const size_t probe = 64 * 1024;
-    uint8_t* p = (uint8_t*)malloc(probe);
-    if (!p) return 0;
-
-    if (LSEEK(fd, (off_t_64)file_start, SEEK_SET) < 0) { free(p); return 0; }
-    ssize_t n = READ(fd, p, (uint32_t)probe);
-    if (n < 32) { free(p); return 0; }
-    size_t got = (size_t)n;
-
-    int is_gopro = 0;
-
-    // 1. ftyp brand chứa "gopro"
-    if (got >= 16 && memcmp(p + 4, "ftyp", 4) == 0) {
-        if (memcmp(p + 8, "gopro", 5) == 0 || memcmp(p + 8, "GoPro", 5) == 0) {
-            is_gopro = 1;
-        }
-    }
-
-    // 2. Tìm chuỗi nhận diện GoPro (GPMF "GPRO"/"DEVC") hoặc firmware tag trong header
-    if (!is_gopro && got >= 8) {
-        for (size_t i = 0; i + 4 <= got; i++) {
-            if (memcmp(p + i, "GoPro", 5 <= got - i ? 5 : got - i) == 0 && (got - i) >= 5) { is_gopro = 1; break; }
-            if (memcmp(p + i, "DEVC", 4) == 0) { is_gopro = 1; break; }
-        }
-    }
-
-    free(p);
-    return is_gopro;
-}
-
 int is_cluster_header(const uint8_t* buf, size_t len) {
     if (len < 8) return 0;
-    for (size_t s = 0; s < NUM_SIGNATURES; s++) {
-        const FileSignature* sig = &SIGNATURES[s];
+    if (!g_registry_init) {
+        init_signature_registry(&g_registry);
+        g_registry_init = 1;
+    }
+    for (size_t s = 0; s < g_registry.count; s++) {
+        const FileSignature* sig = &g_registry.signatures[s];
         if (sig->header_len > 0 && sig->header_offset + sig->header_len <= len) {
             if (memcmp(buf + sig->header_offset, sig->header, sig->header_len) == 0) {
                 // Potential header found, validate if it has a validator
@@ -1125,6 +980,11 @@ int is_cluster_header(const uint8_t* buf, size_t len) {
 }
 
 int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask, const char* reference_video) {
+    if (!g_registry_init) {
+        init_signature_registry(&g_registry);
+        g_registry_init = 1;
+    }
+
     const uint32_t chunk_size = 4U * 1024U * 1024U;
     CarverContext ctx = { .fd = fd, .disk_size = disk_size, .sector_size = sector_size, .read_chunk = chunk_size };
     uint8_t* buf = (uint8_t*)malloc((size_t)chunk_size + 1024);
@@ -1136,8 +996,8 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
     size_t offsets[MAX_HEADER_LEN];
     size_t offset_count = 0;
 
-    for (size_t s = 0; s < NUM_SIGNATURES; s++) {
-        const FileSignature* sig = &SIGNATURES[s];
+    for (size_t s = 0; s < g_registry.count; s++) {
+        const FileSignature* sig = &g_registry.signatures[s];
         if (sig->header_len == 0 || sig->header_offset >= MAX_HEADER_LEN) continue;
 
         if (!used_offsets[sig->header_offset]) {
@@ -1197,7 +1057,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                     if (sig->strategy == STRATEGY_FOOTER) {
                         uint64_t end = FindFooter(&ctx, file_start, sig);
                         if (end > file_start) file_size = end - file_start;
-                    } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO || sig->strategy == STRATEGY_SMART_JPEG) {
+                    } else if (sig->strategy == STRATEGY_MAX_SIZE || sig->strategy == STRATEGY_SMART_VIDEO || sig->strategy == STRATEGY_SMART_JPEG || sig->strategy == STRATEGY_SIZE_FIELD) {
                         if (sig->read_size) {
                             uint64_t s_field = sig->read_size(&ctx, file_start, buf + i, n - i, &has_moov);
                             if (s_field > 0) file_size = s_field;
@@ -1235,6 +1095,11 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                         uint64_t final_size = file_size;
 
                         int is_mp4 = (sig->extension && strcmp(sig->extension, ".mp4") == 0);
+                        int device_id = DEVICE_NONE;
+                        if (is_mp4) {
+                            if (is_gopro_device(buf + i, n - i)) device_id = DEVICE_GOPRO;
+                            else if (is_dji_device(buf + i, n - i)) device_id = DEVICE_DJI;
+                        }
 
                         if (is_mp4 && !has_moov) {
                             // #4/#7 Video thiếu `moov` → không mở được. Thử repair tự động
@@ -1262,10 +1127,10 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                                 char rawPath[1400];
                                 snprintf(rawPath, sizeof(rawPath), "%s%c%s", needDir, PATH_SEP, leaf ? leaf + 1 : filename);
                                 make_unique_path(rawPath, sizeof(rawPath));
-                                // #6 Chỉ de-interleave GoPro khi thiếu moov (carve thô).
-                                if (is_gopro_video(fd, file_start)) {
+
+                                if (device_id != DEVICE_NONE) {
                                     uint64_t written = 0;
-                                    extract_ok = ExtractGoProVideo(fd, file_start, file_size, rawPath, &written);
+                                    extract_ok = handle_device_carve(fd, file_start, file_size, rawPath, device_id, &written);
                                     final_size = written;
                                 } else {
                                     extract_ok = ExtractFileRange(fd, file_start, file_size, rawPath);
