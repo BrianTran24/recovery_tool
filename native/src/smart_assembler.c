@@ -1,6 +1,7 @@
 #include "smart_assembler.h"
 #include "platform_config.h"
 #include "carver.h"
+#include "fragment_validator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -215,40 +216,94 @@ static int AssembleSmart(int fd, FileInfo* info, const char* outPath, uint32_t b
     int success = 0;
     int fragmented_jumps = 0;
 
+    // Fragment Validation Context
+    H264Context h264_ctx = {0};
+    JPEGContext jpeg_ctx = {0};
+    int last_frame_num = -1;
+    int use_h264_val = 0;
+    int use_jpeg_val = 0;
+
+    // Initialize validator based on file extension
+    if (info->filename) {
+        const char* ext = strrchr(info->filename, '.');
+        if (ext && (strcasecmp(ext, ".mp4") == 0 || strcasecmp(ext, ".h264") == 0)) {
+            // Probe for SPS
+            uint8_t probe[4096];
+            int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
+            LSEEK(fd, sector * 512, SEEK_SET);
+            if (READ(fd, probe, sizeof(probe)) > 0) {
+                // Simplified: search for SPS in first 4KB
+                for (int i = 0; i < 4000; i++) {
+                    if (probe[i] == 0x00 && probe[i+1] == 0x00 && probe[i+2] == 0x01 && (probe[i+3] & 0x1F) == 7) {
+                        parse_h264_sps(probe + i + 3, 64, &h264_ctx);
+                        use_h264_val = 1;
+                        break;
+                    }
+                }
+            }
+        } else if (ext && (strcasecmp(ext, ".jpg") == 0 || strcasecmp(ext, ".jpeg") == 0)) {
+            uint8_t probe[4096];
+            int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
+            LSEEK(fd, sector * 512, SEEK_SET);
+            if (READ(fd, probe, sizeof(probe)) > 0) {
+                parse_jpeg_header_info(probe, sizeof(probe), &jpeg_ctx);
+                use_jpeg_val = 1;
+            }
+        }
+    }
+
     while (remaining > 0 && curr >= 2 && (!cancelled || !*cancelled)) {
         int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
         if (LSEEK(fd, sector * 512, SEEK_SET) < 0) break;
         if (READ(fd, buf, bytesPerCluster) != (ssize_t)bytesPerCluster) break;
 
         // CẢI TIẾN: Fragmentation Detection & Avoidance
-        // Nếu cluster hiện tại trông giống header của một file khác (JPG, MP4, v.v.),
-        // nghĩa là file hiện tại bị phân mảnh. Ta cần tìm vùng trống tiếp theo.
-        if (is_cluster_header(buf, bytesPerCluster)) {
-            // Found a header of another file!
-            // Nếu đây là cluster đầu tiên của chính file này thì không sao.
+        int is_header = is_cluster_header(buf, bytesPerCluster);
+        int is_invalid = 0;
+
+        if (use_h264_val) {
+            is_invalid = !validate_h264_fragment(&h264_ctx, buf, bytesPerCluster, &last_frame_num);
+        } else if (use_jpeg_val) {
+            // For JPEG, we only validate AFTER the header clusters
             if (curr != info->starting_cluster) {
-                if (fragmented_jumps++ < 512) { // Giới hạn số lần nhảy để tránh lặp vô hạn
+                is_invalid = !validate_jpeg_fragment(&jpeg_ctx, buf, bytesPerCluster);
+            }
+        }
+
+        if (is_header || is_invalid) {
+            // Found a header of another file OR invalid fragment!
+            if (curr != info->starting_cluster) {
+                if (fragmented_jumps++ < 1024) {
                     uint32_t search_start = curr + 1;
                     int found_gap = 0;
-                    // Tìm kiếm tới 1024 cluster tiếp theo để tìm vùng không phải header
-                    for (uint32_t j = 0; j < 1024; j++) {
+                    // Tìm kiếm rộng hơn (tới 4096 cluster) cho video lớn
+                    for (uint32_t j = 0; j < 4096; j++) {
                         uint32_t next_c = search_start + j;
                         int64_t next_s = dataStartSector + (int64_t)(next_c - 2) * sectorsPerCluster;
 
-                        // Nếu sector đã dùng bởi FS khác, skip
                         if (mask && (mask[next_s >> 3] & (1 << (next_s & 7)))) continue;
 
                         uint8_t probe[512];
                         LSEEK(fd, next_s * 512, SEEK_SET);
                         if (READ(fd, probe, 512) == 512) {
-                            if (!is_cluster_header(probe, 512)) {
+                            int next_is_header = is_cluster_header(probe, 512);
+                            int next_is_valid = 1;
+
+                            if (use_h264_val) {
+                                int temp_last = last_frame_num;
+                                next_is_valid = validate_h264_fragment(&h264_ctx, probe, 512, &temp_last);
+                            } else if (use_jpeg_val) {
+                                next_is_valid = validate_jpeg_fragment(&jpeg_ctx, probe, 512);
+                            }
+
+                            if (!next_is_header && next_is_valid) {
                                 curr = next_c;
                                 found_gap = 1;
                                 break;
                             }
                         }
                     }
-                    if (found_gap) continue; // Thử lại với cluster mới tìm được
+                    if (found_gap) continue;
                 }
             }
         }

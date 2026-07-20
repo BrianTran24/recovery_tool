@@ -1,11 +1,13 @@
 #include "carver.h"
 #include "platform_config.h"
 #include "video_repair.h"
+#include "fragment_validator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <math.h>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -670,12 +672,22 @@ static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_st
     uint64_t last_valid_pos = file_start;
     uint8_t chunk[1024 * 64];
     const size_t chunk_size = sizeof(chunk);
-    int found_sps = 0;
-    int found_idr = 0;
+
+    H264Context h264_ctx = {0};
+    int last_frame_num = -1;
+    int has_sps = 0;
     int continuous_errors = 0;
 
-    // Giới hạn quét tối đa 2GB cho smart carving (tránh treo)
-    uint64_t max_scan = 2000ULL * 1024 * 1024;
+    // Look for SPS in the first chunk to initialize validator
+    for (size_t i = 0; i < len - 4; i++) {
+        if (buf[i] == 0x00 && buf[i+1] == 0x00 && buf[i+2] == 0x01 && (buf[i+3] & 0x1F) == 7) {
+            parse_h264_sps(buf + i + 3, 64, &h264_ctx);
+            has_sps = 1;
+            break;
+        }
+    }
+
+    uint64_t max_scan = 4000ULL * 1024 * 1024; // 4GB max for smart carve
     if (pos + max_scan > ctx->disk_size) max_scan = ctx->disk_size - pos;
 
     while (pos < file_start + max_scan) {
@@ -683,34 +695,40 @@ static uint64_t h264_smart_carve_size(const CarverContext* ctx, uint64_t file_st
         ssize_t n = READ(ctx->fd, chunk, (uint32_t)chunk_size);
         if (n < 16) break;
 
-        int found_nal_in_chunk = 0;
-        for (size_t i = 0; i < (size_t)n - 4; i++) {
-            // Tìm Start Code: 00 00 00 01
-            if (chunk[i] == 0x00 && chunk[i+1] == 0x00 && chunk[i+2] == 0x00 && chunk[i+3] == 0x01) {
-                uint8_t nal_type = chunk[i+4] & 0x1F;
-                // Các NAL type hợp lệ của H.264
-                if (nal_type >= 1 && nal_type <= 12) {
-                    if (nal_type == 7) found_sps = 1;
-                    if (nal_type == 5) found_idr = 1;
+        int valid = 1;
+        if (has_sps) {
+            valid = validate_h264_fragment(&h264_ctx, chunk, (size_t)n, &last_frame_num);
+        }
 
-                    last_valid_pos = pos + i + 5;
-                    found_nal_in_chunk = 1;
-                    continuous_errors = 0;
+        if (valid) {
+            last_valid_pos = pos + n;
+            continuous_errors = 0;
+        } else {
+            continuous_errors++;
+            // If fragmented, try to find the next valid NAL
+            if (continuous_errors > 4) { // ~256KB of invalid data
+                uint64_t search_pos = pos + n;
+                int found_next = 0;
+                for (int j = 0; j < 1024; j++) { // Search up to 64MB ahead
+                    uint8_t probe[4096];
+                    if (LSEEK(ctx->fd, search_pos, SEEK_SET) < 0) break;
+                    if (READ(ctx->fd, probe, 4096) < 16) break;
+
+                    if (validate_h264_fragment(&h264_ctx, probe, 4096, &last_frame_num)) {
+                        pos = search_pos;
+                        found_next = 1;
+                        break;
+                    }
+                    search_pos += 64 * 1024;
                 }
+                if (!found_next) break;
+                continue;
             }
         }
-
-        if (!found_nal_in_chunk) {
-            continuous_errors++;
-            // Nếu quá 2MB không thấy NAL nào, coi như kết thúc file hoặc quá phân mảnh
-            if (continuous_errors > 32) break;
-        }
-
-        pos += n - 4; // Trồng lấn 4 byte để không sót start code
+        pos += n;
     }
 
-    if (found_sps && found_idr) return last_valid_pos - file_start;
-    return 0;
+    return last_valid_pos - file_start;
 }
 
 #define JPEG_MIN_SIZE (50ULL * 1024) // Reduced from 150KB to catch more valid photos
@@ -743,72 +761,67 @@ static uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_st
     uint64_t pos = file_start;
     uint8_t marker_buf[4];
 
+    JPEGContext jpeg_ctx = {0};
+    parse_jpeg_header_info(buf, len, &jpeg_ctx);
+
     // 1. Skip FF D8
     pos += 2;
-
-    // 2. Parse Markers until SOS (FF DA)
+    // ... same marker parsing as before ...
     while (pos + 4 < ctx->disk_size) {
         if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
         if (READ(ctx->fd, marker_buf, 4) != 4) break;
-
-        if (marker_buf[0] != 0xFF) break; // Invalid marker
+        if (marker_buf[0] != 0xFF) break;
         uint8_t marker = marker_buf[1];
-        if (marker == 0xDA) { // Start of Scan
-            pos += 2; // Move to scan data
-            break;
-        }
-
-        if (marker == 0xD8) { pos += 2; continue; } // Extra SOI?
-        if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) { // No length markers
-            pos += 2;
-            continue;
-        }
-
+        if (marker == 0xDA) { pos += 2; break; }
+        if (marker == 0xD8) { pos += 2; continue; }
+        if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) { pos += 2; continue; }
         uint32_t marker_len = (marker_buf[2] << 8) | marker_buf[3];
         pos += marker_len + 2;
     }
 
-    // 3. Scan compressed data (Entropy-based)
     uint64_t last_valid_pos = pos;
     uint8_t chunk[16 * 1024];
-    int continuous_low_entropy = 0;
-    int found_eoi = 0;
+    int continuous_invalid = 0;
 
-    while (pos < file_start + (50ULL * 1024 * 1024)) { // Max 50MB for JPEG
+    while (pos < file_start + (100ULL * 1024 * 1024)) { // Up to 100MB for 4K/RAW photos
         if (LSEEK(ctx->fd, (off_t_64)pos, SEEK_SET) < 0) break;
         ssize_t n = READ(ctx->fd, chunk, sizeof(chunk));
         if (n < 64) break;
 
-        // Check entropy of the chunk
-        double entropy = jpeg_calculate_entropy(chunk, (size_t)n);
-
-        // JPEG compressed data usually has entropy > 7.0
-        if (entropy < 6.0) {
-            continuous_low_entropy++;
-            if (continuous_low_entropy > 4) break; // ~64KB of low entropy = fragmentation/end
-        } else {
-            continuous_low_entropy = 0;
+        if (validate_jpeg_fragment(&jpeg_ctx, chunk, (size_t)n)) {
+            continuous_invalid = 0;
             last_valid_pos = pos + (uint64_t)n;
-        }
 
-        // Look for EOI (FF D9) in chunk
-        for (size_t i = 0; i < (size_t)n - 1; i++) {
-            if (chunk[i] == 0xFF && chunk[i+1] == 0xD9) {
-                found_eoi = 1;
-                return pos + (uint64_t)i + 2 - file_start;
+            // Look for EOI
+            for (size_t i = 0; i < (size_t)n - 1; i++) {
+                if (chunk[i] == 0xFF && chunk[i+1] == 0xD9) {
+                    return pos + (uint64_t)i + 2 - file_start;
+                }
             }
-            // Check for restart markers if fragmented
-            if (chunk[i] == 0xFF && chunk[i+1] >= 0xD0 && chunk[i+1] <= 0xD7) {
-                last_valid_pos = pos + (uint64_t)i + 2;
+        } else {
+            continuous_invalid++;
+            if (continuous_invalid > 8) { // 128KB invalid
+                // Try to find next fragment
+                uint64_t search_pos = pos + n;
+                int found_next = 0;
+                for (int j = 0; j < 512; j++) { // Search 8MB ahead
+                    uint8_t probe[4096];
+                    if (LSEEK(ctx->fd, search_pos, SEEK_SET) < 0) break;
+                    if (READ(ctx->fd, probe, 4096) < 64) break;
+                    if (validate_jpeg_fragment(&jpeg_ctx, probe, 4096)) {
+                        pos = search_pos;
+                        found_next = 1;
+                        break;
+                    }
+                    search_pos += 16 * 1024;
+                }
+                if (!found_next) break;
+                continue;
             }
         }
-
         pos += (uint64_t)n;
-        if (pos > ctx->disk_size) break;
     }
-
-    if (last_valid_pos > file_start) return last_valid_pos - file_start;
-    return 0;
+    return last_valid_pos - file_start;
 }
 
 static int jpeg_get_dimensions(const uint8_t* buf, size_t len, uint32_t* width, uint32_t* height) {
