@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'preview_screen.dart';
 import 'core/features/scan/scan_provider.dart';
 import 'core/models/recovery_event.dart';
+import 'core/service/recovery_service.dart';
 import 'core/theme/app_theme.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
@@ -35,6 +36,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
   int _speed = 0;
   int _found = 0;
   bool _done = false;
+  List<FileSystemInfo> _fileSystems = [];
   Duration _elapsed = Duration.zero;
   final List<String> _logs = [];
   int _lastLoggedMB = -1;
@@ -79,6 +81,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
       next.when(
         data: (event) {
           switch (event) {
+            case FsIdentifiedEvent(:final filesystems):
+              setState(() {
+                _fileSystems = filesystems;
+              });
+              for (var fs in filesystems) {
+                _addLog('NHẬN DIỆN: Hệ thống tập tin ${fs.typeName} tại sector ${fs.offset}');
+              }
+              if (filesystems.isEmpty) {
+                _addLog('NHẬN DIỆN: Không tìm thấy hệ thống tập tin hợp lệ. Chuyển sang quét thô (Signature Carving).');
+              }
+
             case ProgressEvent(:final percent, :final scannedBytes, :final speedMbps):
               setState(() { 
                 _percent = percent; 
@@ -135,6 +148,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
       ),
       body: Column(
         children: [
+          // ── File System Info ─────────────────────────────────────
+          if (_fileSystems.isNotEmpty) _buildFsInfo(context),
+
           // ── Progress & Stats Header ──────────────────────────────
           _buildProgressHeader(context),
 
@@ -309,6 +325,27 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
           const SizedBox(height: 16),
           Text(message, style: TextStyle(color: Colors.grey.shade500)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFsInfo(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      color: AppTheme.primaryColor.withValues(alpha: 0.05),
+      child: Wrap(
+        spacing: 12,
+        children: _fileSystems.map((fs) => Chip(
+          avatar: const Icon(Icons.storage_rounded, size: 16, color: Colors.white),
+          label: Text(
+            '${fs.typeName} (@${fs.offset})',
+            style: const TextStyle(fontSize: 12, color: Colors.white),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          padding: EdgeInsets.zero,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        )).toList(),
       ),
     );
   }

@@ -90,6 +90,9 @@ typedef RepairDart   = int   Function(Pointer<Utf8> brokenPath, Pointer<Utf8> re
 typedef CheckHardwareNative = Int32 Function(Int32 handle, Pointer<HardwareHealthInfoNative> outInfo);
 typedef CheckHardwareDart   = int Function(int handle, Pointer<HardwareHealthInfoNative> outInfo);
 
+typedef IdentifyFsNative = Pointer<Utf8> Function(Int32 handle);
+typedef IdentifyFsDart   = Pointer<Utf8> Function(int handle);
+
 // ── Bindings class ───────────────────────────────────────────────────
 class RecoveryBindings {
   late final DynamicLibrary _lib;
@@ -103,6 +106,7 @@ class RecoveryBindings {
   late final SetRefDart    setReferenceVideo;
   late final RepairDart    repairVideo;
   late final CheckHardwareDart checkHardware;
+  late final IdentifyFsDart identifyFs;
 
   RecoveryBindings() {
     final libPath = Platform.isMacOS
@@ -121,5 +125,6 @@ class RecoveryBindings {
     setReferenceVideo = _lib.lookupFunction<SetRefNative, SetRefDart>('recovery_set_reference_video');
     repairVideo       = _lib.lookupFunction<RepairNative, RepairDart>('recovery_repair_video');
     checkHardware     = _lib.lookupFunction<CheckHardwareNative, CheckHardwareDart>('recovery_check_hardware');
+    identifyFs        = _lib.lookupFunction<IdentifyFsNative, IdentifyFsDart>('recovery_identify_fs');
   }
 }

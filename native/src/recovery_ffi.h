@@ -24,6 +24,13 @@
 #define SCAN_MODE_EXISTING 2
 #define SCAN_MODE_BOTH     3
 
+// File System Types
+#define FS_TYPE_UNKNOWN 0
+#define FS_TYPE_FAT32   1
+#define FS_TYPE_EXFAT   2
+#define FS_TYPE_NTFS    3
+#define FS_TYPE_EXT4    4
+
 // Struct truyền qua callback — packed để Dart struct alignment dễ map
 #pragma pack(push, 1)
 
@@ -75,6 +82,9 @@ typedef void (*RecoveryCallback)(const RecoveryEvent* event);
 
 // Liệt kê removable drives — trả về JSON string (caller free)
 EXPORT char* recovery_list_drives(void);
+
+// Nhận diện hệ thống tập tin trên drive — trả về JSON string (caller free)
+EXPORT char* recovery_identify_fs(int32_t handle);
 
 // Mở drive, trả về handle (>= 0) hoặc lỗi (< 0)
 EXPORT int32_t recovery_open(const char* device_path);

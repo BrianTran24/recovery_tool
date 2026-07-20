@@ -19,12 +19,34 @@
 #endif
 
 // Nhận diện VBR filesystem bằng NỘI DUNG (không dựa vào partition type byte của MBR).
-// Trả về 1 nếu sector trông giống Boot Sector của FAT/exFAT hợp lệ.
+// Trả về loại FS_TYPE_*.
+static int IdentifyFsFromVbr(const uint8_t* vbr) {
+    if (vbr[510] != 0x55 || vbr[511] != 0xAA) return FS_TYPE_UNKNOWN;
+    if (memcmp(vbr + 3, "EXFAT   ", 8) == 0) return FS_TYPE_EXFAT;
+    if (memcmp(vbr + 3, "NTFS    ", 8) == 0) return FS_TYPE_NTFS;
+    if (vbr[0] == 0xEB || vbr[0] == 0xE9) {
+        // Có thể là FAT32 hoặc FAT16/12. Ta kiểm tra sơ bộ chữ FAT32.
+        if (memcmp(vbr + 82, "FAT32   ", 8) == 0) return FS_TYPE_FAT32;
+        // Một số thẻ nhớ đời cũ hoặc format lạ có thể không có string "FAT32" ở đúng chỗ,
+        // nhưng cấu trúc nhảy 0xEB 0x58 0x90 là đặc trưng FAT32.
+        if (vbr[0] == 0xEB && vbr[1] == 0x58 && vbr[2] == 0x90) return FS_TYPE_FAT32;
+        return FS_TYPE_FAT32; // Fallback
+    }
+    return FS_TYPE_UNKNOWN;
+}
+
 static int LooksLikeFsVbr(const uint8_t* vbr) {
-    if (vbr[510] != 0x55 || vbr[511] != 0xAA) return 0;
-    if (memcmp(vbr + 3, "EXFAT   ", 8) == 0) return 1;        // exFAT
-    if (vbr[0] == 0xEB || vbr[0] == 0xE9) return 1;           // FAT12/16/32 jump
-    return 0;
+    return IdentifyFsFromVbr(vbr) != FS_TYPE_UNKNOWN;
+}
+
+// Kiểm tra Ext4 Superblock (sector 2, offset 0x400)
+static int IsExt4(int fd, int64_t baseSector) {
+    uint8_t sb[1024];
+    if (LSEEK(fd, (baseSector * 512) + 1024, SEEK_SET) < 0) return 0;
+    if (READ(fd, sb, 1024) != 1024) return 0;
+    // Magic 0xEF53 at offset 0x38 (56) within superblock
+    uint16_t magic = sb[0x38] | (sb[0x39] << 8);
+    return (magic == 0xEF53);
 }
 
 typedef struct {
@@ -430,6 +452,82 @@ EXPORT int32_t recovery_save_file(int32_t handle, int64_t sector_offset, int64_t
 
 EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referencePath, const char* outputPath) {
     return RepairVideo(brokenPath, referencePath, outputPath);
+}
+
+EXPORT char* recovery_identify_fs(int32_t handle) {
+    if (handle < 0 || handle >= 8) return strdup("[]");
+    ScanSession* s = &g_sessions[handle];
+    uint8_t sector[512];
+    char json[4096] = "[";
+    int first = 1;
+
+    // 1. Kiểm tra MBR
+    if (LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
+        if (sector[510] == 0x55 && sector[511] == 0xAA) {
+            // Có thể là MBR hoặc VBR trực tiếp (superfloppy)
+            int fsType = IdentifyFsFromVbr(sector);
+            if (fsType != FS_TYPE_UNKNOWN) {
+                snprintf(json + strlen(json), sizeof(json) - strlen(json),
+                         "{\"offset\":0,\"type\":%d}", fsType);
+                strcat(json, "]");
+                return strdup(json);
+            }
+
+            // Quét MBR Partition Table
+            for (int i = 0; i < 4; i++) {
+                uint8_t* entry = &sector[446 + (i * 16)];
+                uint32_t start_lba = *((uint32_t*)&entry[8]);
+                if (start_lba == 0) continue;
+
+                uint8_t vbr[512];
+                if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
+                    int pType = IdentifyFsFromVbr(vbr);
+                    if (pType == FS_TYPE_UNKNOWN && IsExt4(s->fd, (int64_t)start_lba)) pType = FS_TYPE_EXT4;
+
+                    if (pType != FS_TYPE_UNKNOWN) {
+                        if (!first) strcat(json, ",");
+                        snprintf(json + strlen(json), sizeof(json) - strlen(json),
+                                 "{\"offset\":%u,\"type\":%d}", start_lba, pType);
+                        first = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Kiểm tra GPT (EFI PART at sector 1)
+    if (LSEEK(s->fd, 512, SEEK_SET) == 512 && READ(s->fd, sector, 512) == 512) {
+        if (memcmp(sector, "EFI PART", 8) == 0) {
+            uint64_t table_lba = *((uint64_t*)&sector[72]);
+            uint32_t num_entries = *((uint32_t*)&sector[80]);
+            uint32_t entry_size = *((uint32_t*)&sector[84]);
+
+            uint8_t entry[128]; // Giả định entry_size <= 128
+            for (uint32_t i = 0; i < num_entries && i < 32; i++) { // Chỉ lấy 32 partition đầu
+                if (LSEEK(s->fd, (table_lba * 512) + (i * entry_size), SEEK_SET) < 0) break;
+                if (READ(s->fd, entry, entry_size) != (ssize_t)entry_size) break;
+
+                uint64_t start_lba = *((uint64_t*)&entry[32]);
+                if (start_lba == 0) continue;
+
+                uint8_t vbr[512];
+                if (LSEEK(s->fd, (int64_t)start_lba * 512, SEEK_SET) >= 0 && READ(s->fd, vbr, 512) == 512) {
+                    int pType = IdentifyFsFromVbr(vbr);
+                    if (pType == FS_TYPE_UNKNOWN && IsExt4(s->fd, (int64_t)start_lba)) pType = FS_TYPE_EXT4;
+
+                    if (pType != FS_TYPE_UNKNOWN) {
+                        if (!first) strcat(json, ",");
+                        snprintf(json + strlen(json), sizeof(json) - strlen(json),
+                                 "{\"offset\":%llu,\"type\":%d}", (unsigned long long)start_lba, pType);
+                        first = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    strcat(json, "]");
+    return strdup(json);
 }
 
 EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath) {

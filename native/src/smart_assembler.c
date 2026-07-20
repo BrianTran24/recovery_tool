@@ -212,37 +212,45 @@ static int AssembleSmart(int fd, FileInfo* info, const char* outPath, uint32_t b
     uint8_t* buf = (uint8_t*)malloc(bytesPerCluster);
     int64_t remaining = info->file_size;
     uint32_t curr = info->starting_cluster;
-    double last_entropy = -1.0;
     int success = 0;
+    int fragmented_jumps = 0;
 
     while (remaining > 0 && curr >= 2 && (!cancelled || !*cancelled)) {
         int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
         if (LSEEK(fd, sector * 512, SEEK_SET) < 0) break;
         if (READ(fd, buf, bytesPerCluster) != (ssize_t)bytesPerCluster) break;
 
-        // Fragmentation Detection
+        // CẢI TIẾN: Fragmentation Detection & Avoidance
+        // Nếu cluster hiện tại trông giống header của một file khác (JPG, MP4, v.v.),
+        // nghĩa là file hiện tại bị phân mảnh. Ta cần tìm vùng trống tiếp theo.
         if (is_cluster_header(buf, bytesPerCluster)) {
-            // Found a header of another file! Need to find next gap.
-            uint32_t next_gap = curr + 1;
-            int found = 0;
-            // Search up to 2048 clusters ahead
-            for (int j = 0; j < 2048; j++) {
-                int64_t s2 = dataStartSector + (int64_t)(next_gap + j - 2) * sectorsPerCluster;
-                // If sector is already used, skip
-                if (mask && (mask[s2 >> 3] & (1 << (s2 & 7)))) continue;
+            // Found a header of another file!
+            // Nếu đây là cluster đầu tiên của chính file này thì không sao.
+            if (curr != info->starting_cluster) {
+                if (fragmented_jumps++ < 512) { // Giới hạn số lần nhảy để tránh lặp vô hạn
+                    uint32_t search_start = curr + 1;
+                    int found_gap = 0;
+                    // Tìm kiếm tới 1024 cluster tiếp theo để tìm vùng không phải header
+                    for (uint32_t j = 0; j < 1024; j++) {
+                        uint32_t next_c = search_start + j;
+                        int64_t next_s = dataStartSector + (int64_t)(next_c - 2) * sectorsPerCluster;
 
-                // Read and check if it's a header
-                uint8_t tmp[512];
-                LSEEK(fd, s2 * 512, SEEK_SET);
-                READ(fd, tmp, 512);
-                if (!is_cluster_header(tmp, 512)) {
-                    curr = next_gap + j;
-                    found = 1;
-                    break;
+                        // Nếu sector đã dùng bởi FS khác, skip
+                        if (mask && (mask[next_s >> 3] & (1 << (next_s & 7)))) continue;
+
+                        uint8_t probe[512];
+                        LSEEK(fd, next_s * 512, SEEK_SET);
+                        if (READ(fd, probe, 512) == 512) {
+                            if (!is_cluster_header(probe, 512)) {
+                                curr = next_c;
+                                found_gap = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if (found_gap) continue; // Thử lại với cluster mới tìm được
                 }
             }
-            if (!found) break;
-            continue; // Re-read the found cluster
         }
 
         uint32_t writeSize = (remaining < bytesPerCluster) ? (uint32_t)remaining : bytesPerCluster;

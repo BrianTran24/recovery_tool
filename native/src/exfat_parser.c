@@ -390,17 +390,30 @@ void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     // Nhưng nếu quét nhanh KHÔNG dựng được gì từ cây thư mục (collector rỗng — dấu hiệu
     // boot sector/FAT hỏng), ta vẫn chạy sweep như một fallback để dựng lại cây từ
     // directory entry (metadata), độc lập với FAT — giống DMDE quét nhanh.
+    // CẢI TIẾN: Luôn chạy sweep nếu bật scan_mode != EXISTING để tìm Orphaned Files khi metadata hỏng.
     if (scan_mode != 2 || collector->count == 0) {
         uint32_t clusSz = ClusterSizeBytes(&info); uint8_t* clusBuf = (uint8_t*)malloc(clusSz);
         if (clusBuf) {
+            // TÌNH HUỐNG HỎNG NẶNG: Nếu FAT hỏng (toàn 0), ta không thể dựa vào fat_offset nữa.
+            // Ta quét toàn bộ Cluster Heap để tìm Directory Entry (0x85).
             for (uint32_t c = 2; c <= info.clusterCount + 1 && (!cancelled || !*cancelled); c++) {
                 if (ExfatVisitedTest(visited, c)) continue; // đã xử lý ở pha cây thư mục
-                if (ReadCluster(fd, &info, c, clusBuf) == 0 && IsExfatDirCluster(clusBuf, clusSz) && c != info.rootCluster) {
-                    ExfatVisitedSet(visited, c);
-                    char fld[32]; snprintf(fld, 32, "found_%u", c);
-                    CollectFromExfatCluster(fd, &info, fat, bmp, bmpSz, clusBuf, collector, fld, cancelled, scan_mode, 0, visited, 1);
+
+                // Đọc cluster và kiểm tra xem nó có chứa Directory Entry không
+                if (ReadCluster(fd, &info, c, clusBuf) == 0) {
+                    if (IsExfatDirCluster(clusBuf, clusSz)) {
+                        ExfatVisitedSet(visited, c);
+                        char fld[64];
+                        snprintf(fld, 64, "LostDir_%u", c);
+                        // Chế độ strict=1 để tránh rác khi quét mù
+                        CollectFromExfatCluster(fd, &info, fat, bmp, bmpSz, clusBuf, collector, fld, cancelled, scan_mode, 0, visited, 1);
+                    }
                 }
-                if (on_progress && (c % 5000 == 0)) on_progress(context, ((double)c / info.clusterCount) * 100.0, (int64_t)c * clusSz, 0);
+
+                if (on_progress && (c % 10000 == 0)) {
+                    double pct = ((double)c / info.clusterCount) * 100.0;
+                    on_progress(context, pct, (int64_t)c * clusSz, 0);
+                }
             }
             free(clusBuf);
         }

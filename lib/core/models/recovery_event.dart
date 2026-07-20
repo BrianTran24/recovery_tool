@@ -1,7 +1,17 @@
 // lib/core/models/recovery_event.dart
+import '../service/recovery_service.dart';
+
 sealed class RecoveryEvent {
   @override
   String toString() => '$runtimeType';
+}
+
+class FsIdentifiedEvent extends RecoveryEvent {
+  final List<FileSystemInfo> filesystems;
+  FsIdentifiedEvent(this.filesystems);
+
+  @override
+  String toString() => 'FsIdentifiedEvent(count: ${filesystems.length})';
 }
 
 class ProgressEvent extends RecoveryEvent {

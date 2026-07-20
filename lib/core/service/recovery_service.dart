@@ -1,5 +1,6 @@
 // lib/core/service/recovery_service.dart
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
@@ -13,9 +14,42 @@ const _kFileFound = 2;
 const _kError = 3;
 const _kDone = 4;
 
+class FileSystemInfo {
+  final int offset;
+  final int type;
+
+  FileSystemInfo({required this.offset, required this.type});
+
+  String get typeName {
+    switch (type) {
+      case 1: return 'FAT32';
+      case 2: return 'exFAT';
+      case 3: return 'NTFS';
+      case 4: return 'ext4';
+      default: return 'Unknown';
+    }
+  }
+}
+
 class RecoveryService {
   final RecoveryBindings _bindings = RecoveryBindings();
   int? _activeHandle;
+
+  Future<List<FileSystemInfo>> identifyFileSystems(int handle) async {
+    final ptr = _bindings.identifyFs(handle);
+    final jsonStr = ptr.toDartString();
+    debugPrint('DEBUG: Identified FS JSON: $jsonStr');
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((item) => FileSystemInfo(
+        offset: item['offset'] as int,
+        type: item['type'] as int,
+      )).toList();
+    } catch (e) {
+      debugPrint('ERROR parsing FS JSON: $e');
+      return [];
+    }
+  }
 
   Stream<RecoveryEvent> startScan({
     required String sourcePath,
@@ -111,6 +145,10 @@ class RecoveryService {
     malloc.free(hwInfoPtr);
 
     _activeHandle = handle;
+
+    // 1.2. File System Identification
+    final filesystems = await identifyFileSystems(handle);
+    controller.add(FsIdentifiedEvent(filesystems));
 
     // Đặt video tham chiếu để repair tự động các video thiếu `moov` khi carve.
     // g_sessions là global trong DLL (cùng process) nên set ở đây có hiệu lực cho
