@@ -33,11 +33,20 @@ class FileFoundEvent extends RecoveryEvent {
   final int fileSize;
   final int sectorOffset;
   final String folder;     // rel_path thư mục (vd "DCIM"), rỗng nếu ở gốc
-  FileFoundEvent({required this.fileType, required this.filename, required this.modifiedTime,
-    required this.fileSize, required this.sectorOffset, this.folder = ''});
+  final int status;        // 1=Healthy, 2=Orphaned, 3=Carved
+
+  FileFoundEvent({
+    required this.fileType,
+    required this.filename,
+    required this.modifiedTime,
+    required this.fileSize,
+    required this.sectorOffset,
+    this.folder = '',
+    this.status = 1,
+  });
 
   @override
-  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, folder: $folder, modified: $modifiedTime, size: $fileSize, sector: $sectorOffset)';
+  String toString() => 'FileFoundEvent(type: $fileType, name: $filename, folder: $folder, status: $status, modified: $modifiedTime, size: $fileSize, sector: $sectorOffset)';
 }
 
 class ErrorEvent extends RecoveryEvent {

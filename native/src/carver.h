@@ -13,7 +13,7 @@ double calculate_entropy(const uint8_t* data, size_t len);
 int is_cluster_header(const uint8_t* buf, size_t len);
 
 typedef void (*CarveProgressCallback)(void* context, double pct, int64_t scanned, int32_t speed);
-typedef void (*CarveFileCallback)(void* context, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector);
+typedef void (*CarveFileCallback)(void* context, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, const char* folder);
 
 int CarveFilesWithProgress(
     int fd,

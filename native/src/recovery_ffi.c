@@ -123,16 +123,33 @@ static void on_fat_progress(void* ctx, double pct, int64_t scanned, int32_t spee
     EmitPhaseProgress((ScanSession*)ctx, pct, scanned, speed);
 }
 
-static void on_carve_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector) {
+static void on_carve_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, const char* folder) {
     ScanSession* s = (ScanSession*)ctx;
-    EmitFileFound(s, type, name, modifiedTime, size, sector, FILE_STATUS_CARVED, "");
+    EmitFileFound(s, type, name, modifiedTime, size, sector, FILE_STATUS_CARVED, folder);
     s->carve_count++;
 }
 
-static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count, const char* folder) {
     ScanSession* s = (ScanSession*)ctx;
     int32_t status = (type && strcmp(type, "ORPHAN") == 0) ? FILE_STATUS_ORPHANED : FILE_STATUS_HEALTHY;
-    EmitFileFound(s, type, name, modifiedTime, size, sector, status, folder);
+
+    // Xác định loại file thực tế dựa trên extension để UI hiển thị preview
+    char actual_type[16];
+    strncpy(actual_type, type, 15);
+    actual_type[15] = '\0';
+
+    const char* dot = strrchr(name, '.');
+    if (dot) {
+        if (STRCMP_IGNORE_CASE(dot, ".jpg") == 0 || STRCMP_IGNORE_CASE(dot, ".jpeg") == 0) strcpy(actual_type, "JPEG");
+        else if (STRCMP_IGNORE_CASE(dot, ".png") == 0) strcpy(actual_type, "PNG");
+        else if (STRCMP_IGNORE_CASE(dot, ".cr2") == 0) strcpy(actual_type, "CR2");
+        else if (STRCMP_IGNORE_CASE(dot, ".nef") == 0) strcpy(actual_type, "NEF");
+        else if (STRCMP_IGNORE_CASE(dot, ".mp4") == 0) strcpy(actual_type, "MP4");
+        else if (STRCMP_IGNORE_CASE(dot, ".mov") == 0) strcpy(actual_type, "MOV");
+        else if (STRCMP_IGNORE_CASE(dot, ".pdf") == 0) strcpy(actual_type, "PDF");
+        else if (STRCMP_IGNORE_CASE(dot, ".docx") == 0) strcpy(actual_type, "DOCX");
+    }
+
+    EmitFileFound(s, actual_type, name, modifiedTime, size, sector, status, folder);
     s->fat_count++;
 }
 

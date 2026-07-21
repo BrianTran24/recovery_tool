@@ -158,24 +158,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    done ? l10n.scanResults : l10n.scanProcessing,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             if (state.fileSystems.isNotEmpty) _buildFsInfo(context, state.fileSystems),
 
             _buildProgressHeader(context, l10n, state, done),
@@ -510,7 +492,7 @@ class _FileGridItem extends StatelessWidget {
     final color = _colors[normalizedType] ?? Colors.blueGrey;
     final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_rounded;
     final isImage = isImageFileType(normalizedType);
-    final filePath = p.join(outputDir, event.filename);
+    final filePath = p.join(outputDir, event.folder, event.filename);
 
     return Container(
       clipBehavior: Clip.antiAlias,

@@ -1138,19 +1138,24 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
                                     extract_ok = ExtractFileRange(fd, file_start, file_size, rawPath);
                                 }
                                 snprintf(outPath, sizeof(outPath), "%s", rawPath);
+                                if (on_file) {
+                                    const char* savedName = strrchr(outPath, PATH_SEP);
+                                    on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", final_size, sector_index, "CARVED/NEEDS_REPAIR");
+                                }
                             }
                         } else {
                             // Có moov (hoặc không phải MP4) → copy nguyên khối, giữ container.
                             extract_ok = ExtractFileRange(fd, file_start, file_size, outPath);
+                            if (extract_ok == 0 && on_file) {
+                                const char* savedName = strrchr(outPath, PATH_SEP);
+                                on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", final_size, sector_index, "CARVED");
+                            }
                         }
 
                         if (extract_ok == 0) {
-                            if (on_file) {
-                                const char* savedName = strrchr(outPath, PATH_SEP);
-                                on_file(context, sig->name, savedName ? savedName + 1 : outPath, "", final_size, sector_index);
-                            }
                             total_found++;
                         }
+
 
                         pos = file_start + (file_size > 0 ? file_size : 1);
                         found_in_chunk = 1;

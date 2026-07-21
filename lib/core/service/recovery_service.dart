@@ -271,6 +271,7 @@ class RecoveryService {
           modifiedTime: _arrayToStringStatic(ev.modifiedTime, 32),
           fileSize: ev.fileSize,
           sectorOffset: ev.sectorOffset,
+          status: ev.status,
           folder: _arrayToStringStatic(ev.folder, 256),
         );
       case _kError:

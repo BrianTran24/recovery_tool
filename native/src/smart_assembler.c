@@ -392,7 +392,25 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
             if (on_file) {
                 int64_t sector_offset = dataStart + (int64_t)(fi->starting_cluster - 2) * spc;
                 const char* savedName = strrchr(outPath, PATH_SEP);
-                on_file(context, (fi->status == FILE_STATUS_ORPHANED ? "ORPHAN" : "FAT"), savedName ? savedName + 1 : outPath, fi->modified_time, fi->file_size, sector_offset, (fi->file_size + bpc - 1) / bpc * spc, fi->rel_path);
+
+                // Tính toán folder path đầy đủ bao gồm STRUCTURED, DELETED, ORPHANED
+                char fullFolder[1024];
+                if (fi->status == FILE_STATUS_ORPHANED) {
+                    snprintf(fullFolder, sizeof(fullFolder), "STRUCTURED%cORPHANED", PATH_SEP);
+                } else if (fi->is_deleted) {
+                    snprintf(fullFolder, sizeof(fullFolder), "STRUCTURED%cDELETED", PATH_SEP);
+                } else if (fi->rel_path[0]) {
+                    char safeRel[512];
+                    sanitize_relative_path(fi->rel_path, safeRel, sizeof(safeRel));
+                    if (safeRel[0]) snprintf(fullFolder, sizeof(fullFolder), "STRUCTURED%c%s", PATH_SEP, safeRel);
+                    else snprintf(fullFolder, sizeof(fullFolder), "STRUCTURED");
+                } else {
+                    snprintf(fullFolder, sizeof(fullFolder), "STRUCTURED");
+                }
+
+                on_file(context, (fi->status == FILE_STATUS_ORPHANED ? "ORPHAN" : "FAT"),
+                        savedName ? savedName + 1 : outPath, fi->modified_time, fi->file_size,
+                        sector_offset, (fi->file_size + bpc - 1) / bpc * spc, fullFolder);
             }
         }
 
