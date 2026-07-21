@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'features/scan/bloc/scan_bloc.dart';
 import 'features/scan/bloc/scan_event.dart';
 import 'features/scan/bloc/scan_state.dart';
+import 'features/scan/widgets/semi_circle_progress.dart';
 import 'core/models/recovery_event.dart';
 import 'core/service/recovery_service.dart';
 import 'core/theme/app_theme.dart';
@@ -313,53 +314,17 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 
   Widget _buildProgressHeader(BuildContext context, AppLocalizations l10n, ScanState state, bool done) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${state.percent.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: AppTheme.cyberCyan,
-                    ),
-                  ),
-                  Text(l10n.scanProgress, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${state.speed} MB/s',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(l10n.scanSpeed, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: state.percent / 100,
-              minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.cyberCyan),
+          Center(
+            child: SemiCircleProgressIndicator(
+              progress: state.percent / 100,
+              label: done ? l10n.scanResults : l10n.scanProcessing,
+              speed: done ? null : state.speed,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           Row(
             children: [
               Expanded(child: _buildStatCard(l10n.scanFound, '${state.foundCount}', Icons.insert_drive_file_rounded, Colors.orange)),
