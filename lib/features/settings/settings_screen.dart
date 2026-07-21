@@ -1,60 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
-import 'package:recovery_tool/core/providers/locale_provider.dart';
+import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.watch(localeProvider);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.systemReady.toUpperCase(),
-            style: TextStyle(
-              color: AppTheme.cyberCyan.withValues(alpha: 0.7),
-              fontWeight: FontWeight.bold,
-              letterSpacing: 3,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.sidebarSettings,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 32),
-          
-          _buildSettingsSection(
-            context,
-            title: l10n.language,
-            icon: Icons.language_rounded,
-            child: Row(
-              children: [
-                _LanguageOption(
-                  label: l10n.vietnamese,
-                  isSelected: currentLocale.languageCode == 'vi',
-                  onTap: () => ref.read(localeProvider.notifier).setLocale(const Locale('vi')),
+  Widget build(BuildContext context) {
+    return BlocBuilder<LocaleCubit, Locale>(
+      builder: (context, currentLocale) {
+        final l10n = AppLocalizations.of(context)!;
+        return Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.systemReady.toUpperCase(),
+                style: TextStyle(
+                  color: AppTheme.cyberCyan.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3,
+                  fontSize: 12,
                 ),
-                const SizedBox(width: 16),
-                _LanguageOption(
-                  label: l10n.english,
-                  isSelected: currentLocale.languageCode == 'en',
-                  onTap: () => ref.read(localeProvider.notifier).setLocale(const Locale('en')),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.sidebarSettings,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 32),
+              
+              _buildSettingsSection(
+                context,
+                title: l10n.language,
+                icon: Icons.language_rounded,
+                child: Row(
+                  children: [
+                    _LanguageOption(
+                      label: l10n.vietnamese,
+                      isSelected: currentLocale.languageCode == 'vi',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('vi')),
+                    ),
+                    const SizedBox(width: 16),
+                    _LanguageOption(
+                      label: l10n.english,
+                      isSelected: currentLocale.languageCode == 'en',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('en')),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -1,14 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:disks_desktop/disks_desktop.dart';
 import 'package:path/path.dart' as p;
 import 'package:recovery_tool/core/service/recovery_service.dart';
-import 'package:recovery_tool/core/features/scan/scan_provider.dart';
 import 'package:recovery_tool/core/models/recovery_event.dart';
 
-class ConversionView extends ConsumerStatefulWidget {
+class ConversionView extends StatefulWidget {
   final String e01Path;
   final Function(Disk disk) onConversionDone;
 
@@ -19,10 +18,10 @@ class ConversionView extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ConversionView> createState() => _ConversionViewState();
+  State<ConversionView> createState() => _ConversionViewState();
 }
 
-class _ConversionViewState extends ConsumerState<ConversionView> {
+class _ConversionViewState extends State<ConversionView> {
   double _progress = 0;
   String _status = 'Đang khởi tạo...';
   bool _isConverting = true;
@@ -37,7 +36,7 @@ class _ConversionViewState extends ConsumerState<ConversionView> {
   }
 
   Future<void> _startConversion() async {
-    final service = ref.read(recoveryServiceProvider);
+    final service = context.read<RecoveryService>();
     final directory = p.dirname(widget.e01Path);
     final filename = p.basenameWithoutExtension(widget.e01Path);
     _outputPath = p.join(directory, '$filename.dd');

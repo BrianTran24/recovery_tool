@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'preview_screen.dart';
-import 'core/features/scan/scan_provider.dart';
+import 'features/scan/bloc/scan_bloc.dart';
+import 'features/scan/bloc/scan_event.dart';
+import 'features/scan/bloc/scan_state.dart';
 import 'core/models/recovery_event.dart';
 import 'core/service/recovery_service.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
-class ScanView extends ConsumerStatefulWidget {
+class ScanView extends StatefulWidget {
   final String sourcePath;
   final String outputDir;
   final bool enableFat;
@@ -31,16 +33,10 @@ class ScanView extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ScanView> createState() => _ScanViewState();
+  State<ScanView> createState() => _ScanViewState();
 }
 
-class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderStateMixin {
-  late final ScanParams _params;
-  double _percent = 0;
-  int _speed = 0;
-  int _found = 0;
-  bool _done = false;
-  List<FileSystemInfo> _fileSystems = [];
+class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin {
   String? _selectedFolder;
   
   // Timing logic
@@ -50,12 +46,12 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
   String _etr = '--:--';
 
   void _startTimer() {
+    _stopwatch.reset();
     _stopwatch.start();
     _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!mounted) return;
       setState(() {
         _elapsed = _stopwatch.elapsed;
-        _calculateETR();
       });
     });
   }
@@ -65,14 +61,13 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
     _timer?.cancel();
   }
 
-  void _calculateETR() {
-    if (_percent <= 0 || _percent >= 100) {
+  void _calculateETR(double percent) {
+    if (percent <= 0 || percent >= 100) {
       _etr = '--:--';
       return;
     }
     
-    // ETR = (Elapsed / Percent) * (100 - Percent)
-    final totalEstMs = (_elapsed.inMilliseconds / _percent) * 100;
+    final totalEstMs = (_elapsed.inMilliseconds / percent) * 100;
     final remainingMs = totalEstMs - _elapsed.inMilliseconds;
     if (remainingMs > 0) {
       final d = Duration(milliseconds: remainingMs.toInt());
@@ -85,19 +80,14 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _params = ScanParams(
+    context.read<ScanBloc>().add(StartScanEvent(
       sourcePath: widget.sourcePath,
       outputDir: widget.outputDir,
       enableFat: widget.enableFat,
       enableCarve: widget.enableCarve,
       scanMode: widget.scanMode,
       referenceVideo: widget.referenceVideo,
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+    ));
     _startTimer();
   }
 
@@ -110,240 +100,202 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // Watch để đảm bảo provider luôn active khi widget tồn tại
-    ref.watch(scanStreamProvider(_params));
-    
-    ref.listen(scanStreamProvider(_params), (prev, next) {
-      next.when(
-        data: (event) {
-          switch (event) {
-            case FsIdentifiedEvent(:final filesystems):
-              setState(() {
-                _fileSystems = filesystems;
-              });
 
-            case ProgressEvent(:final percent, speedMbps: final speed):
-              setState(() { 
-                _percent = percent; 
-                _speed = speed; 
-              });
-
-            case FileFoundEvent():
-              ref.read(foundFilesProvider.notifier).add(event);
-              setState(() { _found++; });
-
-            case DoneEvent(:final duration):
-              _stopTimer();
-              setState(() { 
-                _done = true; 
-                _elapsed = duration; 
-                _percent = 100; 
-                _etr = '00:00';
-              });
-
-            case ErrorEvent(:final message, :final isHardwareFailure):
-              _stopTimer();
-              setState(() {
-                _done = true;
-              });
-              _showErrorDialog(context, message, isHardwareFailure);
-          }
-        },
-        error: (err, stack) {
+    return BlocConsumer<ScanBloc, ScanState>(
+      listener: (context, state) {
+        if (state.status == ScanStatus.success) {
           _stopTimer();
-        },
-        loading: () {},
-      );
-    });
+          _elapsed = state.elapsed;
+          _etr = '00:00';
+        } else if (state.status == ScanStatus.failure) {
+          _stopTimer();
+          if (state.errorMessage != null) {
+            _showErrorDialog(context, state.errorMessage!, state.isHardwareFailure);
+          }
+        }
+        _calculateETR(state.percent);
+      },
+      builder: (context, state) {
+        final files = state.foundFiles;
+        final done = state.status == ScanStatus.success || state.status == ScanStatus.failure;
 
-    final files = ref.watch(foundFilesProvider);
+        // Group files by folder
+        final Map<String, List<FileFoundEvent>> folderGroups = {};
+        for (var f in files) {
+          final folder = f.folder.isEmpty ? 'Root' : f.folder;
+          folderGroups.putIfAbsent(folder, () => []).add(f);
+        }
+        final folders = folderGroups.keys.toList()..sort();
+        
+        if (_selectedFolder == null && folders.isNotEmpty) {
+          _selectedFolder = folders.first;
+        } else if (_selectedFolder != null && !folders.contains(_selectedFolder)) {
+          _selectedFolder = folders.isNotEmpty ? folders.first : null;
+        }
 
-    // Group files by folder
-    final Map<String, List<FileFoundEvent>> folderGroups = {};
-    for (var f in files) {
-      final folder = f.folder.isEmpty ? 'Root' : f.folder;
-      folderGroups.putIfAbsent(folder, () => []).add(f);
-    }
-    final folders = folderGroups.keys.toList()..sort();
-    
-    // Auto-select first folder if none selected
-    if (_selectedFolder == null && folders.isNotEmpty) {
-      _selectedFolder = folders.first;
-    } else if (_selectedFolder != null && !folders.contains(_selectedFolder)) {
-      // If selected folder disappeared (unlikely here but good for safety)
-      _selectedFolder = folders.isNotEmpty ? folders.first : null;
-    }
+        final displayedFiles = _selectedFolder != null ? folderGroups[_selectedFolder] ?? [] : [];
 
-    final displayedFiles = _selectedFolder != null ? folderGroups[_selectedFolder] ?? [] : [];
-
-    return Column(
-      children: [
-        // Header with status and stop button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _done ? l10n.scanResults : l10n.scanProcessing,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              if (!_done)
-                TextButton.icon(
-                  onPressed: () {
-                    ref.read(recoveryServiceProvider).cancel();
-                    setState(() { _done = true; });
-                  },
-                  icon: const Icon(Icons.stop_circle_rounded, color: Colors.red),
-                  label: Text(l10n.scanStop, style: const TextStyle(color: Colors.red)),
-                ),
-            ],
-          ),
-        ),
-
-        // ── File System Info ─────────────────────────────────────
-        if (_fileSystems.isNotEmpty) _buildFsInfo(context),
-
-        // ── Progress & Stats Header ──────────────────────────────
-        _buildProgressHeader(context, l10n),
-
-        // ── View Results Button ──────────────────────────────────
-        if (files.isNotEmpty || _done)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PreviewScreen(
-                        outputDir: widget.outputDir,
-                      ),
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    done ? l10n.scanResults : l10n.scanProcessing,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
                     ),
-                  );
-                },
-                icon: Icon(_done ? Icons.check_circle_rounded : Icons.visibility_rounded),
-                label: Text(_done ? l10n.scanViewAllResults : l10n.scanViewLive(_found)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _done ? Colors.green.shade600 : AppTheme.cyberCyan,
-                  foregroundColor: _done ? Colors.white : AppTheme.cyberDeepNavy,
-                ),
+                  ),
+                  if (!done)
+                    TextButton.icon(
+                      onPressed: () {
+                        context.read<ScanBloc>().add(StopScanEvent());
+                      },
+                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red),
+                      label: Text(l10n.scanStop, style: const TextStyle(color: Colors.red)),
+                    ),
+                ],
               ),
             ),
-          ),
 
-        // ── Files Section (Two Column) ──────────────────────────
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            if (state.fileSystems.isNotEmpty) _buildFsInfo(context, state.fileSystems),
+
+            _buildProgressHeader(context, l10n, state, done),
+
+            if (files.isNotEmpty || done)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  l10n.scanTabFiles,
-                  style: const TextStyle(
-                    color: AppTheme.cyberCyan,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PreviewScreen(
+                            outputDir: widget.outputDir,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(done ? Icons.check_circle_rounded : Icons.visibility_rounded),
+                    label: Text(done ? l10n.scanViewAllResults : l10n.scanViewLive(state.foundCount)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: done ? Colors.green.shade600 : AppTheme.cyberCyan,
+                      foregroundColor: done ? Colors.white : AppTheme.cyberDeepNavy,
+                    ),
                   ),
                 ),
               ),
-              const Divider(height: 1, color: Colors.white10),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left Column: Folders
-                    Container(
-                      width: 180,
-                      decoration: const BoxDecoration(
-                        border: Border(right: BorderSide(color: Colors.white10)),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Text(
+                      l10n.scanTabFiles,
+                      style: const TextStyle(
+                        color: AppTheme.cyberCyan,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                      child: folders.isEmpty
-                          ? Center(
-                              child: Text(
-                                l10n.scanSearchingFiles,
-                                style: const TextStyle(color: Colors.white24, fontSize: 12),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: folders.length,
-                              itemBuilder: (context, index) {
-                                final folder = folders[index];
-                                final isSelected = _selectedFolder == folder;
-                                final count = folderGroups[folder]?.length ?? 0;
-                                return ListTile(
-                                  dense: true,
-                                  selected: isSelected,
-                                  selectedTileColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
-                                  leading: Icon(
-                                    folder == 'Root' ? Icons.folder_special_rounded : Icons.folder_rounded,
-                                    size: 18,
-                                    color: isSelected ? AppTheme.cyberCyan : Colors.white54,
-                                  ),
-                                  title: Text(
-                                    folder,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isSelected ? AppTheme.cyberCyan : Colors.white70,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: Text(
-                                    '$count',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isSelected ? AppTheme.cyberCyan : Colors.white24,
-                                    ),
-                                  ),
-                                  onTap: () => setState(() => _selectedFolder = folder),
-                                );
-                              },
-                            ),
                     ),
-                    // Right Column: File Grid
-                    Expanded(
-                      child: displayedFiles.isEmpty
-                          ? _buildEmptyState(Icons.find_in_page_rounded, l10n.scanSearchingFiles)
-                          : GridView.builder(
-                              padding: const EdgeInsets.all(16),
-                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 180,
-                                mainAxisExtent: 160, // Increased height for image preview
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                              itemCount: displayedFiles.length,
-                              itemBuilder: (context, index) {
-                                // Show newest first in the selected folder
-                                return _FileGridItem(
-                                  event: displayedFiles[displayedFiles.length - 1 - index],
-                                  outputDir: widget.outputDir,
-                                );
-                              },
-                            ),
+                  ),
+                  const Divider(height: 1, color: Colors.white10),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 180,
+                          decoration: const BoxDecoration(
+                            border: Border(right: BorderSide(color: Colors.white10)),
+                          ),
+                          child: folders.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    l10n.scanSearchingFiles,
+                                    style: const TextStyle(color: Colors.white24, fontSize: 12),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: folders.length,
+                                  itemBuilder: (context, index) {
+                                    final folder = folders[index];
+                                    final isSelected = _selectedFolder == folder;
+                                    final count = folderGroups[folder]?.length ?? 0;
+                                    return ListTile(
+                                      dense: true,
+                                      selected: isSelected,
+                                      selectedTileColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                                      leading: Icon(
+                                        folder == 'Root' ? Icons.folder_special_rounded : Icons.folder_rounded,
+                                        size: 18,
+                                        color: isSelected ? AppTheme.cyberCyan : Colors.white54,
+                                      ),
+                                      title: Text(
+                                        folder,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isSelected ? AppTheme.cyberCyan : Colors.white70,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      trailing: Text(
+                                        '$count',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: isSelected ? AppTheme.cyberCyan : Colors.white24,
+                                        ),
+                                      ),
+                                      onTap: () => setState(() => _selectedFolder = folder),
+                                    );
+                                  },
+                                ),
+                        ),
+                        Expanded(
+                          child: displayedFiles.isEmpty
+                              ? _buildEmptyState(Icons.find_in_page_rounded, l10n.scanSearchingFiles)
+                              : GridView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 180,
+                                    mainAxisExtent: 160,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                                  itemCount: displayedFiles.length,
+                                  itemBuilder: (context, index) {
+                                    return _FileGridItem(
+                                      event: displayedFiles[displayedFiles.length - 1 - index],
+                                      outputDir: widget.outputDir,
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildProgressHeader(BuildContext context, AppLocalizations l10n) {
+  Widget _buildProgressHeader(BuildContext context, AppLocalizations l10n, ScanState state, bool done) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -355,7 +307,7 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${_percent.toStringAsFixed(1)}%',
+                    '${state.percent.toStringAsFixed(1)}%',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -369,7 +321,7 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '$_speed MB/s',
+                    '${state.speed} MB/s',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -385,7 +337,7 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
-              value: _percent / 100,
+              value: state.percent / 100,
               minHeight: 10,
               backgroundColor: Colors.white.withValues(alpha: 0.05),
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.cyberCyan),
@@ -394,11 +346,11 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: _buildStatCard(l10n.scanFound, '$_found', Icons.insert_drive_file_rounded, Colors.orange)),
+              Expanded(child: _buildStatCard(l10n.scanFound, '${state.foundCount}', Icons.insert_drive_file_rounded, Colors.orange)),
               const SizedBox(width: 16),
               Expanded(child: _buildStatCard(l10n.scanElapsed, _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue)),
               const SizedBox(width: 16),
-              if (!_done)
+              if (!done)
                 Expanded(child: _buildStatCard(l10n.scanRemaining, _etr, Icons.hourglass_empty_rounded, Colors.green)),
             ],
           ),
@@ -444,14 +396,14 @@ class _ScanViewState extends ConsumerState<ScanView> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildFsInfo(BuildContext context) {
+  Widget _buildFsInfo(BuildContext context, List<FileSystemInfo> fileSystems) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       color: AppTheme.cyberCyan.withValues(alpha: 0.05),
       child: Wrap(
         spacing: 12,
-        children: _fileSystems.map((fs) => Chip(
+        children: fileSystems.map((fs) => Chip(
           avatar: const Icon(Icons.storage_rounded, size: 16, color: AppTheme.cyberDeepNavy),
           label: Text(
             '${fs.typeName} (@${fs.offset})',

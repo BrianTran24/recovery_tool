@@ -5,11 +5,15 @@ import 'dart:math' as math;
 import 'package:disks_desktop/disks_desktop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
 import 'package:recovery_tool/features/settings/settings_screen.dart';
-import 'package:recovery_tool/core/providers/locale_provider.dart';
+import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
+import 'package:recovery_tool/features/onboarding/bloc/onboarding_cubit.dart';
+import 'package:recovery_tool/core/service/storage_service.dart';
+import 'package:recovery_tool/core/service/recovery_service.dart';
+import 'package:recovery_tool/features/scan/bloc/scan_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
@@ -19,43 +23,83 @@ import 'package:recovery_tool/scan_view.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  final storageService = StorageService();
+  final recoveryService = RecoveryService();
+
   runZonedGuarded(() {
-    runApp(const ProviderScope(child: MyApp()));
+    runApp(
+      MultiRepositoryProvider(
+        providers: [
+          RepositoryProvider.value(value: storageService),
+          RepositoryProvider.value(value: recoveryService),
+        ],
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (context) => LocaleCubit(storageService)),
+            BlocProvider(create: (context) => OnboardingCubit(storageService)),
+            BlocProvider(create: (context) => ScanBloc(recoveryService)),
+          ],
+          child: const MyApp(),
+        ),
+      ),
+    );
   }, (error, stackTrace) {
-    // Handle uncaught errors here
     debugPrint('Uncaught error: $error');
     debugPrint('Stack trace: $stackTrace');
   });
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeProvider);
+  Widget build(BuildContext context) {
+    return BlocBuilder<OnboardingCubit, bool?>(
+      builder: (context, onboardingComplete) {
+        if (onboardingComplete == null) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.darkTheme,
+            home: const Scaffold(
+              backgroundColor: AppTheme.cyberDeepNavy,
+              body: Center(
+                child: CircularProgressIndicator(color: AppTheme.cyberCyan),
+              ),
+            ),
+          );
+        }
 
-    return MaterialApp(
-      title: 'Recovery SD Tool',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
-      locale: locale,
-      localizationsDelegates: [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('vi'),
-      ],
-      initialRoute: '/onboarding',
-      routes: {
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/home': (context) => const MyHomePage(),
+        final initialRoute = onboardingComplete ? '/home' : '/onboarding';
+        
+        return BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) {
+            return MaterialApp(
+              key: ValueKey('App_${onboardingComplete}_$locale'),
+              title: 'Recovery SD Tool',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ThemeMode.dark,
+              locale: locale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'),
+                Locale('vi'),
+              ],
+              initialRoute: initialRoute,
+              routes: {
+                '/onboarding': (context) => const OnboardingScreen(),
+                '/home': (context) => const MyHomePage(),
+              },
+            );
+          },
+        );
       },
     );
   }

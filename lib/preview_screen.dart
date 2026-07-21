@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path/path.dart' as p;
 import 'core/models/recovery_event.dart';
-import 'core/features/scan/scan_provider.dart';
+import 'features/scan/bloc/scan_bloc.dart';
+import 'features/scan/bloc/scan_state.dart';
 import 'core/theme/app_theme.dart';
 
-class PreviewScreen extends ConsumerWidget {
+class PreviewScreen extends StatelessWidget {
   final String outputDir;
 
   const PreviewScreen({
@@ -29,61 +30,65 @@ class PreviewScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final files = ref.watch(foundFilesProvider);
+  Widget build(BuildContext context) {
+    return BlocBuilder<ScanBloc, ScanState>(
+      builder: (context, state) {
+        final files = state.foundFiles;
 
-    final images = files.where((e) => isImageFileType(e.fileType)).toList();
-    final videos = files.where((e) {
-      final type = canonicalFileType(e.fileType);
-      return type == 'MP4' || type == 'MOV';
-    }).toList();
-    final others = files.where((e) {
-      final type = canonicalFileType(e.fileType);
-      return !isImageFileType(type) && type != 'MP4' && type != 'MOV';
-    }).toList();
+        final images = files.where((e) => isImageFileType(e.fileType)).toList();
+        final videos = files.where((e) {
+          final type = canonicalFileType(e.fileType);
+          return type == 'MP4' || type == 'MOV';
+        }).toList();
+        final others = files.where((e) {
+          final type = canonicalFileType(e.fileType);
+          return !isImageFileType(type) && type != 'MP4' && type != 'MOV';
+        }).toList();
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Kho dữ liệu khôi phục'),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: ElevatedButton.icon(
-                onPressed: _openFolder,
-                icon: const Icon(Icons.folder_open_rounded, size: 18),
-                label: const Text('Mở Thư mục'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  foregroundColor: AppTheme.primaryColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Kho dữ liệu khôi phục'),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: ElevatedButton.icon(
+                    onPressed: _openFolder,
+                    icon: const Icon(Icons.folder_open_rounded, size: 18),
+                    label: const Text('Mở Thư mục'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      foregroundColor: AppTheme.primaryColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                  ),
                 ),
+              ],
+              bottom: TabBar(
+                indicatorColor: AppTheme.primaryColor,
+                labelColor: AppTheme.primaryColor,
+                unselectedLabelColor: Colors.grey,
+                tabs: [
+                  Tab(text: 'Hình ảnh (${images.length})'),
+                  Tab(text: 'Video (${videos.length})'),
+                  Tab(text: 'Tài liệu (${others.length})'),
+                ],
               ),
             ),
-          ],
-          bottom: TabBar(
-            indicatorColor: AppTheme.primaryColor,
-            labelColor: AppTheme.primaryColor,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: 'Hình ảnh (${images.length})'),
-              Tab(text: 'Video (${videos.length})'),
-              Tab(text: 'Tài liệu (${others.length})'),
-            ],
+            body: Container(
+              color: Colors.grey.shade50,
+              child: TabBarView(
+                children: [
+                  _FileGrid(files: images, outputDir: outputDir),
+                  _FileGrid(files: videos, outputDir: outputDir),
+                  _FileGrid(files: others, outputDir: outputDir),
+                ],
+              ),
+            ),
           ),
-        ),
-        body: Container(
-          color: Colors.grey.shade50,
-          child: TabBarView(
-            children: [
-              _FileGrid(files: images, outputDir: outputDir),
-              _FileGrid(files: videos, outputDir: outputDir),
-              _FileGrid(files: others, outputDir: outputDir),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

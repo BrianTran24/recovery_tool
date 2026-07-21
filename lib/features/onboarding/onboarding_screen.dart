@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recovery_tool/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -182,8 +184,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _finishOnboarding(BuildContext context) {
-    Navigator.pushReplacementNamed(context, '/home');
+  void _finishOnboarding(BuildContext context) async {
+    await context.read<OnboardingCubit>().completeOnboarding();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   }
 
   Widget buildCyberDot(int index, List<OnboardingData> pages) {
