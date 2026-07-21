@@ -226,7 +226,7 @@ static int AssembleSmart(int fd, FileInfo* info, const char* outPath, uint32_t b
     // Initialize validator based on file extension
     if (info->filename) {
         const char* ext = strrchr(info->filename, '.');
-        if (ext && (strcasecmp(ext, ".mp4") == 0 || strcasecmp(ext, ".h264") == 0)) {
+        if (ext && (STRCMP_IGNORE_CASE(ext, ".mp4") == 0 || STRCMP_IGNORE_CASE(ext, ".h264") == 0)) {
             // Probe for SPS
             uint8_t probe[4096];
             int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
@@ -241,7 +241,7 @@ static int AssembleSmart(int fd, FileInfo* info, const char* outPath, uint32_t b
                     }
                 }
             }
-        } else if (ext && (strcasecmp(ext, ".jpg") == 0 || strcasecmp(ext, ".jpeg") == 0)) {
+        } else if (ext && (STRCMP_IGNORE_CASE(ext, ".jpg") == 0 || STRCMP_IGNORE_CASE(ext, ".jpeg") == 0)) {
             uint8_t probe[4096];
             int64_t sector = dataStartSector + (int64_t)(curr - 2) * sectorsPerCluster;
             LSEEK(fd, sector * 512, SEEK_SET);

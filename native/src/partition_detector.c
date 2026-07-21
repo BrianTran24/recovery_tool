@@ -1,8 +1,11 @@
 #include "partition_detector.h"
+#include "platform_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #define MAX_SAMPLES 1000
 #define SAMPLE_CHUNK_SIZE (1024 * 1024) // 1MB
@@ -40,7 +43,7 @@ int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidate
         int64_t lba = common_offsets[i];
         if (lba >= disk_sectors) continue;
 
-        if (pread(fd, sector, 512, lba * 512) == 512) {
+        if (PREAD(fd, sector, 512, lba * 512) == 512) {
             if (LooksLikeVbr(sector)) {
                 candidates[count].start_sector = lba;
                 candidates[count].cluster_size = GetClusterSize(sector);
@@ -49,11 +52,11 @@ int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidate
                 // Try backups
                 // FAT32 backup is at +6
                 uint8_t backup[512];
-                if (pread(fd, backup, 512, (lba + 6) * 512) == 512 && LooksLikeVbr(backup)) {
+                if (PREAD(fd, backup, 512, (lba + 6) * 512) == 512 && LooksLikeVbr(backup)) {
                     candidates[count].start_sector = lba;
                     candidates[count].cluster_size = GetClusterSize(backup);
                     count++;
-                } else if (pread(fd, backup, 512, (lba + 12) * 512) == 512 && LooksLikeVbr(backup)) {
+                } else if (PREAD(fd, backup, 512, (lba + 12) * 512) == 512 && LooksLikeVbr(backup)) {
                     // exFAT backup is at +12
                     candidates[count].start_sector = lba;
                     candidates[count].cluster_size = GetClusterSize(backup);
@@ -78,7 +81,7 @@ int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidate
         int64_t scan_limit = (disk_size_bytes < 1024 * 1024 * 1024) ? disk_size_bytes : 1024 * 1024 * 1024;
         // printf("DEBUG: Scanning %lld bytes for signatures...\n", scan_limit);
         for (int64_t pos = 0; pos < scan_limit; pos += SAMPLE_CHUNK_SIZE) {
-            ssize_t n = pread(fd, chunk, SAMPLE_CHUNK_SIZE, pos);
+            ssize_t n = PREAD(fd, chunk, SAMPLE_CHUNK_SIZE, pos);
             if (n <= 0) break;
             for (ssize_t i = 0; i < n - 16; i++) {
                 if (chunk[i] == 0xFF && chunk[i+1] == 0xD8 && chunk[i+2] == 0xFF) {

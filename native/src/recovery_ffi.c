@@ -465,7 +465,7 @@ EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referen
 }
 
 EXPORT char* recovery_identify_fs(int32_t handle) {
-    if (handle < 0 || handle >= 8) return strdup("[]");
+    if (handle < 0 || handle >= 8) return STRDUP("[]");
     ScanSession* s = &g_sessions[handle];
     uint8_t sector[512];
     char json[4096] = "[";
@@ -480,7 +480,7 @@ EXPORT char* recovery_identify_fs(int32_t handle) {
                 snprintf(json + strlen(json), sizeof(json) - strlen(json),
                          "{\"offset\":0,\"type\":%d}", fsType);
                 strcat(json, "]");
-                return strdup(json);
+                return STRDUP(json);
             }
 
             // Quét MBR Partition Table
@@ -537,7 +537,7 @@ EXPORT char* recovery_identify_fs(int32_t handle) {
     }
 
     strcat(json, "]");
-    return strdup(json);
+    return STRDUP(json);
 }
 
 EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath) {

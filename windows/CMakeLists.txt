@@ -59,6 +59,11 @@ add_library(recovery SHARED
     "${NATIVE_SRC_DIR}/carver.c"
     "${NATIVE_SRC_DIR}/video_repair.c"
     "${NATIVE_SRC_DIR}/recovery_ffi.c"
+    "${NATIVE_SRC_DIR}/fragment_validator.c"
+    "${NATIVE_SRC_DIR}/partition_detector.c"
+    "${NATIVE_SRC_DIR}/signature_registry.c"
+    "${NATIVE_SRC_DIR}/device_handlers.c"
+    "${NATIVE_SRC_DIR}/hardware_health_checker.c"
 )
 target_include_directories(recovery PRIVATE "${NATIVE_SRC_DIR}")
 set_target_properties(recovery PROPERTIES

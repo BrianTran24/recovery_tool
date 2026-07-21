@@ -1,6 +1,7 @@
 // recovery_ffi.h — interface duy nhất Dart cần biết
 #pragma once
 #include <stdint.h>
+#include "shared_types.h"
 
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
@@ -33,14 +34,6 @@
 
 // Struct truyền qua callback — packed để Dart struct alignment dễ map
 #pragma pack(push, 1)
-
-typedef struct {
-    int32_t status;
-    int64_t capacity;
-    char    controller_id[64];
-    char    firmware_version[32];
-    char    error_message[256];
-} HardwareHealthInfo;
 
 typedef struct {
     char     filename[256];
