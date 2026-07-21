@@ -40,6 +40,7 @@ final class RecoveryEventNative extends Struct {
 
   @Int64()  external int fileSize;
   @Int64()  external int sectorOffset;
+  @Int32()  external int status;
   @Int32()  external int errorCode;
 
   @Array(256)
@@ -93,6 +94,15 @@ typedef CheckHardwareDart   = int Function(int handle, Pointer<HardwareHealthInf
 typedef IdentifyFsNative = Pointer<Utf8> Function(Int32 handle);
 typedef IdentifyFsDart   = Pointer<Utf8> Function(int handle);
 
+typedef ConvertE01Native = Int32 Function(
+    Pointer<Utf8> e01Path,
+    Pointer<Utf8> outputPath,
+    Pointer<NativeFunction<CallbackNative>> callback);
+typedef ConvertE01Dart = int Function(
+    Pointer<Utf8> e01Path,
+    Pointer<Utf8> outputPath,
+    Pointer<NativeFunction<CallbackNative>> callback);
+
 // ── Bindings class ───────────────────────────────────────────────────
 class RecoveryBindings {
   late final DynamicLibrary _lib;
@@ -107,6 +117,7 @@ class RecoveryBindings {
   late final RepairDart    repairVideo;
   late final CheckHardwareDart checkHardware;
   late final IdentifyFsDart identifyFs;
+  late final ConvertE01Dart convertE01;
 
   RecoveryBindings() {
     final libPath = Platform.isMacOS
@@ -126,5 +137,6 @@ class RecoveryBindings {
     repairVideo       = _lib.lookupFunction<RepairNative, RepairDart>('recovery_repair_video');
     checkHardware     = _lib.lookupFunction<CheckHardwareNative, CheckHardwareDart>('recovery_check_hardware');
     identifyFs        = _lib.lookupFunction<IdentifyFsNative, IdentifyFsDart>('recovery_identify_fs');
+    convertE01        = _lib.lookupFunction<ConvertE01Native, ConvertE01Dart>('recovery_convert_e01');
   }
 }

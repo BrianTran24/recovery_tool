@@ -124,3 +124,9 @@ EXPORT int32_t recovery_repair_video(const char* brokenPath, const char* referen
  * Gọi TRƯỚC recovery_scan. Truyền NULL/"" để tắt repair tự động.
  */
 EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath);
+
+/**
+ * Chuyển đổi file E01 sang Raw.
+ * callback trả về EVENT_PROGRESS.
+ */
+EXPORT int32_t recovery_convert_e01(const char* e01_path, const char* output_path, RecoveryCallback callback);

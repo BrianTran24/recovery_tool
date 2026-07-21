@@ -347,6 +347,10 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
     }
 
     int recovered = 0;
+    uint64_t cumulative_bytes = 0;
+    int64_t last_progress_ms = GetTimeMs();
+    uint64_t last_progress_bytes = 0;
+
     for (uint32_t i = 0; i < collector->count; i++) {
         if (cancelled && *cancelled) break;
         FileInfo* fi = &collector->files[i];
@@ -383,6 +387,7 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
 
         if (res == 0) {
             recovered++;
+            cumulative_bytes += fi->file_size;
             if (on_file) {
                 int64_t sector_offset = dataStart + (int64_t)(fi->starting_cluster - 2) * spc;
                 const char* savedName = strrchr(outPath, PATH_SEP);
@@ -391,7 +396,15 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
         }
 
         if (on_progress) {
-            on_progress(context, (double)(i + 1) / collector->count * 100.0, i, 0);
+            int64_t now = GetTimeMs();
+            int32_t speed = 0;
+            if (now > last_progress_ms) {
+                uint64_t processed = cumulative_bytes - last_progress_bytes;
+                speed = (int32_t)((double)processed * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
+            }
+            on_progress(context, (double)(i + 1) / collector->count * 100.0, (int64_t)cumulative_bytes, speed);
+            last_progress_ms = now;
+            last_progress_bytes = cumulative_bytes;
         }
     }
 

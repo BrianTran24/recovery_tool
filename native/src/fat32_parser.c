@@ -375,7 +375,7 @@ int ReadCluster(int fd, const FAT32_Info* info,
 }
 
 // Forward declarations
-void ScanDirectory(int fd, const FAT32_Info* info,
+static void ScanDirectory(int fd, const FAT32_Info* info,
                    const uint32_t* fat,
                    uint32_t startCluster,
                    uint8_t* clusterBuf,
@@ -817,6 +817,9 @@ void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0
     LFN_State lfn = {0};
     lfn.expected_seq = -1;
 
+    uint32_t last_progress_c = 2;
+    int64_t last_progress_ms = GetTimeMs();
+
     if (clusterBuf && visited) {
         for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
             if (VisitedTest(visited, c)) continue;
@@ -847,7 +850,15 @@ void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0
                 }
             }
             if (on_progress && (c % 10000 == 0)) {
-                on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
+                int64_t now = GetTimeMs();
+                int32_t speed = 0;
+                if (now > last_progress_ms) {
+                    uint64_t processed = (uint64_t)(c - last_progress_c) * info.bytes_per_cluster;
+                    speed = (int32_t)((double)processed * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
+                }
+                on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, speed);
+                last_progress_c = c;
+                last_progress_ms = now;
             }
         }
     }
@@ -885,6 +896,9 @@ int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0,
                   clusterBuf, context, on_file, on_progress, 0.0, 30.0, &visited_clusters, outputDir, "", cancelled, &recoveredCount, scan_mode);
 
     // 6. Directory Hunting cho FAT32 (Tương tự exFAT)
+    uint32_t last_progress_c = 2;
+    int64_t last_progress_ms = GetTimeMs();
+
     for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
         // Chỉ quét các cluster được đánh dấu là FREE trong FAT để tìm thư mục đã bị format/xóa
         if (IsClusterFree(fat, c)) {
@@ -897,8 +911,16 @@ int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0,
             }
         }
         if (on_progress && (c % 2000 == 0)) {
+            int64_t now = GetTimeMs();
+            int32_t speed = 0;
+            if (now > last_progress_ms) {
+                uint64_t processed = (uint64_t)(c - last_progress_c) * info.bytes_per_cluster;
+                speed = (int32_t)((double)processed * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
+            }
             double pct = 30.0 + ((double)c / info.total_clusters) * 70.0;
-            on_progress(context, pct, (int64_t)c * info.bytes_per_cluster, 0);
+            on_progress(context, pct, (int64_t)c * info.bytes_per_cluster, speed);
+            last_progress_c = c;
+            last_progress_ms = now;
         }
     }
 

@@ -412,6 +412,9 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     // Bitmap visited để tránh quét lại các cluster đã xử lý trong cùng pha sweep này
     uint8_t* visited = (uint8_t*)calloc(((size_t)info.clusterCount + 2) / 8 + 1, 1);
 
+    uint32_t last_progress_c = 2;
+    int64_t last_progress_ms = GetTimeMs();
+
     if (clusBuf && visited) {
         for (uint32_t c = 2; c <= info.clusterCount + 1 && (!cancelled || !*cancelled); c++) {
             if (ExfatVisitedTest(visited, c)) continue;
@@ -438,7 +441,15 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
                 }
             }
             if (on_progress && (c % 10000 == 0)) {
-                on_progress(context, ((double)c / info.clusterCount) * 100.0, (int64_t)c * clusSz, 0);
+                int64_t now = GetTimeMs();
+                int32_t speed = 0;
+                if (now > last_progress_ms) {
+                    uint64_t processed = (uint64_t)(c - last_progress_c) * clusSz;
+                    speed = (int32_t)((double)processed * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
+                }
+                on_progress(context, ((double)c / info.clusterCount) * 100.0, (int64_t)c * clusSz, speed);
+                last_progress_c = c;
+                last_progress_ms = now;
             }
         }
     }

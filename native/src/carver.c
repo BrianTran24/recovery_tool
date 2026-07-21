@@ -1012,6 +1012,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
     }
 
     uint64_t last_progress_pos = 0;
+    int64_t last_progress_ms = GetTimeMs();
     const uint64_t progress_interval = 4 * 1024 * 1024;
 
     if (on_progress) {
@@ -1163,9 +1164,15 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
 
         if (pos - last_progress_pos >= progress_interval) {
             if (on_progress) {
+                int64_t now = GetTimeMs();
+                int32_t speed = 0;
+                if (now > last_progress_ms) {
+                    speed = (int32_t)((double)(pos - last_progress_pos) * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
+                }
                 double phase_pct = (double)pos / disk_size * 100.0;
                 double pct = progress_start + (phase_pct * (progress_end - progress_start) / 100.0);
-                on_progress(context, pct, pos, 0);
+                on_progress(context, pct, pos, speed);
+                last_progress_ms = now;
             }
             last_progress_pos = pos;
         }

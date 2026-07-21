@@ -14,6 +14,9 @@ import 'package:recovery_tool/core/providers/locale_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
+import 'package:recovery_tool/features/conversion/conversion_screen.dart';
+import 'package:path/path.dart' as p;
+
 void main() {
   runZonedGuarded(() {
     runApp(const ProviderScope(child: MyApp()));
@@ -74,20 +77,31 @@ class _MyHomePageState extends State<MyHomePage> {
     final l10n = AppLocalizations.of(context)!;
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['img', 'bin', 'dd', 'raw'],
+      allowedExtensions: const ['img', 'bin', 'dd', 'raw', 'e01'],
       dialogTitle: l10n.selectBackupImage,
     );
 
     if (result != null && result.files.single.path != null) {
       final path = result.files.single.path!;
+      final ext = p.extension(path).toLowerCase();
 
       if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConfigScreen(disk: _buildImageDisk(path)),
-        ),
-      );
+
+      if (ext == '.e01') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConversionScreen(e01Path: path),
+          ),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConfigScreen(disk: _buildImageDisk(path)),
+          ),
+        );
+      }
     }
   }
 

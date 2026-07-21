@@ -66,16 +66,6 @@ typedef struct {
 
 static ScanSession g_sessions[8] = {0};
 
-static int64_t NowMs(void) {
-#ifdef _WIN32
-    return GetTickCount64();
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000LL + ts.tv_nsec / 1000000;
-#endif
-}
-
 static void PostEvent(ScanSession* s, const RecoveryEvent* ev) {
     if (!s->cb) return;
     s->cb(ev);
@@ -277,7 +267,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     ScanSession* s = &g_sessions[handle];
     s->cb         = callback;
     s->cancelled  = 0;
-    s->start_ms   = NowMs();
+    s->start_ms   = GetTimeMs();
     s->fat_count  = 0;
     s->carve_count = 0;
     s->progress_base = 0.0;
@@ -313,21 +303,21 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
         EmitPhaseProgress(s, 0.5, 0, 0);
 
         // --- NEW: Partition Boundary Detection ---
-        int64_t t_part_start = NowMs();
+        int64_t t_part_start = GetTimeMs();
         PartitionCandidate candidates[16];
         int cand_count = DetectPartitions(s->fd, s->total_sectors, candidates, 16);
-        fprintf(stderr, "[TIME] DetectPartitions took %lld ms (found %d candidates)\n", (long long)(NowMs() - t_part_start), cand_count); fflush(stderr);
+        fprintf(stderr, "[TIME] DetectPartitions took %lld ms (found %d candidates)\n", (long long)(GetTimeMs() - t_part_start), cand_count); fflush(stderr);
 
         // Cập nhật tiến trình sau khi dò phân vùng
         EmitPhaseProgress(s, 2.0, 0, 0);
 
-        int64_t t_fs_start = NowMs();
+        int64_t t_fs_start = GetTimeMs();
         for (int i = 0; i < cand_count; i++) {
             if (RecoverPartition(s, candidates[i].start_sector, fat_output_dir, enable_fat, scan_mode)) {
                 found_fat = 1;
             }
         }
-        fprintf(stderr, "[TIME] RecoverPartition loop took %lld ms\n", (long long)(NowMs() - t_fs_start)); fflush(stderr);
+        fprintf(stderr, "[TIME] RecoverPartition loop took %lld ms\n", (long long)(GetTimeMs() - t_fs_start)); fflush(stderr);
 
         if (!found_fat && LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
             uint8_t sector1[512];
@@ -428,10 +418,10 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     }
 
     if (will_carve && !s->cancelled) {
-        int64_t t_carve_start = NowMs();
+        int64_t t_carve_start = GetTimeMs();
         double carve_start = 60.0; // FS scan chiếm 60%
         CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask, s->reference_video[0] ? s->reference_video : NULL);
-        fprintf(stderr, "[TIME] CarveFiles took %lld ms\n", (long long)(NowMs() - t_carve_start)); fflush(stderr);
+        fprintf(stderr, "[TIME] CarveFiles took %lld ms\n", (long long)(GetTimeMs() - t_carve_start)); fflush(stderr);
     }
 
     if (s->sector_mask) {
@@ -444,7 +434,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     done.total_found = s->fat_count + s->carve_count;
     done.fat_count   = s->fat_count;
     done.carve_count = s->carve_count;
-    done.duration_ms = NowMs() - s->start_ms;
+    done.duration_ms = GetTimeMs() - s->start_ms;
     PostEvent(s, &done);
 
     return done.total_found;

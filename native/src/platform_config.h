@@ -17,6 +17,10 @@
 #define STRDUP _strdup
 #define STRCMP_IGNORE_CASE _stricmp
 
+static inline int64_t GetTimeMs(void) {
+    return (int64_t)GetTickCount64();
+}
+
 // Use a custom type for 64-bit offsets to avoid conflicts with system off_t
 typedef __int64 off_t_64;
 
@@ -43,6 +47,7 @@ static inline ssize_t PREAD(int fd, void* buf, size_t count, off_t_64 offset) {
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 
 #define LSEEK lseek
 #define READ  read
@@ -53,6 +58,12 @@ static inline ssize_t PREAD(int fd, void* buf, size_t count, off_t_64 offset) {
 #define STRDUP strdup
 #define STRCMP_IGNORE_CASE strcasecmp
 #define PREAD pread
+
+static inline int64_t GetTimeMs(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000LL + ts.tv_nsec / 1000000;
+}
 
 typedef off_t off_t_64;
 #endif

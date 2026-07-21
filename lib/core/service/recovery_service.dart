@@ -319,4 +319,72 @@ class RecoveryService {
     malloc.free(pathPtr);
     return result;
   }
+
+  Stream<RecoveryEvent> convertE01({
+    required String e01Path,
+    required String outputPath,
+  }) {
+    final controller = StreamController<RecoveryEvent>();
+    final receivePort = ReceivePort();
+
+    final subscription = receivePort.listen((message) {
+      if (message is RecoveryEvent) {
+        if (!controller.isClosed) {
+          controller.add(message);
+        }
+      }
+    });
+
+    _runConversionInIsolate(
+      e01Path: e01Path,
+      outputPath: outputPath,
+      sendPort: receivePort.sendPort,
+    ).then((_) {
+      subscription.cancel();
+      receivePort.close();
+      if (!controller.isClosed) {
+        controller.close();
+      }
+    }).catchError((e) {
+      subscription.cancel();
+      receivePort.close();
+      if (!controller.isClosed) {
+        controller.add(ErrorEvent(code: -1, message: e.toString()));
+        controller.close();
+      }
+    });
+
+    return controller.stream;
+  }
+
+  static Future<void> _runConversionInIsolate({
+    required String e01Path,
+    required String outputPath,
+    required SendPort sendPort,
+  }) {
+    return Isolate.run(() {
+      final workerBindings = RecoveryBindings();
+      final e01Ptr = e01Path.toNativeUtf8();
+      final outputPtr = outputPath.toNativeUtf8();
+
+      final callable =
+          NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((
+            Pointer<RecoveryEventNative> ptr,
+          ) {
+            final ev = ptr.ref;
+            final event = _mapNativeEventStatic(ev);
+            sendPort.send(event);
+          });
+
+      workerBindings.convertE01(
+        e01Ptr,
+        outputPtr,
+        callable.nativeFunction,
+      );
+
+      callable.close();
+      malloc.free(e01Ptr);
+      malloc.free(outputPtr);
+    });
+  }
 }
