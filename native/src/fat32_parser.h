@@ -13,8 +13,8 @@ typedef struct {
     uint32_t capacity;
 } FileCollector;
 
-int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode);
+int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode);
 
 // Modules
-void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode);
-void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled);
+void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode);
+void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused);

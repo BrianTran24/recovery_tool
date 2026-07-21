@@ -17,6 +17,8 @@
 #define STRDUP _strdup
 #define STRCMP_IGNORE_CASE _stricmp
 
+#define SLEEP_MS(ms) Sleep(ms)
+
 static inline int64_t GetTimeMs(void) {
     return (int64_t)GetTickCount64();
 }
@@ -58,6 +60,8 @@ static inline ssize_t PREAD(int fd, void* buf, size_t count, off_t_64 offset) {
 #define STRDUP strdup
 #define STRCMP_IGNORE_CASE strcasecmp
 #define PREAD pread
+
+#define SLEEP_MS(ms) usleep((ms) * 1000)
 
 static inline int64_t GetTimeMs(void) {
     struct timespec ts;

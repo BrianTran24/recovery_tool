@@ -15,8 +15,9 @@ int RecoverExfatAllFiles(
     FatFileCallback on_file,
     FatProgressCallback on_progress,
     volatile int* cancelled,
+    volatile int* paused,
     int scan_mode
 );
 
-void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode);
-void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled);
+void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode);
+void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused);

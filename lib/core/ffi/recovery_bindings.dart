@@ -111,6 +111,8 @@ class RecoveryBindings {
   late final DiskSizeDart  diskSize;
   late final ScanDart      scan;
   late final VoidIntDart   cancel;
+  late final VoidIntDart   pause;
+  late final VoidIntDart   resume;
   late final VoidIntDart   close;
   late final SaveFileDart  saveFile;
   late final SetRefDart    setReferenceVideo;
@@ -131,6 +133,8 @@ class RecoveryBindings {
     diskSize = _lib.lookupFunction<DiskSizeNative, DiskSizeDart>('recovery_disk_size');
     scan     = _lib.lookupFunction<ScanNative,     ScanDart>    ('recovery_scan');
     cancel   = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_cancel');
+    pause    = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_pause');
+    resume   = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_resume');
     close    = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_close');
     saveFile = _lib.lookupFunction<SaveFileNative, SaveFileDart>('recovery_save_file');
     setReferenceVideo = _lib.lookupFunction<SetRefNative, SetRefDart>('recovery_set_reference_video');

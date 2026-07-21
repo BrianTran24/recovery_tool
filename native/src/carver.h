@@ -24,6 +24,7 @@ int CarveFilesWithProgress(
     CarveProgressCallback on_progress,
     CarveFileCallback on_file,
     volatile int* cancelled,
+    volatile int* paused,
     double progress_start,
     double progress_end,
     const uint8_t* used_mask,

@@ -315,12 +315,13 @@ static void PopulateExfatFileInfo(FileInfo* fi, const ExfatBootInfo* info, const
     }
 }
 
-static void CollectFromExfatDir(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, uint32_t startCluster, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, int useFatChain, int depth, uint8_t* visited);
+static void CollectFromExfatDir(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, uint32_t startCluster, FileCollector* collector, const char* relPath, volatile int* cancelled, volatile int* paused, int scan_mode, int useFatChain, int depth, uint8_t* visited);
 
-static void CollectFromExfatCluster(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, const uint8_t* buf, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, int depth, uint8_t* visited, int strict) {
+static void CollectFromExfatCluster(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, const uint8_t* buf, FileCollector* collector, const char* relPath, volatile int* cancelled, volatile int* paused, int scan_mode, int depth, uint8_t* visited, int strict) {
     uint32_t clusSz = ClusterSizeBytes(info);
     for (uint32_t off = 0; off + 32 <= clusSz; off += 32) {
         if (cancelled && *cancelled) return;
+        while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
         if ((buf[off] & 0x7F) == 0x05) {
             uint8_t sc = buf[off + 1];
             if (!ValidExfatEntrySet(buf, clusSz, off, sc, strict)) continue;
@@ -341,7 +342,7 @@ static void CollectFromExfatCluster(int fd, const ExfatBootInfo* info, const uin
                     char subRel[512];
                     if (relPath && relPath[0]) snprintf(subRel, 512, "%s%c%s", relPath, PATH_SEP, fi.filename);
                     else snprintf(subRel, 512, "%s", fi.filename);
-                    CollectFromExfatDir(fd, info, fat, bitmap, bitmapBytes, first, collector, subRel, cancelled, scan_mode, !(streamFlags & 0x02), depth + 1, visited);
+                    CollectFromExfatDir(fd, info, fat, bitmap, bitmapBytes, first, collector, subRel, cancelled, paused, scan_mode, !(streamFlags & 0x02), depth + 1, visited);
                 }
                 if (fi.cluster_chain) { free(fi.cluster_chain); fi.cluster_chain = NULL; }
             } else if (fi.filename[0]) {
@@ -352,7 +353,7 @@ static void CollectFromExfatCluster(int fd, const ExfatBootInfo* info, const uin
     }
 }
 
-static void CollectFromExfatDir(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, uint32_t startCluster, FileCollector* collector, const char* relPath, volatile int* cancelled, int scan_mode, int useFatChain, int depth, uint8_t* visited) {
+static void CollectFromExfatDir(int fd, const ExfatBootInfo* info, const uint8_t* fat, const uint8_t* bitmap, size_t bitmapBytes, uint32_t startCluster, FileCollector* collector, const char* relPath, volatile int* cancelled, volatile int* paused, int scan_mode, int useFatChain, int depth, uint8_t* visited) {
     if (depth > EXFAT_MAX_DIR_DEPTH) return;
     uint32_t cur = startCluster, clusSz = ClusterSizeBytes(info);
     uint8_t* buf = (uint8_t*)malloc(clusSz);
@@ -360,12 +361,13 @@ static void CollectFromExfatDir(int fd, const ExfatBootInfo* info, const uint8_t
     int limit = 10000;
     while (cur >= 2 && cur <= info->clusterCount + 1 && limit-- > 0) {
         if (cancelled && *cancelled) break;
+        while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
         // Chống vòng lặp/cross-link + thu thập trùng: dừng nếu cluster thư mục đã duyệt.
         if (visited) {
             if (ExfatVisitedTest(visited, cur)) break;
             ExfatVisitedSet(visited, cur);
         }
-        if (ReadCluster(fd, info, cur, buf) == 0) CollectFromExfatCluster(fd, info, fat, bitmap, bitmapBytes, buf, collector, relPath, cancelled, scan_mode, depth, visited, 0);
+        if (ReadCluster(fd, info, cur, buf) == 0) CollectFromExfatCluster(fd, info, fat, bitmap, bitmapBytes, buf, collector, relPath, cancelled, paused, scan_mode, depth, visited, 0);
         if (useFatChain && fat) cur = ExfatFatNextCluster(fat, cur); else cur++;
         if (ExfatIsEoc(cur)) break;
     }
@@ -386,7 +388,7 @@ static int ParseExfatBoot(const uint8_t* sector0, ExfatBootInfo* info) {
     return 0;
 }
 
-void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode) {
+void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode) {
     ExfatBootInfo info; info.baseSector = baseSector;
     if (ParseExfatBoot(sector0, &info) < 0) return;
     size_t fatSz = 0; uint8_t* fat = LoadExfatFat(fd, &info, &fatSz);
@@ -397,13 +399,13 @@ void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     uint8_t* visited = (uint8_t*)calloc(((size_t)info.clusterCount + 2) / 8 + 1, 1);
 
     // Duyệt cây thư mục từ Root.
-    CollectFromExfatDir(fd, &info, fat, bmp, bmpSz, info.rootCluster, collector, "", cancelled, scan_mode, 1, 0, visited);
+    CollectFromExfatDir(fd, &info, fat, bmp, bmpSz, info.rootCluster, collector, "", cancelled, paused, scan_mode, 1, 0, visited);
 
     if (visited) free(visited);
     if (fat) free(fat); if (bmp) free(bmp); if (rootBuf) free(rootBuf);
 }
 
-void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled) {
+void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused) {
     ExfatBootInfo info; info.baseSector = baseSector;
     if (ParseExfatBoot(sector0, &info) < 0) return;
     size_t fatSz = 0; uint8_t* fat = LoadExfatFat(fd, &info, &fatSz);
@@ -417,13 +419,14 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
 
     if (clusBuf && visited) {
         for (uint32_t c = 2; c <= info.clusterCount + 1 && (!cancelled || !*cancelled); c++) {
+            while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
             if (ExfatVisitedTest(visited, c)) continue;
 
             if (ReadCluster(fd, &info, c, clusBuf) == 0) {
                 // 1. Kiểm tra xem có phải cụm chứa thư mục (Lost Directory)
                 if (IsExfatDirCluster(clusBuf, clusSz)) {
                     char fld[64]; snprintf(fld, 64, "LostDir_%u", c);
-                    CollectFromExfatCluster(fd, &info, fat, NULL, 0, clusBuf, collector, fld, cancelled, SCAN_MODE_BOTH, 0, visited, 1);
+                    CollectFromExfatCluster(fd, &info, fat, NULL, 0, clusBuf, collector, fld, cancelled, paused, SCAN_MODE_BOTH, 0, visited, 1);
                 } else {
                     // 2. Quét từng entry lẻ (Orphaned Files)
                     for (uint32_t off = 0; off + 32 <= clusSz; off += 32) {
@@ -458,6 +461,6 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     if (fat) free(fat);
 }
 
-int RecoverExfatAllFiles(int fd, int64_t baseSector, const uint8_t* sector0, size_t bootSectorLen, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, int scan_mode) {
+int RecoverExfatAllFiles(int fd, int64_t baseSector, const uint8_t* sector0, size_t bootSectorLen, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode) {
     return 0; // Legacy function not used in the new 4-module architecture
 }

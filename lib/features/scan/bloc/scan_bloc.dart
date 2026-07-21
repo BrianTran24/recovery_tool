@@ -75,12 +75,14 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
   void _onPauseScan(PauseScanEvent event, Emitter<ScanState> emit) {
     if (state.status == ScanStatus.inProgress) {
+      _recoveryService.pause();
       emit(state.copyWith(status: ScanStatus.paused));
     }
   }
 
   void _onResumeScan(ResumeScanEvent event, Emitter<ScanState> emit) {
     if (state.status == ScanStatus.paused) {
+      _recoveryService.resume();
       emit(state.copyWith(status: ScanStatus.inProgress));
     }
   }

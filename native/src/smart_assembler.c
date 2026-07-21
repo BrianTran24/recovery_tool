@@ -321,7 +321,7 @@ static int AssembleSmart(int fd, FileInfo* info, const char* outPath, uint32_t b
     return success ? 0 : -1;
 }
 
-int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, uint8_t* sector_mask, int64_t total_sectors) {
+int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const char* outputDir, void* context, FatFileCallback on_file, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, uint8_t* sector_mask, int64_t total_sectors) {
     // We need some info from BPB again, or we could pass it.
     // For simplicity, let's assume standard FAT32/exFAT detection here or pass a struct.
     // I'll re-read the boot sector to get cluster info.
@@ -353,6 +353,7 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
 
     for (uint32_t i = 0; i < collector->count; i++) {
         if (cancelled && *cancelled) break;
+        while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
         FileInfo* fi = &collector->files[i];
 
         char outDir[1024];

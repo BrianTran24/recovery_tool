@@ -139,7 +139,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
       builder: (context, state) {
         final files = state.foundFiles;
         final done = state.status == ScanStatus.success || state.status == ScanStatus.failure;
-        final paused = state.status == ScanStatus.paused;
 
         // Group files by folder
         final Map<String, List<FileFoundEvent>> folderGroups = {};
@@ -173,35 +172,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                       letterSpacing: 1.2,
                     ),
                   ),
-                  if (!done)
-                    Row(
-                      children: [
-                        if (paused) ...[
-                          TextButton.icon(
-                            onPressed: () {
-                              context.read<ScanBloc>().add(ResumeScanEvent());
-                            },
-                            icon: const Icon(Icons.play_circle_rounded, color: AppTheme.cyberCyan),
-                            label: Text(l10n.scanResume, style: const TextStyle(color: AppTheme.cyberCyan)),
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton.icon(
-                            onPressed: () {
-                              context.read<ScanBloc>().add(CancelScanEvent());
-                            },
-                            icon: const Icon(Icons.cancel_rounded, color: Colors.white54),
-                            label: Text(l10n.scanCancel, style: const TextStyle(color: Colors.white54)),
-                          ),
-                        ] else
-                          TextButton.icon(
-                            onPressed: () {
-                              context.read<ScanBloc>().add(PauseScanEvent());
-                            },
-                            icon: const Icon(Icons.pause_circle_rounded, color: Colors.orange),
-                            label: Text(l10n.scanPause, style: const TextStyle(color: Colors.orange)),
-                          ),
-                      ],
-                    ),
                 ],
               ),
             ),
@@ -315,24 +285,57 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   Widget _buildProgressHeader(BuildContext context, AppLocalizations l10n, ScanState state, bool done) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Center(
-            child: SemiCircleProgressIndicator(
-              progress: state.percent / 100,
-              label: done ? l10n.scanResults : l10n.scanProcessing,
-              speed: done ? null : state.speed,
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildStatCard(l10n.scanElapsed, _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue),
+                if (!done) ...[
+                  const SizedBox(height: 12),
+                  _buildStatCard(l10n.scanRemaining, _etr, Icons.hourglass_empty_rounded, Colors.green),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 32),
-          Row(
+          const SizedBox(width: 32),
+          Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(child: _buildStatCard(l10n.scanFound, '${state.foundCount}', Icons.insert_drive_file_rounded, Colors.orange)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatCard(l10n.scanElapsed, _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue)),
-              const SizedBox(width: 16),
-              if (!done)
-                Expanded(child: _buildStatCard(l10n.scanRemaining, _etr, Icons.hourglass_empty_rounded, Colors.green)),
+              SemiCircleProgressIndicator(
+                progress: state.percent / 100,
+                label: done ? l10n.scanResults : l10n.scanProcessing,
+                speed: done ? null : state.speed,
+                size: 180,
+              ),
+              if (!done) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (state.status == ScanStatus.paused) ...[
+                      TextButton.icon(
+                        onPressed: () => context.read<ScanBloc>().add(ResumeScanEvent()),
+                        icon: const Icon(Icons.play_circle_rounded, color: AppTheme.cyberCyan),
+                        label: Text(l10n.scanResume, style: const TextStyle(color: AppTheme.cyberCyan, fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () => context.read<ScanBloc>().add(CancelScanEvent()),
+                        icon: const Icon(Icons.cancel_rounded, color: Colors.white54),
+                        label: Text(l10n.scanCancel, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                      ),
+                    ] else
+                      TextButton.icon(
+                        onPressed: () => context.read<ScanBloc>().add(PauseScanEvent()),
+                        icon: const Icon(Icons.pause_circle_rounded, color: Colors.orange),
+                        label: Text(l10n.scanPause, style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ],

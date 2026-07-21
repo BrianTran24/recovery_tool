@@ -53,6 +53,7 @@ static int IsExt4(int fd, int64_t baseSector) {
 typedef struct {
     int      fd;
     volatile int cancelled;
+    volatile int paused;
     int64_t  start_ms;
     RecoveryCallback cb;
     int32_t  fat_count;
@@ -155,9 +156,9 @@ static int RecoverVolumeFiles(
     s->progress_base = orig_base;
     s->progress_span = orig_span * 0.05;
     if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
-        CollectHealthyFilesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
+        CollectHealthyFilesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, &s->paused, scan_mode);
     } else {
-        CollectHealthyFilesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
+        CollectHealthyFilesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, &s->paused, scan_mode);
     }
 
     fprintf(stderr, "[DBG] after Module1 collector.count=%u\n", collector.count); fflush(stderr);
@@ -170,9 +171,9 @@ static int RecoverVolumeFiles(
     // HOẶC nếu quét nhanh không tìm thấy gì (dấu hiệu cấu trúc FS bị hỏng nặng).
     if (!s->cancelled && (scan_mode != SCAN_MODE_EXISTING || collector.count == 0)) {
         if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
-            ScanOrphanedEntriesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
+            ScanOrphanedEntriesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, &s->paused);
         } else {
-            ScanOrphanedEntriesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
+            ScanOrphanedEntriesFat32(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, &s->paused);
         }
     }
 
@@ -184,7 +185,7 @@ static int RecoverVolumeFiles(
 
     int recovered = 0;
     if (!s->cancelled && collector.count > 0) {
-        recovered = ProcessFiles(s->fd, baseSector, &collector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled, s->sector_mask, s->total_sectors);
+        recovered = ProcessFiles(s->fd, baseSector, &collector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled, &s->paused, s->sector_mask, s->total_sectors);
     }
 
     fprintf(stderr, "[DBG] after Module3 recovered=%d\n", recovered); fflush(stderr);
@@ -268,6 +269,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     ScanSession* s = &g_sessions[handle];
     s->cb         = callback;
     s->cancelled  = 0;
+    s->paused     = 0;
     s->start_ms   = GetTimeMs();
     s->fat_count  = 0;
     s->carve_count = 0;
@@ -421,7 +423,7 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     if (will_carve && !s->cancelled) {
         int64_t t_carve_start = GetTimeMs();
         double carve_start = 60.0; // FS scan chiếm 60%
-        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask, s->reference_video[0] ? s->reference_video : NULL);
+        CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, &s->paused, carve_start, 100.0, s->sector_mask, s->reference_video[0] ? s->reference_video : NULL);
         fprintf(stderr, "[TIME] CarveFiles took %lld ms\n", (long long)(GetTimeMs() - t_carve_start)); fflush(stderr);
     }
 
@@ -443,6 +445,14 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
 
 EXPORT void recovery_cancel(int32_t handle) {
     if (handle >= 0 && handle < 8) g_sessions[handle].cancelled = 1;
+}
+
+EXPORT void recovery_pause(int32_t handle) {
+    if (handle >= 0 && handle < 8) g_sessions[handle].paused = 1;
+}
+
+EXPORT void recovery_resume(int32_t handle) {
+    if (handle >= 0 && handle < 8) g_sessions[handle].paused = 0;
 }
 
 EXPORT void recovery_close(int32_t handle) {

@@ -102,6 +102,12 @@ EXPORT int32_t recovery_scan(
 // Yêu cầu dừng scan (set flag, không block)
 EXPORT void recovery_cancel(int32_t handle);
 
+// Yêu cầu tạm dừng scan
+EXPORT void recovery_pause(int32_t handle);
+
+// Yêu cầu tiếp tục scan
+EXPORT void recovery_resume(int32_t handle);
+
 // Đóng và giải phóng handle
 EXPORT void recovery_close(int32_t handle);
 

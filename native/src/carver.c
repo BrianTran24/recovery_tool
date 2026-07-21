@@ -979,7 +979,7 @@ int is_cluster_header(const uint8_t* buf, size_t len) {
     return 0;
 }
 
-int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, double progress_start, double progress_end, const uint8_t* used_mask, const char* reference_video) {
+int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, const char* output_dir, void* context, CarveProgressCallback on_progress, CarveFileCallback on_file, volatile int* cancelled, volatile int* paused, double progress_start, double progress_end, const uint8_t* used_mask, const char* reference_video) {
     if (!g_registry_init) {
         init_signature_registry(&g_registry);
         g_registry_init = 1;
@@ -1025,6 +1025,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
     }
 
     while (pos < disk_size && (!cancelled || !*cancelled)) {
+        while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
         size_t n = 0;
         ReadChunk(&ctx, pos, buf, chunk_size, &n);
         if (n == 0) break;

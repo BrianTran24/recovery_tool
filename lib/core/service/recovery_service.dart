@@ -309,6 +309,18 @@ class RecoveryService {
     }
   }
 
+  void pause() {
+    if (_activeHandle != null) {
+      _bindings.pause(_activeHandle!);
+    }
+  }
+
+  void resume() {
+    if (_activeHandle != null) {
+      _bindings.resume(_activeHandle!);
+    }
+  }
+
   Future<int> saveFile({
     required int handle,
     required int sectorOffset,

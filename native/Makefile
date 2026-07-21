@@ -153,6 +153,78 @@ src/carver.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/carver.c.s
 .PHONY : src/carver.c.s
 
+src/device_handlers.o: src/device_handlers.c.o
+.PHONY : src/device_handlers.o
+
+# target to build an object file
+src/device_handlers.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/device_handlers.c.o
+.PHONY : src/device_handlers.c.o
+
+src/device_handlers.i: src/device_handlers.c.i
+.PHONY : src/device_handlers.i
+
+# target to preprocess a source file
+src/device_handlers.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/device_handlers.c.i
+.PHONY : src/device_handlers.c.i
+
+src/device_handlers.s: src/device_handlers.c.s
+.PHONY : src/device_handlers.s
+
+# target to generate assembly for a file
+src/device_handlers.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/device_handlers.c.s
+.PHONY : src/device_handlers.c.s
+
+src/e01_handler.o: src/e01_handler.c.o
+.PHONY : src/e01_handler.o
+
+# target to build an object file
+src/e01_handler.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/e01_handler.c.o
+.PHONY : src/e01_handler.c.o
+
+src/e01_handler.i: src/e01_handler.c.i
+.PHONY : src/e01_handler.i
+
+# target to preprocess a source file
+src/e01_handler.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/e01_handler.c.i
+.PHONY : src/e01_handler.c.i
+
+src/e01_handler.s: src/e01_handler.c.s
+.PHONY : src/e01_handler.s
+
+# target to generate assembly for a file
+src/e01_handler.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/e01_handler.c.s
+.PHONY : src/e01_handler.c.s
+
+src/exfat_parser.o: src/exfat_parser.c.o
+.PHONY : src/exfat_parser.o
+
+# target to build an object file
+src/exfat_parser.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/exfat_parser.c.o
+.PHONY : src/exfat_parser.c.o
+
+src/exfat_parser.i: src/exfat_parser.c.i
+.PHONY : src/exfat_parser.i
+
+# target to preprocess a source file
+src/exfat_parser.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/exfat_parser.c.i
+.PHONY : src/exfat_parser.c.i
+
+src/exfat_parser.s: src/exfat_parser.c.s
+.PHONY : src/exfat_parser.s
+
+# target to generate assembly for a file
+src/exfat_parser.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/exfat_parser.c.s
+.PHONY : src/exfat_parser.c.s
+
 src/fat32_parser.o: src/fat32_parser.c.o
 .PHONY : src/fat32_parser.o
 
@@ -176,6 +248,78 @@ src/fat32_parser.s: src/fat32_parser.c.s
 src/fat32_parser.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/fat32_parser.c.s
 .PHONY : src/fat32_parser.c.s
+
+src/fragment_validator.o: src/fragment_validator.c.o
+.PHONY : src/fragment_validator.o
+
+# target to build an object file
+src/fragment_validator.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/fragment_validator.c.o
+.PHONY : src/fragment_validator.c.o
+
+src/fragment_validator.i: src/fragment_validator.c.i
+.PHONY : src/fragment_validator.i
+
+# target to preprocess a source file
+src/fragment_validator.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/fragment_validator.c.i
+.PHONY : src/fragment_validator.c.i
+
+src/fragment_validator.s: src/fragment_validator.c.s
+.PHONY : src/fragment_validator.s
+
+# target to generate assembly for a file
+src/fragment_validator.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/fragment_validator.c.s
+.PHONY : src/fragment_validator.c.s
+
+src/hardware_health_checker.o: src/hardware_health_checker.c.o
+.PHONY : src/hardware_health_checker.o
+
+# target to build an object file
+src/hardware_health_checker.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/hardware_health_checker.c.o
+.PHONY : src/hardware_health_checker.c.o
+
+src/hardware_health_checker.i: src/hardware_health_checker.c.i
+.PHONY : src/hardware_health_checker.i
+
+# target to preprocess a source file
+src/hardware_health_checker.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/hardware_health_checker.c.i
+.PHONY : src/hardware_health_checker.c.i
+
+src/hardware_health_checker.s: src/hardware_health_checker.c.s
+.PHONY : src/hardware_health_checker.s
+
+# target to generate assembly for a file
+src/hardware_health_checker.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/hardware_health_checker.c.s
+.PHONY : src/hardware_health_checker.c.s
+
+src/partition_detector.o: src/partition_detector.c.o
+.PHONY : src/partition_detector.o
+
+# target to build an object file
+src/partition_detector.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/partition_detector.c.o
+.PHONY : src/partition_detector.c.o
+
+src/partition_detector.i: src/partition_detector.c.i
+.PHONY : src/partition_detector.i
+
+# target to preprocess a source file
+src/partition_detector.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/partition_detector.c.i
+.PHONY : src/partition_detector.c.i
+
+src/partition_detector.s: src/partition_detector.c.s
+.PHONY : src/partition_detector.s
+
+# target to generate assembly for a file
+src/partition_detector.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/partition_detector.c.s
+.PHONY : src/partition_detector.c.s
 
 src/recovery_ffi.o: src/recovery_ffi.c.o
 .PHONY : src/recovery_ffi.o
@@ -225,6 +369,78 @@ src/sector_reader.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/sector_reader.c.s
 .PHONY : src/sector_reader.c.s
 
+src/signature_registry.o: src/signature_registry.c.o
+.PHONY : src/signature_registry.o
+
+# target to build an object file
+src/signature_registry.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/signature_registry.c.o
+.PHONY : src/signature_registry.c.o
+
+src/signature_registry.i: src/signature_registry.c.i
+.PHONY : src/signature_registry.i
+
+# target to preprocess a source file
+src/signature_registry.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/signature_registry.c.i
+.PHONY : src/signature_registry.c.i
+
+src/signature_registry.s: src/signature_registry.c.s
+.PHONY : src/signature_registry.s
+
+# target to generate assembly for a file
+src/signature_registry.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/signature_registry.c.s
+.PHONY : src/signature_registry.c.s
+
+src/smart_assembler.o: src/smart_assembler.c.o
+.PHONY : src/smart_assembler.o
+
+# target to build an object file
+src/smart_assembler.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/smart_assembler.c.o
+.PHONY : src/smart_assembler.c.o
+
+src/smart_assembler.i: src/smart_assembler.c.i
+.PHONY : src/smart_assembler.i
+
+# target to preprocess a source file
+src/smart_assembler.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/smart_assembler.c.i
+.PHONY : src/smart_assembler.c.i
+
+src/smart_assembler.s: src/smart_assembler.c.s
+.PHONY : src/smart_assembler.s
+
+# target to generate assembly for a file
+src/smart_assembler.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/smart_assembler.c.s
+.PHONY : src/smart_assembler.c.s
+
+src/video_repair.o: src/video_repair.c.o
+.PHONY : src/video_repair.o
+
+# target to build an object file
+src/video_repair.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/video_repair.c.o
+.PHONY : src/video_repair.c.o
+
+src/video_repair.i: src/video_repair.c.i
+.PHONY : src/video_repair.i
+
+# target to preprocess a source file
+src/video_repair.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/video_repair.c.i
+.PHONY : src/video_repair.c.i
+
+src/video_repair.s: src/video_repair.c.s
+.PHONY : src/video_repair.s
+
+# target to generate assembly for a file
+src/video_repair.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/recovery.dir/build.make CMakeFiles/recovery.dir/src/video_repair.c.s
+.PHONY : src/video_repair.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -237,15 +453,42 @@ help:
 	@echo "... src/carver.o"
 	@echo "... src/carver.i"
 	@echo "... src/carver.s"
+	@echo "... src/device_handlers.o"
+	@echo "... src/device_handlers.i"
+	@echo "... src/device_handlers.s"
+	@echo "... src/e01_handler.o"
+	@echo "... src/e01_handler.i"
+	@echo "... src/e01_handler.s"
+	@echo "... src/exfat_parser.o"
+	@echo "... src/exfat_parser.i"
+	@echo "... src/exfat_parser.s"
 	@echo "... src/fat32_parser.o"
 	@echo "... src/fat32_parser.i"
 	@echo "... src/fat32_parser.s"
+	@echo "... src/fragment_validator.o"
+	@echo "... src/fragment_validator.i"
+	@echo "... src/fragment_validator.s"
+	@echo "... src/hardware_health_checker.o"
+	@echo "... src/hardware_health_checker.i"
+	@echo "... src/hardware_health_checker.s"
+	@echo "... src/partition_detector.o"
+	@echo "... src/partition_detector.i"
+	@echo "... src/partition_detector.s"
 	@echo "... src/recovery_ffi.o"
 	@echo "... src/recovery_ffi.i"
 	@echo "... src/recovery_ffi.s"
 	@echo "... src/sector_reader.o"
 	@echo "... src/sector_reader.i"
 	@echo "... src/sector_reader.s"
+	@echo "... src/signature_registry.o"
+	@echo "... src/signature_registry.i"
+	@echo "... src/signature_registry.s"
+	@echo "... src/smart_assembler.o"
+	@echo "... src/smart_assembler.i"
+	@echo "... src/smart_assembler.s"
+	@echo "... src/video_repair.o"
+	@echo "... src/video_repair.i"
+	@echo "... src/video_repair.s"
 .PHONY : help
 
 
