@@ -197,6 +197,13 @@ Win32Window::MessageHandler(HWND hwnd,
 
       return 0;
     }
+    case WM_GETMINMAXINFO: {
+      double scale_factor = GetDpiForWindow(hwnd) / 96.0;
+      LPMINMAXINFO lpMMI = (LPMINMAXINFO)lparam;
+      lpMMI->ptMinTrackSize.x = static_cast<LONG>(1024 * scale_factor);
+      lpMMI->ptMinTrackSize.y = static_cast<LONG>(720 * scale_factor);
+      return 0;
+    }
     case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {

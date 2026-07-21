@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'RECOVERY TOOL'**
+  /// **'Recovery SD Tool'**
   String get appTitle;
 
   /// No description provided for @onboardingTitle1.
@@ -343,6 +343,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Modern SD cards may automatically erase deleted data during idle time (Trim/GC). Recommended: Clone the entire card to an .img file immediately to preserve data.'**
   String get gcTrimWarningDesc;
+
+  /// No description provided for @sourceDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Device'**
+  String get sourceDevice;
+
+  /// No description provided for @recoveryMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery Mode'**
+  String get recoveryMode;
+
+  /// No description provided for @storageConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Configuration'**
+  String get storageConfig;
+
+  /// No description provided for @outputDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Directory'**
+  String get outputDirectory;
+
+  /// No description provided for @deletedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted Files'**
+  String get deletedFiles;
+
+  /// No description provided for @existingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing Files'**
+  String get existingFiles;
+
+  /// No description provided for @allFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All Files'**
+  String get allFiles;
+
+  /// No description provided for @deletedFilesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Find and recover files that have been deleted from the file system.'**
+  String get deletedFilesDesc;
+
+  /// No description provided for @existingFilesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan and list files currently present on the device.'**
+  String get existingFilesDesc;
+
+  /// No description provided for @allFilesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Combines scanning for both existing and deleted files.'**
+  String get allFilesDesc;
+
+  /// No description provided for @startScanNow.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN'**
+  String get startScanNow;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// No description provided for @pleaseSelectOutputDir.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select output directory'**
+  String get pleaseSelectOutputDir;
+
+  /// No description provided for @backupImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Image: {path}'**
+  String backupImage(String path);
+
+  /// No description provided for @readOnlyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only mode - Absolute safety'**
+  String get readOnlyMode;
+
+  /// No description provided for @capacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Capacity: {size} GB'**
+  String capacity(int size);
+
+  /// No description provided for @scanInitializing.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing scan session for {path}'**
+  String scanInitializing(String path);
+
+  /// No description provided for @scanFsIdentified.
+  ///
+  /// In en, this message translates to:
+  /// **'IDENTIFIED: File system {type} at sector {offset}'**
+  String scanFsIdentified(String type, int offset);
+
+  /// No description provided for @scanFsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'IDENTIFIED: No valid file system found. Switching to Signature Carving.'**
+  String get scanFsNotFound;
+
+  /// No description provided for @scanScanningSector.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning Sector: {sector} ({percent}%)'**
+  String scanScanningSector(int sector, String percent);
+
+  /// No description provided for @scanFileFound.
+  ///
+  /// In en, this message translates to:
+  /// **'FOUND: {filename} ({type})'**
+  String scanFileFound(String filename, String type);
+
+  /// No description provided for @scanComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETE: Found {count} files in {duration}'**
+  String scanComplete(int count, String duration);
+
+  /// No description provided for @scanError.
+  ///
+  /// In en, this message translates to:
+  /// **'ERROR: {message}'**
+  String scanError(String message);
+
+  /// No description provided for @scanStreamError.
+  ///
+  /// In en, this message translates to:
+  /// **'STREAM ERROR: {error}'**
+  String scanStreamError(Object error);
+
+  /// No description provided for @scanResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Results'**
+  String get scanResults;
+
+  /// No description provided for @scanProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing data...'**
+  String get scanProcessing;
+
+  /// No description provided for @scanStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get scanStop;
+
+  /// No description provided for @scanViewAllResults.
+  ///
+  /// In en, this message translates to:
+  /// **'VIEW ALL RESULTS'**
+  String get scanViewAllResults;
+
+  /// No description provided for @scanViewLive.
+  ///
+  /// In en, this message translates to:
+  /// **'VIEW LIVE ({count} files)'**
+  String scanViewLive(int count);
+
+  /// No description provided for @scanTabFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Found files'**
+  String get scanTabFiles;
+
+  /// No description provided for @scanTabLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'System logs'**
+  String get scanTabLogs;
+
+  /// No description provided for @scanSearchingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for files...'**
+  String get scanSearchingFiles;
+
+  /// No description provided for @scanProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Progress'**
+  String get scanProgress;
+
+  /// No description provided for @scanSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get scanSpeed;
+
+  /// No description provided for @scanFound.
+  ///
+  /// In en, this message translates to:
+  /// **'FOUND'**
+  String get scanFound;
+
+  /// No description provided for @scanElapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'ELAPSED'**
+  String get scanElapsed;
+
+  /// No description provided for @scanRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'REMAINING (EST.)'**
+  String get scanRemaining;
+
+  /// No description provided for @scanHardwareError.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardware Error'**
+  String get scanHardwareError;
+
+  /// No description provided for @scanSystemError.
+  ///
+  /// In en, this message translates to:
+  /// **'System Error'**
+  String get scanSystemError;
+
+  /// No description provided for @scanUnderstand.
+  ///
+  /// In en, this message translates to:
+  /// **'I UNDERSTAND'**
+  String get scanUnderstand;
 }
 
 class _AppLocalizationsDelegate

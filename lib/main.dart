@@ -7,14 +7,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
-import 'package:recovery_tool/features/config/config_screen.dart';
 import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
 import 'package:recovery_tool/features/settings/settings_screen.dart';
 import 'package:recovery_tool/core/providers/locale_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
-import 'package:recovery_tool/features/conversion/conversion_screen.dart';
+import 'package:recovery_tool/features/conversion/conversion_view.dart';
+import 'package:recovery_tool/features/config/config_view.dart';
+import 'package:recovery_tool/scan_view.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -35,7 +36,7 @@ class MyApp extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
 
     return MaterialApp(
-      title: 'Recovery Tool',
+      title: 'Recovery SD Tool',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -62,6 +63,8 @@ class MyApp extends ConsumerWidget {
 
 enum HomeTool { devices, restore, settings }
 
+enum RestoreStep { pickFile, converting, configuring, scanning }
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
@@ -72,6 +75,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   HomeTool _selectedTool = HomeTool.devices;
   bool _isCollapsed = false;
+
+  // Restore flow state
+  RestoreStep _restoreStep = RestoreStep.pickFile;
+  Disk? _selectedDisk;
+  String? _e01Path;
+  late int _scanMode;
+  late String _outputDir;
+  late String _referenceVideo;
+
+  void _resetRestore() {
+    setState(() {
+      _restoreStep = RestoreStep.pickFile;
+      _selectedDisk = null;
+      _e01Path = null;
+    });
+  }
 
   Future<void> _pickBackupImage() async {
     final l10n = AppLocalizations.of(context)!;
@@ -88,19 +107,15 @@ class _MyHomePageState extends State<MyHomePage> {
       if (!mounted) return;
 
       if (ext == '.e01') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ConversionScreen(e01Path: path),
-          ),
-        );
+        setState(() {
+          _e01Path = path;
+          _restoreStep = RestoreStep.converting;
+        });
       } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ConfigScreen(disk: _buildImageDisk(path)),
-          ),
-        );
+        setState(() {
+          _selectedDisk = _buildImageDisk(path);
+          _restoreStep = RestoreStep.configuring;
+        });
       }
     }
   }
@@ -221,14 +236,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       label: l10n.sidebarDevices,
                       isSelected: _selectedTool == HomeTool.devices,
                       isCollapsed: _isCollapsed,
-                      onTap: () => setState(() => _selectedTool = HomeTool.devices),
+                      onTap: () {
+                        setState(() {
+                          _selectedTool = HomeTool.devices;
+                        });
+                      },
                     ),
                     _SidebarItem(
                       icon: Icons.restore_page_rounded,
                       label: l10n.sidebarRestore,
                       isSelected: _selectedTool == HomeTool.restore,
                       isCollapsed: _isCollapsed,
-                      onTap: () => setState(() => _selectedTool = HomeTool.restore),
+                      onTap: () {
+                        setState(() {
+                          _selectedTool = HomeTool.restore;
+                        });
+                      },
                     ),
                     _SidebarItem(
                       icon: Icons.settings_rounded,
@@ -445,12 +468,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                         content: Text('Error: Could not identify device path')));
                                     return;
                                   }
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConfigScreen(disk: disk),
-                                    ),
-                                  );
+                                  setState(() {
+                                    _selectedTool = HomeTool.restore;
+                                    _selectedDisk = disk;
+                                    _restoreStep = RestoreStep.configuring;
+                                  });
                                 },
                                 borderRadius: BorderRadius.circular(20),
                                 child: Container(
@@ -523,6 +545,48 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildRestoreContent() {
+    switch (_restoreStep) {
+      case RestoreStep.pickFile:
+        return _buildPickFileView();
+      case RestoreStep.converting:
+        return ConversionView(
+          e01Path: _e01Path!,
+          onConversionDone: (disk) {
+            setState(() {
+              _selectedDisk = disk;
+              _restoreStep = RestoreStep.configuring;
+            });
+          },
+        );
+      case RestoreStep.configuring:
+        return ConfigView(
+          disk: _selectedDisk!,
+          onBack: _resetRestore,
+          onPickNewFile: _pickBackupImage,
+          onStartScan: (scanMode, outputDir) {
+            setState(() {
+              _scanMode = scanMode;
+              _outputDir = outputDir;
+              _referenceVideo = ''; // Empty string since it's removed from UI
+              _restoreStep = RestoreStep.scanning;
+            });
+          },
+        );
+      case RestoreStep.scanning:
+        final path = (_selectedDisk!.raw.startsWith('/dev/')) ? _selectedDisk!.raw : _selectedDisk!.devicePath;
+        return ScanView(
+          sourcePath: path!,
+          outputDir: _outputDir,
+          scanMode: _scanMode,
+          referenceVideo: _referenceVideo,
+          onDone: () {
+            // Option to go back or show results
+          },
+        );
+    }
+  }
+
+  Widget _buildPickFileView() {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(32),

@@ -1166,7 +1166,7 @@ int CarveFilesWithProgress(int fd, uint64_t disk_size, uint32_t sector_size, con
             if (on_progress) {
                 int64_t now = GetTimeMs();
                 int32_t speed = 0;
-                if (now > last_progress_ms) {
+                if (now > last_progress_ms + 10) { // ít nhất 10ms để tránh nhiễu
                     speed = (int32_t)((double)(pos - last_progress_pos) * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
                 }
                 double phase_pct = (double)pos / disk_size * 100.0;

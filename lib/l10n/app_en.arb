@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "RECOVERY TOOL",
+  "appTitle": "Recovery SD Tool",
   "onboardingTitle1": "RECOVERY SD TOOL",
   "onboardingSubtitle1": "UNLOCK YOUR LOST DATA!",
   "onboardingDesc1": "Professional, fast, and reliable data recovery solution for all your SD devices.",
@@ -40,5 +40,127 @@
   "english": "English",
   "developing": "DEVELOPING",
   "gcTrimWarningTitle": "WARNING: GARBAGE COLLECTION RISK",
-  "gcTrimWarningDesc": "Modern SD cards may automatically erase deleted data during idle time (Trim/GC). Recommended: Clone the entire card to an .img file immediately to preserve data."
+  "gcTrimWarningDesc": "Modern SD cards may automatically erase deleted data during idle time (Trim/GC). Recommended: Clone the entire card to an .img file immediately to preserve data.",
+  "sourceDevice": "Source Device",
+  "recoveryMode": "Recovery Mode",
+  "storageConfig": "Storage Configuration",
+  "outputDirectory": "Output Directory",
+  "deletedFiles": "Deleted Files",
+  "existingFiles": "Existing Files",
+  "allFiles": "All Files",
+  "deletedFilesDesc": "Find and recover files that have been deleted from the file system.",
+  "existingFilesDesc": "Scan and list files currently present on the device.",
+  "allFilesDesc": "Combines scanning for both existing and deleted files.",
+  "startScanNow": "SCAN",
+  "change": "Change",
+  "pleaseSelectOutputDir": "Please select output directory",
+  "backupImage": "Backup Image: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "Read-only mode - Absolute safety",
+  "capacity": "Capacity: {size} GB",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "Initializing scan session for {path}",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "IDENTIFIED: File system {type} at sector {offset}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "IDENTIFIED: No valid file system found. Switching to Signature Carving.",
+  "scanScanningSector": "Scanning Sector: {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "FOUND: {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "COMPLETE: Found {count} files in {duration}",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "ERROR: {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "STREAM ERROR: {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "Scan Results",
+  "scanProcessing": "Processing data...",
+  "scanStop": "Stop",
+  "scanViewAllResults": "VIEW ALL RESULTS",
+  "scanViewLive": "VIEW LIVE ({count} files)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "Found files",
+  "scanTabLogs": "System logs",
+  "scanSearchingFiles": "Searching for files...",
+  "scanProgress": "Scan Progress",
+  "scanSpeed": "Speed",
+  "scanFound": "FOUND",
+  "scanElapsed": "ELAPSED",
+  "scanRemaining": "REMAINING (EST.)",
+  "scanHardwareError": "Hardware Error",
+  "scanSystemError": "System Error",
+  "scanUnderstand": "I UNDERSTAND"
 }

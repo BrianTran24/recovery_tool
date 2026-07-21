@@ -443,7 +443,7 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
             if (on_progress && (c % 10000 == 0)) {
                 int64_t now = GetTimeMs();
                 int32_t speed = 0;
-                if (now > last_progress_ms) {
+                if (now > last_progress_ms + 10) {
                     uint64_t processed = (uint64_t)(c - last_progress_c) * clusSz;
                     speed = (int32_t)((double)processed * 1000.0 / (double)(now - last_progress_ms) / (1024.0 * 1024.0));
                 }

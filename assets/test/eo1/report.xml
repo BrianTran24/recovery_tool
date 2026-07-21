@@ -1,0 +1,851 @@
+This XML file does not appear to have any style information associated with it. The document tree is shown below.
+<groundtruth>
+    <fileobject>
+        <id>1</id>
+        <filesize>105195</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178904</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178904</crtime>
+        <filename>DCIM/100CANON/IMG_0044.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="88576" img_offset="114688" len="32768"/>
+            <run file_offset="32768" fs_offset="1497600" img_offset="1523712" len="32768"/>
+            <run file_offset="65536" fs_offset="6330880" img_offset="6356992" len="39659"/>
+        </byte_runs>
+        <md5>cef79634dd3a86455a2cd900a691adf3</md5>
+        <sha1>916a88a00c58b7a566711acd25e61d549df5d303</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>2</id>
+        <filesize>1361807</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230071288</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230071288</crtime>
+        <filename>DCIM/100CANON/IMG_0042.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="121344" img_offset="147456" len="1361807"/>
+        </byte_runs>
+        <md5>71fc8955355b39cc708d2ea12464f8ba</md5>
+        <sha1>8b9080d2eeaf8dba2d510baa5738e1d2ac62dafc</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>3</id>
+        <filesize>840101</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070372</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070372</crtime>
+        <filename>DCIM/100CANON/IMG_0003.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="1808896" img_offset="1835008" len="840101"/>
+        </byte_runs>
+        <md5>fde12217846c1e74bb9681b67bebd886</md5>
+        <sha1>214ad4f47b772e38cc295a8192e1664a235ced82</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>4</id>
+        <filesize>2834018</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230071438</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230071438</crtime>
+        <filename>DCIM/100CANON/IMG_0043.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="1530368" img_offset="1556480" len="278528"/>
+            <run file_offset="278528" fs_offset="2660864" img_offset="2686976" len="1474560"/>
+            <run file_offset="1753088" fs_offset="4381184" img_offset="4407296" len="786432"/>
+            <run file_offset="2539520" fs_offset="6035968" img_offset="6062080" len="294498"/>
+        </byte_runs>
+        <md5>a7767ecba3de8f47bb0a4ba61392f516</md5>
+        <sha1>7aca4cfa02da88f91d11c85db16e12ddb286c622</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>5</id>
+        <filesize>110686</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178916</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178916</crtime>
+        <filename>DCIM/100CANON/IMG_0045.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="6380032" img_offset="6406144" len="110686"/>
+        </byte_runs>
+        <md5>c2a0a4ae109e1f23452c66d6a7878f8e</md5>
+        <sha1>72760dab05562ceb41b2afb6c3895d7e5d017980</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>6</id>
+        <filesize>116135</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178930</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178930</crtime>
+        <filename>DCIM/100CANON/IMG_0046.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="6494720" img_offset="6520832" len="116135"/>
+        </byte_runs>
+        <md5>0db645b7a4d69e712cc879b87e0ab408</md5>
+        <sha1>97589b7e1fafefd609b4828a2c62d19a9ba14d4b</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>7</id>
+        <filesize>865313</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070392</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070392</crtime>
+        <filename>DCIM/100CANON/IMG_0007.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="5167616" img_offset="5193728" len="865313"/>
+        </byte_runs>
+        <md5>dbccff636c1af4880fc04b1b0c43968d</md5>
+        <sha1>770b4ef7714998d954668b29a2a7911c359e56f3</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>8</id>
+        <filesize>120441</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178936</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178936</crtime>
+        <filename>DCIM/100CANON/IMG_0047.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="6625792" img_offset="6651904" len="120441"/>
+        </byte_runs>
+        <md5>a1e9a7e3ad23def9bd2d85e69a05ae71</md5>
+        <sha1>805c0aca98415c69e696c4bc3a58c663c296ec59</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>9</id>
+        <filesize>840692</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070402</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070402</crtime>
+        <filename>DCIM/100CANON/IMG_0009.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="6789632" img_offset="6815744" len="840692"/>
+        </byte_runs>
+        <md5>82e93a6092da00ea9a4b11dadd724b7f</md5>
+        <sha1>b4fdefeb1bfbe889aed7f4c0aa755cdef302e1e9</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>10</id>
+        <filesize>1296150</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070966</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070966</crtime>
+        <filename>DCIM/100CANON/IMG_0038.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="4135424" img_offset="4161536" len="245760"/>
+            <run file_offset="245760" fs_offset="7641600" img_offset="7667712" len="868352"/>
+            <run file_offset="1114112" fs_offset="11852288" img_offset="11878400" len="182038"/>
+        </byte_runs>
+        <md5>b10821b19fc5ac436f67e47a77e15f7d</md5>
+        <sha1>b2575a16cb6eaf22289b4d90dffd77b2ba45c995</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>11</id>
+        <filesize>771052</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070410</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070410</crtime>
+        <filename>DCIM/100CANON/IMG_0011.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="8509952" img_offset="8536064" len="771052"/>
+        </byte_runs>
+        <md5>46ee4abaae3a50eb041945393aa657ff</md5>
+        <sha1>25eb57e8a094d0bf33e43742681ddbd01d0b93a3</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>12</id>
+        <filesize>124906</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178942</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178942</crtime>
+        <filename>DCIM/100CANON/IMG_0048.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="6756864" img_offset="6782976" len="32768"/>
+            <run file_offset="32768" fs_offset="9296384" img_offset="9322496" len="92138"/>
+        </byte_runs>
+        <md5>16cfd28b267c34f430baee168dd387ff</md5>
+        <sha1>b438b62b04bed3ea02d11ed3ed51c9dca58893ec</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>13</id>
+        <filesize>842160</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070420</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070420</crtime>
+        <filename>DCIM/100CANON/IMG_0013.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="10115584" img_offset="10141696" len="842160"/>
+        </byte_runs>
+        <md5>7690b9854abca6cafa9f0ff3fab67a16</md5>
+        <sha1>fccf7639029bda2eb748fafdb660d985779736a7</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>14</id>
+        <filesize>114940</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178948</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178948</crtime>
+        <filename>DCIM/100CANON/IMG_0049.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="9394688" img_offset="9420800" len="114940"/>
+        </byte_runs>
+        <md5>43376934ed3f22329a5023f8fe8e6a51</md5>
+        <sha1>d69d8d907f0f4bdb151be9826a62b4b5c7a77f56</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>15</id>
+        <filesize>127191</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178956</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178956</crtime>
+        <filename>DCIM/100CANON/IMG_0050.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="9525760" img_offset="9551872" len="127191"/>
+        </byte_runs>
+        <md5>2e5f0632b0a35ae060af4200bfab38bf</md5>
+        <sha1>887fd6dd3ab09a50b227aa7e025ace16b9dc3e36</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>16</id>
+        <filesize>853839</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070436</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070436</crtime>
+        <filename>DCIM/100CANON/IMG_0016.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="12687872" img_offset="12713984" len="853839"/>
+        </byte_runs>
+        <md5>dd3852ec13dd160ca134551d68ed2b8d</md5>
+        <sha1>aa2b9eb89628485e51b5de57edad2487b648e574</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>17</id>
+        <filesize>795574</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070440</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070440</crtime>
+        <filename>DCIM/100CANON/IMG_0017.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="13556224" img_offset="13582336" len="795574"/>
+        </byte_runs>
+        <md5>e9078510fde89c08f9eda08b60aceb2a</md5>
+        <sha1>2b7dee3b405ba577c3a17e6dfb2e4e182712bf6c</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>18</id>
+        <filesize>784455</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070446</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070446</crtime>
+        <filename>DCIM/100CANON/IMG_0018.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="14359040" img_offset="14385152" len="784455"/>
+        </byte_runs>
+        <md5>fc8c2080322a93d7517876dd94b6c271</md5>
+        <sha1>68f6b646041516e60cf6581181f968f7b9bd3bc9</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>19</id>
+        <filesize>864257</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070450</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070450</crtime>
+        <filename>DCIM/100CANON/IMG_0019.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="15145472" img_offset="15171584" len="864257"/>
+        </byte_runs>
+        <md5>1b520e0637ff9257a569a639ee7e48c6</md5>
+        <sha1>7661a34788eedc94f3a66c132c1e7ac6ace78be2</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>20</id>
+        <filesize>130418</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178962</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178962</crtime>
+        <filename>DCIM/100CANON/IMG_0051.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="9656832" img_offset="9682944" len="130418"/>
+        </byte_runs>
+        <md5>7e5e68efac8c9a218f34b512f49e1b1e</md5>
+        <sha1>7ef5225f992dc731907a79816c904a83df3bdab5</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>21</id>
+        <filesize>819599</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070460</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070460</crtime>
+        <filename>DCIM/100CANON/IMG_0021.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="16898560" img_offset="16924672" len="819599"/>
+        </byte_runs>
+        <md5>c0a215a6125491b6d1f708c109729844</md5>
+        <sha1>a87c594b86ca41c88547e128335ec3919bc27d87</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>22</id>
+        <filesize>728696</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070466</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070466</crtime>
+        <filename>DCIM/100CANON/IMG_0022.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="17734144" img_offset="17760256" len="728696"/>
+        </byte_runs>
+        <md5>0ccab34b30ea983b77eedd27cae86e73</md5>
+        <sha1>00ef4d79b36d32ba42c6cc808421439f0fbcb662</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>23</id>
+        <filesize>858798</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070470</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070470</crtime>
+        <filename>DCIM/100CANON/IMG_0023.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="18471424" img_offset="18497536" len="858798"/>
+        </byte_runs>
+        <md5>788e8ea46f70a367004915d5af75a22c</md5>
+        <sha1>9e81a566e8c7a4d49cb1cb834cb621023b3729a5</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>24</id>
+        <filesize>838434</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070476</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070476</crtime>
+        <filename>DCIM/100CANON/IMG_0024.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="19339776" img_offset="19365888" len="838434"/>
+        </byte_runs>
+        <md5>b291cbbf970cd7913ee0177e7b0bfdbb</md5>
+        <sha1>12d2e78fa5b118a0f3144bda4e8e331c8a34ccbc</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>25</id>
+        <filesize>768385</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070486</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070486</crtime>
+        <filename>DCIM/100CANON/IMG_0026.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="20994560" img_offset="21020672" len="768385"/>
+        </byte_runs>
+        <md5>d495f85075f774cbbc31f6e39ef7afea</md5>
+        <sha1>0745141aefe2ede7c788f9d80c3a3897134b0353</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>26</id>
+        <filesize>840253</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070490</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070490</crtime>
+        <filename>DCIM/100CANON/IMG_0027.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="21764608" img_offset="21790720" len="840253"/>
+        </byte_runs>
+        <md5>a822e6a4782a19e3882d9f0cfef448ad</md5>
+        <sha1>e5721ef38a1bc7bb92895ad3df23786cffa84bb8</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>27</id>
+        <filesize>815636</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070494</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070494</crtime>
+        <filename>DCIM/100CANON/IMG_0028.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="22616576" img_offset="22642688" len="815636"/>
+        </byte_runs>
+        <md5>f7e33ce7a2a624568282ddcad83fe3d1</md5>
+        <sha1>04d3290232dad550d7bccf45f768793d0512da9a</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>28</id>
+        <filesize>861552</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070498</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070498</crtime>
+        <filename>DCIM/100CANON/IMG_0029.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="23435776" img_offset="23461888" len="861552"/>
+        </byte_runs>
+        <md5>434fd5c55b51456e582d93919092a576</md5>
+        <sha1>ce7068a8b8eec06f1bf269da519de462e72f6ee8</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>29</id>
+        <filesize>749202</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070508</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070508</crtime>
+        <filename>DCIM/100CANON/IMG_0031.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="25172480" img_offset="25198592" len="749202"/>
+        </byte_runs>
+        <md5>2d2a5aab898c36dc387546881224438f</md5>
+        <sha1>16495400c6b982c69c3e12ad80b900a6d2ab3d8f</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>30</id>
+        <filesize>879834</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070514</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070514</crtime>
+        <filename>DCIM/100CANON/IMG_0032.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="25926144" img_offset="25952256" len="879834"/>
+        </byte_runs>
+        <md5>eaaeb62af36bbc276e49cee8472fe941</md5>
+        <sha1>3e4be3780f41df5f4cc24d5466219bf67556af5e</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>31</id>
+        <filesize>845375</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070518</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070518</crtime>
+        <filename>DCIM/100CANON/IMG_0033.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="26810880" img_offset="26836992" len="845375"/>
+        </byte_runs>
+        <md5>d05a1fdf5d34545ed90c4c27e6f007cf</md5>
+        <sha1>b11a5f20be9c60910f1f13d2a2742f069064145c</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>32</id>
+        <filesize>812465</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070522</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070522</crtime>
+        <filename>DCIM/100CANON/IMG_0034.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="27662848" img_offset="27688960" len="812465"/>
+        </byte_runs>
+        <md5>ff2471aba536ec5d0177b03c1b8846d8</md5>
+        <sha1>81b6f65e803d6fba9a61e21c6f4b579b911f1b22</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>33</id>
+        <filesize>882337</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070536</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070536</crtime>
+        <filename>DCIM/100CANON/IMG_0036.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="29317632" img_offset="29343744" len="882337"/>
+        </byte_runs>
+        <md5>3cc16c38c8b0ba10d5d5dda73b2ba80c</md5>
+        <sha1>4f08862b159807f22e7fb568bbc750abfcba8ace</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>34</id>
+        <filesize>164</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230178864</mtime>
+        <atime>1230105600</atime>
+        <crtime>1230178864</crtime>
+        <filename>DCIM/CANONMSC/M0100.CTG</filename>
+        <libmagic>data</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="72192" img_offset="98304" len="164"/>
+        </byte_runs>
+        <md5>b8ae356e040f8242122537c66e4dc961</md5>
+        <sha1>8ce272c91a2289a610eeecdc4f2228553313353c</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen6.raw</image>
+            <reason>resident file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>14</id>
+        <filesize>873437</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070424</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070424</crtime>
+        <filename>DCIM/100CANON/IMG_0014.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="10967552" img_offset="10993664" len="873437"/>
+        </byte_runs>
+        <md5>2c11f3b009dacc24896c0c0cb0df924c</md5>
+        <sha1>6c9e27f9911f37488ef0d6e878c68f2a61100b2c</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen1.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>20</id>
+        <filesize>883127</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070456</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070456</crtime>
+        <filename>DCIM/100CANON/IMG_0020.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="16013824" img_offset="16039936" len="883127"/>
+        </byte_runs>
+        <md5>f71b1d493b010e0d4c194f4c1112529a</md5>
+        <sha1>825c04774ea2b9171c267e682abbecb82baa4e29</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen1.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>25</id>
+        <filesize>791333</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070480</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070480</crtime>
+        <filename>DCIM/100CANON/IMG_0025.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="20191744" img_offset="20217856" len="791333"/>
+        </byte_runs>
+        <md5>23536f9977a93a48cefb43a69cdb2ee3</md5>
+        <sha1>a6cfff9c614dc3aeb3470185bcf63e5a7eeaf33a</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen1.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>30</id>
+        <filesize>867833</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070502</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070502</crtime>
+        <filename>DCIM/100CANON/IMG_0030.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="24304128" img_offset="24330240" len="867833"/>
+        </byte_runs>
+        <md5>a790bb6f5c8b85205cd3aa91ea69a0ad</md5>
+        <sha1>49bf2c6db487177abc32decdba727c813af1d122</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen1.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>35</id>
+        <filesize>820105</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070528</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070528</crtime>
+        <filename>DCIM/100CANON/IMG_0035.JPG</filename>
+        <libmagic>JPEG image data, EXIF standard 2.2</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="28482048" img_offset="28508160" len="820105"/>
+        </byte_runs>
+        <md5>4b5538fbdf7e598c6b8bcf2a6521445b</md5>
+        <sha1>211b050e56c049e9e4349a23d77a6900770ac913</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen1.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+    <fileobject>
+        <id>34</id>
+        <filesize>180</filesize>
+        <partition>1</partition>
+        <ALLOC>1</ALLOC>
+        <USED>1</USED>
+        <mtime>1230070924</mtime>
+        <atime>1230019200</atime>
+        <crtime>1230070924</crtime>
+        <filename>DCIM/CANONMSC/M0100.CTG</filename>
+        <libmagic>data</libmagic>
+        <byte_runs>
+            <run file_offset="0" fs_offset="30333440" img_offset="30359552" len="180"/>
+        </byte_runs>
+        <md5>548a01d7bbdb894dddac6872988a271c</md5>
+        <sha1>69b30c352ee802f49b1ea25325af9fa05c3ffca1</sha1>
+        <reference>
+            <image>nps-2009-canon2-gen2.raw</image>
+            <reason>residual file</reason>
+        </reference>
+    </fileobject>
+</groundtruth>

@@ -263,6 +263,7 @@ EXPORT int64_t recovery_disk_size(int32_t handle) {
 }
 
 EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCallback callback, int32_t enable_fat, int32_t enable_carve, int32_t scan_mode) {
+    fprintf(stderr, "[NATIVE] recovery_scan enter: handle=%d, out=%s, fat=%d, carve=%d, mode=%d\n", handle, output_dir, enable_fat, enable_carve, scan_mode); fflush(stderr);
     if (handle < 0 || handle >= 8) return -1;
     ScanSession* s = &g_sessions[handle];
     s->cb         = callback;

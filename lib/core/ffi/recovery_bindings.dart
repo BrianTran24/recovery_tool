@@ -121,7 +121,7 @@ class RecoveryBindings {
 
   RecoveryBindings() {
     final libPath = Platform.isMacOS
-        ? '${Directory.current.path}/librecovery.dylib'
+        ? '/Users/hieutran/AndroidStudioProjects/recovery_sd/librecovery.dylib'
         : 'recovery.dll';
 
     _lib = DynamicLibrary.open(libPath);

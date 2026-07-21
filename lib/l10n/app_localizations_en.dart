@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'RECOVERY TOOL';
+  String get appTitle => 'Recovery SD Tool';
 
   @override
   String get onboardingTitle1 => 'RECOVERY SD TOOL';
@@ -135,4 +135,148 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get gcTrimWarningDesc =>
       'Modern SD cards may automatically erase deleted data during idle time (Trim/GC). Recommended: Clone the entire card to an .img file immediately to preserve data.';
+
+  @override
+  String get sourceDevice => 'Source Device';
+
+  @override
+  String get recoveryMode => 'Recovery Mode';
+
+  @override
+  String get storageConfig => 'Storage Configuration';
+
+  @override
+  String get outputDirectory => 'Output Directory';
+
+  @override
+  String get deletedFiles => 'Deleted Files';
+
+  @override
+  String get existingFiles => 'Existing Files';
+
+  @override
+  String get allFiles => 'All Files';
+
+  @override
+  String get deletedFilesDesc =>
+      'Find and recover files that have been deleted from the file system.';
+
+  @override
+  String get existingFilesDesc =>
+      'Scan and list files currently present on the device.';
+
+  @override
+  String get allFilesDesc =>
+      'Combines scanning for both existing and deleted files.';
+
+  @override
+  String get startScanNow => 'SCAN';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get pleaseSelectOutputDir => 'Please select output directory';
+
+  @override
+  String backupImage(String path) {
+    return 'Backup Image: $path';
+  }
+
+  @override
+  String get readOnlyMode => 'Read-only mode - Absolute safety';
+
+  @override
+  String capacity(int size) {
+    return 'Capacity: $size GB';
+  }
+
+  @override
+  String scanInitializing(String path) {
+    return 'Initializing scan session for $path';
+  }
+
+  @override
+  String scanFsIdentified(String type, int offset) {
+    return 'IDENTIFIED: File system $type at sector $offset';
+  }
+
+  @override
+  String get scanFsNotFound =>
+      'IDENTIFIED: No valid file system found. Switching to Signature Carving.';
+
+  @override
+  String scanScanningSector(int sector, String percent) {
+    return 'Scanning Sector: $sector ($percent%)';
+  }
+
+  @override
+  String scanFileFound(String filename, String type) {
+    return 'FOUND: $filename ($type)';
+  }
+
+  @override
+  String scanComplete(int count, String duration) {
+    return 'COMPLETE: Found $count files in $duration';
+  }
+
+  @override
+  String scanError(String message) {
+    return 'ERROR: $message';
+  }
+
+  @override
+  String scanStreamError(Object error) {
+    return 'STREAM ERROR: $error';
+  }
+
+  @override
+  String get scanResults => 'Scan Results';
+
+  @override
+  String get scanProcessing => 'Processing data...';
+
+  @override
+  String get scanStop => 'Stop';
+
+  @override
+  String get scanViewAllResults => 'VIEW ALL RESULTS';
+
+  @override
+  String scanViewLive(int count) {
+    return 'VIEW LIVE ($count files)';
+  }
+
+  @override
+  String get scanTabFiles => 'Found files';
+
+  @override
+  String get scanTabLogs => 'System logs';
+
+  @override
+  String get scanSearchingFiles => 'Searching for files...';
+
+  @override
+  String get scanProgress => 'Scan Progress';
+
+  @override
+  String get scanSpeed => 'Speed';
+
+  @override
+  String get scanFound => 'FOUND';
+
+  @override
+  String get scanElapsed => 'ELAPSED';
+
+  @override
+  String get scanRemaining => 'REMAINING (EST.)';
+
+  @override
+  String get scanHardwareError => 'Hardware Error';
+
+  @override
+  String get scanSystemError => 'System Error';
+
+  @override
+  String get scanUnderstand => 'I UNDERSTAND';
 }

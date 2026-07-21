@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => 'RECOVERY TOOL';
+  String get appTitle => 'Recovery SD Tool';
 
   @override
   String get onboardingTitle1 => 'RECOVERY SD TOOL';
@@ -135,4 +135,147 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get gcTrimWarningDesc =>
       'Thẻ nhớ hiện đại có thể tự động xóa vật lý dữ liệu đã xóa trong lúc nhàn rỗi (Trim/GC). Khuyên dùng: Hãy clone toàn bộ thẻ sang file .img ngay lập tức để bảo toàn dữ liệu.';
+
+  @override
+  String get sourceDevice => 'Thiết bị nguồn';
+
+  @override
+  String get recoveryMode => 'Chế độ khôi phục';
+
+  @override
+  String get storageConfig => 'Cấu hình lưu trữ';
+
+  @override
+  String get outputDirectory => 'Thư mục đầu ra';
+
+  @override
+  String get deletedFiles => 'File đã xóa';
+
+  @override
+  String get existingFiles => 'File hiện có';
+
+  @override
+  String get allFiles => 'Tất cả file';
+
+  @override
+  String get deletedFilesDesc =>
+      'Tìm kiếm và khôi phục các tệp tin đã bị xóa khỏi hệ thống.';
+
+  @override
+  String get existingFilesDesc =>
+      'Quét và liệt kê các tệp tin đang tồn tại trên thiết bị.';
+
+  @override
+  String get allFilesDesc => 'Kết hợp quét cả file hiện có và file đã xóa.';
+
+  @override
+  String get startScanNow => 'QUÉT';
+
+  @override
+  String get change => 'Thay đổi';
+
+  @override
+  String get pleaseSelectOutputDir => 'Vui lòng chọn thư mục lưu file';
+
+  @override
+  String backupImage(String path) {
+    return 'Ảnh backup: $path';
+  }
+
+  @override
+  String get readOnlyMode => 'Chế độ chỉ đọc - An toàn tuyệt đối';
+
+  @override
+  String capacity(int size) {
+    return 'Dung lượng: $size GB';
+  }
+
+  @override
+  String scanInitializing(String path) {
+    return 'Khởi tạo phiên quét cho $path';
+  }
+
+  @override
+  String scanFsIdentified(String type, int offset) {
+    return 'NHẬN DIỆN: Hệ thống tập tin $type tại sector $offset';
+  }
+
+  @override
+  String get scanFsNotFound =>
+      'NHẬN DIỆN: Không tìm thấy hệ thống tập tin hợp lệ. Chuyển sang quét thô (Signature Carving).';
+
+  @override
+  String scanScanningSector(int sector, String percent) {
+    return 'Đang quét Sector: $sector ($percent%)';
+  }
+
+  @override
+  String scanFileFound(String filename, String type) {
+    return 'TÌM THẤY: $filename ($type)';
+  }
+
+  @override
+  String scanComplete(int count, String duration) {
+    return 'HOÀN THÀNH: Tìm thấy $count file trong $duration';
+  }
+
+  @override
+  String scanError(String message) {
+    return 'LỖI: $message';
+  }
+
+  @override
+  String scanStreamError(Object error) {
+    return 'LỖI STREAM: $error';
+  }
+
+  @override
+  String get scanResults => 'Kết quả Quét';
+
+  @override
+  String get scanProcessing => 'Đang xử lý dữ liệu...';
+
+  @override
+  String get scanStop => 'Dừng';
+
+  @override
+  String get scanViewAllResults => 'XEM TOÀN BỘ KẾT QUẢ';
+
+  @override
+  String scanViewLive(int count) {
+    return 'XEM TRỰC TIẾP ($count file)';
+  }
+
+  @override
+  String get scanTabFiles => 'Tệp tin tìm thấy';
+
+  @override
+  String get scanTabLogs => 'Nhật ký hệ thống';
+
+  @override
+  String get scanSearchingFiles => 'Đang tìm kiếm tệp tin...';
+
+  @override
+  String get scanProgress => 'Tiến độ quét';
+
+  @override
+  String get scanSpeed => 'Tốc độ';
+
+  @override
+  String get scanFound => 'TÌM THẤY';
+
+  @override
+  String get scanElapsed => 'ĐÃ TRÔI QUA';
+
+  @override
+  String get scanRemaining => 'CÒN LẠI (DỰ KIẾN)';
+
+  @override
+  String get scanHardwareError => 'Lỗi Phần Cứng';
+
+  @override
+  String get scanSystemError => 'Lỗi Hệ Thống';
+
+  @override
+  String get scanUnderstand => 'ĐÃ HIỂU';
 }

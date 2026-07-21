@@ -1,6 +1,6 @@
 {
   "@@locale": "vi",
-  "appTitle": "RECOVERY TOOL",
+  "appTitle": "Recovery SD Tool",
   "onboardingTitle1": "RECOVERY SD TOOL",
   "onboardingSubtitle1": "UNLOCK YOUR LOST DATA!",
   "onboardingDesc1": "Giải pháp khôi phục dữ liệu chuyên nghiệp, nhanh chóng và tin cậy cho mọi thiết bị SD của bạn.",
@@ -40,5 +40,127 @@
   "english": "Tiếng Anh",
   "developing": "ĐANG PHÁT TRIỂN",
   "gcTrimWarningTitle": "CẢNH BÁO: RỦI RO GARBAGE COLLECTION",
-  "gcTrimWarningDesc": "Thẻ nhớ hiện đại có thể tự động xóa vật lý dữ liệu đã xóa trong lúc nhàn rỗi (Trim/GC). Khuyên dùng: Hãy clone toàn bộ thẻ sang file .img ngay lập tức để bảo toàn dữ liệu."
+  "gcTrimWarningDesc": "Thẻ nhớ hiện đại có thể tự động xóa vật lý dữ liệu đã xóa trong lúc nhàn rỗi (Trim/GC). Khuyên dùng: Hãy clone toàn bộ thẻ sang file .img ngay lập tức để bảo toàn dữ liệu.",
+  "sourceDevice": "Thiết bị nguồn",
+  "recoveryMode": "Chế độ khôi phục",
+  "storageConfig": "Cấu hình lưu trữ",
+  "outputDirectory": "Thư mục đầu ra",
+  "deletedFiles": "File đã xóa",
+  "existingFiles": "File hiện có",
+  "allFiles": "Tất cả file",
+  "deletedFilesDesc": "Tìm kiếm và khôi phục các tệp tin đã bị xóa khỏi hệ thống.",
+  "existingFilesDesc": "Quét và liệt kê các tệp tin đang tồn tại trên thiết bị.",
+  "allFilesDesc": "Kết hợp quét cả file hiện có và file đã xóa.",
+  "startScanNow": "QUÉT",
+  "change": "Thay đổi",
+  "pleaseSelectOutputDir": "Vui lòng chọn thư mục lưu file",
+  "backupImage": "Ảnh backup: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "Chế độ chỉ đọc - An toàn tuyệt đối",
+  "capacity": "Dung lượng: {size} GB",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "Khởi tạo phiên quét cho {path}",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "NHẬN DIỆN: Hệ thống tập tin {type} tại sector {offset}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "NHẬN DIỆN: Không tìm thấy hệ thống tập tin hợp lệ. Chuyển sang quét thô (Signature Carving).",
+  "scanScanningSector": "Đang quét Sector: {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "TÌM THẤY: {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "HOÀN THÀNH: Tìm thấy {count} file trong {duration}",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "LỖI: {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "LỖI STREAM: {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "Kết quả Quét",
+  "scanProcessing": "Đang xử lý dữ liệu...",
+  "scanStop": "Dừng",
+  "scanViewAllResults": "XEM TOÀN BỘ KẾT QUẢ",
+  "scanViewLive": "XEM TRỰC TIẾP ({count} file)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "Tệp tin tìm thấy",
+  "scanTabLogs": "Nhật ký hệ thống",
+  "scanSearchingFiles": "Đang tìm kiếm tệp tin...",
+  "scanProgress": "Tiến độ quét",
+  "scanSpeed": "Tốc độ",
+  "scanFound": "TÌM THẤY",
+  "scanElapsed": "ĐÃ TRÔI QUA",
+  "scanRemaining": "CÒN LẠI (DỰ KIẾN)",
+  "scanHardwareError": "Lỗi Phần Cứng",
+  "scanSystemError": "Lỗi Hệ Thống",
+  "scanUnderstand": "ĐÃ HIỂU"
 }
