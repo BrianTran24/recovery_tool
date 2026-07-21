@@ -300,7 +300,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
               ],
             ),
           ),
-          const SizedBox(width: 32),
+          const SizedBox(width: 48),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -308,30 +308,48 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                 progress: state.percent / 100,
                 label: done ? l10n.scanResults : l10n.scanProcessing,
                 speed: done ? null : state.speed,
-                size: 180,
+                size: 240,
               ),
               if (!done) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (state.status == ScanStatus.paused) ...[
-                      TextButton.icon(
+                      FilledButton.icon(
                         onPressed: () => context.read<ScanBloc>().add(ResumeScanEvent()),
-                        icon: const Icon(Icons.play_circle_rounded, color: AppTheme.cyberCyan),
-                        label: Text(l10n.scanResume, style: const TextStyle(color: AppTheme.cyberCyan, fontSize: 12)),
+                        icon: const Icon(Icons.play_circle_rounded, size: 24),
+                        label: Text(l10n.scanResume, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+                          foregroundColor: AppTheme.cyberCyan,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
                         onPressed: () => context.read<ScanBloc>().add(CancelScanEvent()),
-                        icon: const Icon(Icons.cancel_rounded, color: Colors.white54),
-                        label: Text(l10n.scanCancel, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        icon: const Icon(Icons.cancel_rounded, size: 24),
+                        label: Text(l10n.scanCancel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white54,
+                          side: const BorderSide(color: Colors.white10),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ] else
-                      TextButton.icon(
+                      FilledButton.icon(
                         onPressed: () => context.read<ScanBloc>().add(PauseScanEvent()),
-                        icon: const Icon(Icons.pause_circle_rounded, color: Colors.orange),
-                        label: Text(l10n.scanPause, style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                        icon: const Icon(Icons.pause_circle_rounded, size: 24),
+                        label: Text(l10n.scanPause, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                          foregroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                   ],
                 ),

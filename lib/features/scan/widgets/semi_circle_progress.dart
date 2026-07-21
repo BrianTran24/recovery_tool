@@ -48,8 +48,8 @@ class SemiCircleProgressIndicator extends StatelessWidget {
                     children: [
                       Text(
                         '${(progress * 100).toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                          fontSize: 32,
+                        style: TextStyle(
+                          fontSize: size * 0.16, // Proportional font size
                           fontWeight: FontWeight.w900,
                           color: AppTheme.cyberCyan,
                           height: 1.0,
@@ -60,7 +60,7 @@ class SemiCircleProgressIndicator extends StatelessWidget {
                         Text(
                           '$speed MB/s',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: size * 0.07, // Proportional font size
                             fontWeight: FontWeight.bold,
                             color: Colors.white.withValues(alpha: 0.4),
                           ),
