@@ -227,6 +227,19 @@ static int IsExfatDirCluster(const uint8_t* buf, uint32_t sz) {
 }
 
 static void AddToFileCollector(FileCollector* collector, FileInfo* info) {
+    // 1. Kiểm tra trùng lặp dựa trên starting_cluster
+    for (uint32_t i = 0; i < collector->count; i++) {
+        if (collector->files[i].starting_cluster == info->starting_cluster) {
+            // Đã tồn tại, giải phóng cluster_chain (nếu có) và bỏ qua
+            if (info->cluster_chain) {
+                free(info->cluster_chain);
+                info->cluster_chain = NULL;
+            }
+            return;
+        }
+    }
+
+    // 2. Thêm file mới
     if (collector->count >= collector->capacity) {
         uint32_t newCap = collector->capacity == 0 ? 128 : collector->capacity * 2;
         FileInfo* grown = (FileInfo*)realloc(collector->files, newCap * sizeof(FileInfo));
@@ -380,46 +393,14 @@ void CollectHealthyFilesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     size_t rootLen = 0; uint8_t* rootBuf = LoadClusterChainBuffer(fd, &info, fat, info.rootCluster, 1, &rootLen);
     size_t bmpSz = 0; uint8_t* bmp = rootBuf ? LoadAllocationBitmapFromRoot(fd, &info, fat, rootBuf, rootLen, &bmpSz) : NULL;
 
-    // Bitmap theo dõi cluster thư mục đã duyệt, dùng chung cho pha cây thư mục và pha sweep.
+    // Bitmap visited để chống vòng lặp thư mục và thu thập trùng
     uint8_t* visited = (uint8_t*)calloc(((size_t)info.clusterCount + 2) / 8 + 1, 1);
 
+    // Duyệt cây thư mục từ Root.
     CollectFromExfatDir(fd, &info, fat, bmp, bmpSz, info.rootCluster, collector, "", cancelled, scan_mode, 1, 0, visited);
 
-    // Full cluster-heap sweep to recover directories not reachable from root (orphaned/deleted).
-    // Bình thường chỉ chạy cho scan sâu (scan_mode != 2) vì phải đọc tuyến tính cả ổ.
-    // Nhưng nếu quét nhanh KHÔNG dựng được gì từ cây thư mục (collector rỗng — dấu hiệu
-    // boot sector/FAT hỏng), ta vẫn chạy sweep như một fallback để dựng lại cây từ
-    // directory entry (metadata), độc lập với FAT — giống DMDE quét nhanh.
-    // CẢI TIẾN: Luôn chạy sweep nếu bật scan_mode != EXISTING để tìm Orphaned Files khi metadata hỏng.
-    if (scan_mode != 2 || collector->count == 0) {
-        uint32_t clusSz = ClusterSizeBytes(&info); uint8_t* clusBuf = (uint8_t*)malloc(clusSz);
-        if (clusBuf) {
-            // TÌNH HUỐNG HỎNG NẶNG: Nếu FAT hỏng (toàn 0), ta không thể dựa vào fat_offset nữa.
-            // Ta quét toàn bộ Cluster Heap để tìm Directory Entry (0x85).
-            for (uint32_t c = 2; c <= info.clusterCount + 1 && (!cancelled || !*cancelled); c++) {
-                if (ExfatVisitedTest(visited, c)) continue; // đã xử lý ở pha cây thư mục
-
-                // Đọc cluster và kiểm tra xem nó có chứa Directory Entry không
-                if (ReadCluster(fd, &info, c, clusBuf) == 0) {
-                    if (IsExfatDirCluster(clusBuf, clusSz)) {
-                        ExfatVisitedSet(visited, c);
-                        char fld[64];
-                        snprintf(fld, 64, "LostDir_%u", c);
-                        // Chế độ strict=1 để tránh rác khi quét mù
-                        CollectFromExfatCluster(fd, &info, fat, bmp, bmpSz, clusBuf, collector, fld, cancelled, scan_mode, 0, visited, 1);
-                    }
-                }
-
-                if (on_progress && (c % 10000 == 0)) {
-                    double pct = ((double)c / info.clusterCount) * 100.0;
-                    on_progress(context, pct, (int64_t)c * clusSz, 0);
-                }
-            }
-            free(clusBuf);
-        }
-    }
-    if (fat) free(fat); if (bmp) free(bmp); if (rootBuf) free(rootBuf);
     if (visited) free(visited);
+    if (fat) free(fat); if (bmp) free(bmp); if (rootBuf) free(rootBuf);
 }
 
 void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled) {
@@ -427,31 +408,42 @@ void ScanOrphanedEntriesExfat(int fd, int64_t baseSector, const uint8_t* sector0
     if (ParseExfatBoot(sector0, &info) < 0) return;
     size_t fatSz = 0; uint8_t* fat = LoadExfatFat(fd, &info, &fatSz);
     uint32_t clusSz = ClusterSizeBytes(&info); uint8_t* clusBuf = (uint8_t*)malloc(clusSz);
-    if (clusBuf) {
+
+    // Bitmap visited để tránh quét lại các cluster đã xử lý trong cùng pha sweep này
+    uint8_t* visited = (uint8_t*)calloc(((size_t)info.clusterCount + 2) / 8 + 1, 1);
+
+    if (clusBuf && visited) {
         for (uint32_t c = 2; c <= info.clusterCount + 1 && (!cancelled || !*cancelled); c++) {
+            if (ExfatVisitedTest(visited, c)) continue;
+
             if (ReadCluster(fd, &info, c, clusBuf) == 0) {
-                for (uint32_t off = 0; off + 32 <= clusSz; off += 32) {
-                    if ((clusBuf[off] & 0x7F) == 0x05) {
-                        uint8_t sc = clusBuf[off + 1];
-                        if (!ValidExfatEntrySet(clusBuf, clusSz, off, sc, 1)) continue;
-                        uint16_t attr = clusBuf[off + 4] | (clusBuf[off + 5] << 8);
-                        // Bỏ qua entry thư mục: chỉ cứu file thật, thư mục được tái tạo qua rel_path.
-                        if (attr & EXFAT_ATTR_DIRECTORY) { off += (uint32_t)sc * 32; continue; }
-                        uint32_t first = ReadLe32(clusBuf + off + 32 + 20);
-                        int exists = 0;
-                        for (uint32_t j = 0; j < collector->count; j++) { if (collector->files[j].starting_cluster == first) { exists = 1; break; } }
-                        if (!exists) {
+                // 1. Kiểm tra xem có phải cụm chứa thư mục (Lost Directory)
+                if (IsExfatDirCluster(clusBuf, clusSz)) {
+                    char fld[64]; snprintf(fld, 64, "LostDir_%u", c);
+                    CollectFromExfatCluster(fd, &info, fat, NULL, 0, clusBuf, collector, fld, cancelled, SCAN_MODE_BOTH, 0, visited, 1);
+                } else {
+                    // 2. Quét từng entry lẻ (Orphaned Files)
+                    for (uint32_t off = 0; off + 32 <= clusSz; off += 32) {
+                        if ((clusBuf[off] & 0x7F) == 0x05) {
+                            uint8_t sc = clusBuf[off + 1];
+                            if (!ValidExfatEntrySet(clusBuf, clusSz, off, sc, 1)) continue;
+                            uint16_t attr = clusBuf[off + 4] | (clusBuf[off + 5] << 8);
+                            if (attr & EXFAT_ATTR_DIRECTORY) { off += (uint32_t)sc * 32; continue; }
+
                             FileInfo fi; PopulateExfatFileInfo(&fi, &info, fat, clusBuf, off, "ORPHANED", FILE_STATUS_ORPHANED);
                             if (fi.filename[0]) AddToFileCollector(collector, &fi);
+                            off += (uint32_t)sc * 32;
                         }
-                        off += (uint32_t)sc * 32;
                     }
                 }
             }
-            if (on_progress && (c % 5000 == 0)) on_progress(context, ((double)c / info.clusterCount) * 100.0, (int64_t)c * clusSz, 0);
+            if (on_progress && (c % 10000 == 0)) {
+                on_progress(context, ((double)c / info.clusterCount) * 100.0, (int64_t)c * clusSz, 0);
+            }
         }
-        free(clusBuf);
     }
+    if (clusBuf) free(clusBuf);
+    if (visited) free(visited);
     if (fat) free(fat);
 }
 

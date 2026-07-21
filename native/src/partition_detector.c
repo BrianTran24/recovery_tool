@@ -32,6 +32,16 @@ static uint32_t GetClusterSize(const uint8_t* vbr) {
     return vbr[13];
 }
 
+static void AddCandidate(PartitionCandidate* candidates, int* count, int max_candidates, int64_t lba, uint32_t cluster_size) {
+    if (*count >= max_candidates) return;
+    for (int i = 0; i < *count; i++) {
+        if (candidates[i].start_sector == lba) return;
+    }
+    candidates[*count].start_sector = lba;
+    candidates[*count].cluster_size = cluster_size;
+    (*count)++;
+}
+
 int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidates, int max_candidates) {
     int count = 0;
     uint8_t sector[512];
@@ -39,50 +49,42 @@ int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidate
     // 1. Scan common offsets
     int64_t common_offsets[] = {0, 63, 2048, 4096, 8192, 32768, 65536};
     for (size_t i = 0; i < sizeof(common_offsets) / sizeof(common_offsets[0]); i++) {
-        if (count >= max_candidates) break;
         int64_t lba = common_offsets[i];
         if (lba >= disk_sectors) continue;
 
         if (PREAD(fd, sector, 512, lba * 512) == 512) {
             if (LooksLikeVbr(sector)) {
-                candidates[count].start_sector = lba;
-                candidates[count].cluster_size = GetClusterSize(sector);
-                count++;
+                AddCandidate(candidates, &count, max_candidates, lba, GetClusterSize(sector));
             } else {
                 // Try backups
-                // FAT32 backup is at +6
                 uint8_t backup[512];
                 if (PREAD(fd, backup, 512, (lba + 6) * 512) == 512 && LooksLikeVbr(backup)) {
-                    candidates[count].start_sector = lba;
-                    candidates[count].cluster_size = GetClusterSize(backup);
-                    count++;
+                    AddCandidate(candidates, &count, max_candidates, lba, GetClusterSize(backup));
                 } else if (PREAD(fd, backup, 512, (lba + 12) * 512) == 512 && LooksLikeVbr(backup)) {
-                    // exFAT backup is at +12
-                    candidates[count].start_sector = lba;
-                    candidates[count].cluster_size = GetClusterSize(backup);
-                    count++;
-                } else {
-                    // One more check for exFAT: backup at sector 12 is common,
-                    // but some versions might have it elsewhere.
-                    // Also check for "EXFAT" signature specifically.
+                    AddCandidate(candidates, &count, max_candidates, lba, GetClusterSize(backup));
                 }
             }
         }
     }
 
     // 2. Sampling Signature Scan to infer alignment if no partition found
+    // If we already found a partition, we skip this time-consuming scan.
     if (count == 0) {
         int64_t sample_offsets[MAX_SAMPLES];
         int sample_count = 0;
         uint8_t* chunk = malloc(SAMPLE_CHUNK_SIZE);
+        if (!chunk) return 0;
 
         // Scan first 1GB or disk size
         int64_t disk_size_bytes = disk_sectors * 512;
         int64_t scan_limit = (disk_size_bytes < 1024 * 1024 * 1024) ? disk_size_bytes : 1024 * 1024 * 1024;
-        // printf("DEBUG: Scanning %lld bytes for signatures...\n", scan_limit);
+
         for (int64_t pos = 0; pos < scan_limit; pos += SAMPLE_CHUNK_SIZE) {
             ssize_t n = PREAD(fd, chunk, SAMPLE_CHUNK_SIZE, pos);
             if (n <= 0) break;
+
+            // Note: In a real scenario, we might want to call a progress callback here too
+
             for (ssize_t i = 0; i < n - 16; i++) {
                 if (chunk[i] == 0xFF && chunk[i+1] == 0xD8 && chunk[i+2] == 0xFF) {
                     if (sample_count < MAX_SAMPLES) {
@@ -91,6 +93,7 @@ int DetectPartitions(int fd, int64_t disk_sectors, PartitionCandidate* candidate
                 }
             }
         }
+        // ... (rest of sampling logic)
 
         if (sample_count > 5) {
             // Infer cluster size and partition start

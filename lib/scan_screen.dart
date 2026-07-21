@@ -1,5 +1,4 @@
-// lib/features/scan/scan_screen.dart
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'preview_screen.dart';
@@ -37,7 +36,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
   int _found = 0;
   bool _done = false;
   List<FileSystemInfo> _fileSystems = [];
+  
+  // Timing logic
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _timer;
   Duration _elapsed = Duration.zero;
+  String _etr = '--:--';
+
   final List<String> _logs = [];
   int _lastLoggedMB = -1;
 
@@ -49,6 +54,39 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
       _logs.insert(0, '[${DateTime.now().toString().split(' ').last.substring(0, 8)}] $msg');
       if (_logs.length > 100) _logs.removeLast();
     });
+  }
+
+  void _startTimer() {
+    _stopwatch.start();
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _elapsed = _stopwatch.elapsed;
+        _calculateETR();
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _stopwatch.stop();
+    _timer?.cancel();
+  }
+
+  void _calculateETR() {
+    if (_percent <= 0 || _percent >= 100) {
+      _etr = '--:--';
+      return;
+    }
+    
+    // ETR = (Elapsed / Percent) * (100 - Percent)
+    final totalEstMs = (_elapsed.inMilliseconds / _percent) * 100;
+    final remainingMs = totalEstMs - _elapsed.inMilliseconds;
+    if (remainingMs > 0) {
+      final d = Duration(milliseconds: remainingMs.toInt());
+      _etr = _formatDuration(d);
+    } else {
+      _etr = '--:--';
+    }
   }
 
   @override
@@ -64,10 +102,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
       referenceVideo: widget.referenceVideo,
     );
     _logs.add('Khởi tạo phiên quét cho ${widget.sourcePath}');
+    _startTimer();
   }
 
   @override
   void dispose() {
+    _stopTimer();
     _tabController.dispose();
     super.dispose();
   }
@@ -110,10 +150,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
               _addLog('TÌM THẤY: $filename ($fileType)');
 
             case DoneEvent(:final duration, :final totalFound):
-               setState(() { _done = true; _elapsed = duration; _percent = 100; });
-              _addLog('HOÀN THÀNH: Tìm thấy $totalFound file trong ${duration.inSeconds}s');
+              _stopTimer();
+              setState(() { 
+                _done = true; 
+                _elapsed = duration; 
+                _percent = 100; 
+                _etr = '00:00';
+              });
+              _addLog('HOÀN THÀNH: Tìm thấy $totalFound file trong ${_formatDuration(duration)}');
 
             case ErrorEvent(:final message, :final isHardwareFailure):
+              _stopTimer();
               _addLog('LỖI: $message');
               setState(() {
                 _done = true;
@@ -122,6 +169,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
           }
         },
         error: (err, stack) {
+          _stopTimer();
           _addLog('LỖI STREAM: $err');
         },
         loading: () {},
@@ -284,7 +332,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
             children: [
               Expanded(child: _buildStatCard('TÌM THẤY', '$_found', Icons.insert_drive_file_rounded, Colors.orange)),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatCard('THỜI GIAN', _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue)),
+              Expanded(child: _buildStatCard('ĐÃ TRÔI QUA', _formatDuration(_elapsed), Icons.timer_rounded, Colors.blue)),
+              const SizedBox(width: 16),
+              if (!_done)
+                Expanded(child: _buildStatCard('CÒN LẠI (DỰ KIẾN)', _etr, Icons.hourglass_empty_rounded, Colors.green)),
             ],
           ),
         ],
@@ -351,9 +402,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with SingleTickerProvid
   }
 
   String _formatDuration(Duration d) {
-    if (d == Duration.zero) return '--:--';
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds % 60)}";
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    final seconds = d.inSeconds % 60;
+
+    if (hours > 0) {
+      return "${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}";
+    }
+    return "${twoDigits(minutes)}:${twoDigits(seconds)}";
   }
 
   void _showErrorDialog(BuildContext context, String message, bool isHardware) {

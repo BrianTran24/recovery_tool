@@ -581,9 +581,24 @@ static void ScanDirectoryCluster(int fd, const FAT32_Info* info,
 
 // Scan toàn bộ directory (follow cluster chain)
 static void AddToFileCollector(FileCollector* collector, FileInfo* info) {
+    // 1. Kiểm tra trùng lặp dựa trên starting_cluster
+    for (uint32_t i = 0; i < collector->count; i++) {
+        if (collector->files[i].starting_cluster == info->starting_cluster) {
+            // Đã tồn tại, giải phóng cluster_chain (nếu có) và bỏ qua
+            if (info->cluster_chain) {
+                free(info->cluster_chain);
+                info->cluster_chain = NULL;
+            }
+            return;
+        }
+    }
+
+    // 2. Thêm file mới
     if (collector->count >= collector->capacity) {
         uint32_t newCap = collector->capacity == 0 ? 128 : collector->capacity * 2;
-        collector->files = (FileInfo*)realloc(collector->files, newCap * sizeof(FileInfo));
+        FileInfo* grown = (FileInfo*)realloc(collector->files, newCap * sizeof(FileInfo));
+        if (!grown) return;
+        collector->files = grown;
         collector->capacity = newCap;
     }
     collector->files[collector->count++] = *info;
@@ -774,32 +789,15 @@ void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0
     uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
     if (!clusterBuf) { free(fat); return; }
 
-    // Bitmap theo dõi cluster thư mục đã duyệt, dùng chung cho cả pha quét cây thư mục
-    // lẫn pha "hunt" free-cluster bên dưới → chống đệ quy vô hạn và thu thập trùng.
+    // Bitmap visited để chống vòng lặp thư mục
     uint8_t* visited = (uint8_t*)calloc(((size_t)info.total_clusters + 2) / 8 + 1, 1);
 
+    // Duyệt cây thư mục từ Root.
     CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, scan_mode, visited, 0);
 
-    // Also hunt for "lost" directories that are marked as FREE but look like directories
-    for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
-        if (VisitedTest(visited, c)) continue; // đã xử lý ở pha cây thư mục
-        if (IsClusterFree(fat, c)) {
-            if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
-                if (IsFatDirCluster(clusterBuf, info.bytes_per_cluster)) {
-                    VisitedSet(visited, c);
-                    char folderName[32]; snprintf(folderName, sizeof(folderName), "found_%u", c);
-                    CollectFromCluster(fd, &info, fat, c, clusterBuf, collector, folderName, cancelled, scan_mode, visited, 0);
-                }
-            }
-        }
-        if (on_progress && (c % 5000 == 0)) {
-            on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
-        }
-    }
-
+    if (visited) free(visited);
     free(clusterBuf);
     free(fat);
-    if (visited) free(visited);
 }
 
 void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled) {
@@ -814,52 +812,49 @@ void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0
     uint8_t* clusterBuf = (uint8_t*)malloc(info.bytes_per_cluster);
     if (!clusterBuf) { free(fat); return; }
 
+    // Bitmap visited để tránh quét lại các cluster đã xử lý
+    uint8_t* visited = (uint8_t*)calloc(((size_t)info.total_clusters + 2) / 8 + 1, 1);
     LFN_State lfn = {0};
     lfn.expected_seq = -1;
 
-    for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
-        // We look for directory entries everywhere in data region,
-        // especially in clusters not already identified as directories by Module 1.
-        if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
-            // Is it a directory cluster? (Check for common entry signatures)
-            FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
-            int potentialEntries = 0;
-            for (uint32_t i = 0; i < info.bytes_per_cluster / 32; i++) {
-                FAT32_DirEntry* e = &entries[i];
-                if (e->name[0] == 0x00) break;
-                if (e->attributes == ATTR_LFN) {
-                    ProcessLFNEntry((const uint8_t*)e, &lfn);
-                    continue;
-                }
+    if (clusterBuf && visited) {
+        for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
+            if (VisitedTest(visited, c)) continue;
 
-                // If it looks like a valid file but it's not in the FS tree
-                if (MatchFile(e, SCAN_MODE_BOTH)) {
-                    // Check if we already have this starting cluster in our collector
-                    int exists = 0;
-                    uint32_t first_cluster = GetFirstCluster(e);
-                    for (uint32_t j = 0; j < collector->count; j++) {
-                        if (collector->files[j].starting_cluster == first_cluster) {
-                            exists = 1; break;
+            if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
+                // 1. Kiểm tra nếu cluster trông giống thư mục (Lost Directory)
+                if (IsFatDirCluster(clusterBuf, info.bytes_per_cluster)) {
+                    char folderName[32]; snprintf(folderName, sizeof(folderName), "found_%u", c);
+                    CollectFromCluster(fd, &info, fat, c, clusterBuf, collector, folderName, cancelled, SCAN_MODE_BOTH, visited, 0);
+                } else {
+                    // 2. Quét từng entry lẻ (Orphaned Files)
+                    FAT32_DirEntry* entries = (FAT32_DirEntry*)clusterBuf;
+                    for (uint32_t i = 0; i < info.bytes_per_cluster / 32; i++) {
+                        FAT32_DirEntry* e = &entries[i];
+                        if (e->name[0] == 0x00) break;
+                        if (e->attributes == ATTR_LFN) {
+                            ProcessLFNEntry((const uint8_t*)e, &lfn);
+                            continue;
                         }
-                    }
 
-                    if (!exists) {
-                        FileInfo fi;
-                        PopulateFileInfo(&fi, e, &lfn, "ORPHANED", FILE_STATUS_ORPHANED);
-                        AddToFileCollector(collector, &fi);
-                        potentialEntries++;
+                        if (MatchFile(e, SCAN_MODE_BOTH)) {
+                            FileInfo fi;
+                            PopulateFileInfo(&fi, e, &lfn, "ORPHANED", FILE_STATUS_ORPHANED);
+                            AddToFileCollector(collector, &fi);
+                        }
+                        ResetLFN(&lfn);
                     }
                 }
-                ResetLFN(&lfn);
             }
-        }
-        if (on_progress && (c % 5000 == 0)) {
-            on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
+            if (on_progress && (c % 10000 == 0)) {
+                on_progress(context, ((double)c / info.total_clusters) * 100.0, (int64_t)c * info.bytes_per_cluster, 0);
+            }
         }
     }
 
     free(clusterBuf);
     free(fat);
+    if (visited) free(visited);
 }
 
 int RecoverAllFiles(int fd, int64_t baseSector, const uint8_t* sector0,

@@ -156,10 +156,14 @@ static int RecoverVolumeFiles(
     if (!enable_fat) return 0;
 
     FileCollector collector = {0};
+    double orig_base = s->progress_base;
+    double orig_span = s->progress_span;
 
     fprintf(stderr, "[DBG] RVF enter base=%lld exfat=%d\n", (long long)baseSector, memcmp(sector0+3,"EXFAT   ",8)==0); fflush(stderr);
 
-    // Module 1: Collect Healthy Files
+    // Module 1: Collect Healthy Files (Duyệt cây thư mục) - Chiếm 5% pha FS
+    s->progress_base = orig_base;
+    s->progress_span = orig_span * 0.05;
     if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
         CollectHealthyFilesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled, scan_mode);
     } else {
@@ -168,10 +172,13 @@ static int RecoverVolumeFiles(
 
     fprintf(stderr, "[DBG] after Module1 collector.count=%u\n", collector.count); fflush(stderr);
 
-    // Module 2: Collect Orphaned Entries
-    // Skipped for the fast "Existing" scan: it linearly reads the whole volume to find
-    // orphaned/deleted directory clusters, which is only relevant for deleted-file recovery.
-    if (!s->cancelled && scan_mode != SCAN_MODE_EXISTING) {
+    // Module 2: Collect Orphaned Entries (Quét mù toàn ổ) - Chiếm 75% pha FS
+    s->progress_base = orig_base + (orig_span * 0.05);
+    s->progress_span = orig_span * 0.75;
+
+    // Thực hiện quét tuyến tính (sweep) nếu không phải chế độ quét nhanh (Existing)
+    // HOẶC nếu quét nhanh không tìm thấy gì (dấu hiệu cấu trúc FS bị hỏng nặng).
+    if (!s->cancelled && (scan_mode != SCAN_MODE_EXISTING || collector.count == 0)) {
         if (memcmp(sector0 + 3, "EXFAT   ", 8) == 0) {
             ScanOrphanedEntriesExfat(s->fd, baseSector, sector0, &collector, s, on_fat_progress, &s->cancelled);
         } else {
@@ -181,13 +188,20 @@ static int RecoverVolumeFiles(
 
     fprintf(stderr, "[DBG] after Module2 collector.count=%u\n", collector.count); fflush(stderr);
 
-    // Module 3: Smart Assembler
+    // Module 3: Smart Assembler (Ghi file ra đĩa) - Chiếm 20% pha FS
+    s->progress_base = orig_base + (orig_span * 0.80);
+    s->progress_span = orig_span * 0.20;
+
     int recovered = 0;
     if (!s->cancelled && collector.count > 0) {
         recovered = ProcessFiles(s->fd, baseSector, &collector, output_dir, s, on_fat_file, on_fat_progress, &s->cancelled, s->sector_mask, s->total_sectors);
     }
 
     fprintf(stderr, "[DBG] after Module3 recovered=%d\n", recovered); fflush(stderr);
+
+    // Khôi phục lại scaling gốc
+    s->progress_base = orig_base;
+    s->progress_span = orig_span;
 
     // Free collector
     for (uint32_t i = 0; i < collector.count; i++) {
@@ -299,13 +313,21 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
         EmitPhaseProgress(s, 0.5, 0, 0);
 
         // --- NEW: Partition Boundary Detection ---
+        int64_t t_part_start = NowMs();
         PartitionCandidate candidates[16];
         int cand_count = DetectPartitions(s->fd, s->total_sectors, candidates, 16);
+        fprintf(stderr, "[TIME] DetectPartitions took %lld ms (found %d candidates)\n", (long long)(NowMs() - t_part_start), cand_count); fflush(stderr);
+
+        // Cập nhật tiến trình sau khi dò phân vùng
+        EmitPhaseProgress(s, 2.0, 0, 0);
+
+        int64_t t_fs_start = NowMs();
         for (int i = 0; i < cand_count; i++) {
             if (RecoverPartition(s, candidates[i].start_sector, fat_output_dir, enable_fat, scan_mode)) {
                 found_fat = 1;
             }
         }
+        fprintf(stderr, "[TIME] RecoverPartition loop took %lld ms\n", (long long)(NowMs() - t_fs_start)); fflush(stderr);
 
         if (!found_fat && LSEEK(s->fd, 0, SEEK_SET) == 0 && READ(s->fd, sector, 512) == 512) {
             uint8_t sector1[512];
@@ -406,8 +428,10 @@ EXPORT int32_t recovery_scan(int32_t handle, const char* output_dir, RecoveryCal
     }
 
     if (will_carve && !s->cancelled) {
+        int64_t t_carve_start = NowMs();
         double carve_start = 60.0; // FS scan chiếm 60%
         CarveFilesWithProgress(s->fd, geo.totalBytes, geo.bytesPerSector, output_dir, s, on_carve_progress, on_carve_file, &s->cancelled, carve_start, 100.0, s->sector_mask, s->reference_video[0] ? s->reference_video : NULL);
+        fprintf(stderr, "[TIME] CarveFiles took %lld ms\n", (long long)(NowMs() - t_carve_start)); fflush(stderr);
     }
 
     if (s->sector_mask) {
