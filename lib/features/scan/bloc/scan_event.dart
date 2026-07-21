@@ -30,6 +30,12 @@ class StartScanEvent extends ScanEvent {
 
 class StopScanEvent extends ScanEvent {}
 
+class PauseScanEvent extends ScanEvent {}
+
+class ResumeScanEvent extends ScanEvent {}
+
+class CancelScanEvent extends ScanEvent {}
+
 class ScanProgressUpdatedEvent extends ScanEvent {
   final double percent;
   final int speedMbps;

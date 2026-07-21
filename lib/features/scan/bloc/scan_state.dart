@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/models/recovery_event.dart';
 import '../../../core/service/recovery_service.dart';
 
-enum ScanStatus { initial, loading, inProgress, success, failure }
+enum ScanStatus { initial, loading, inProgress, paused, success, failure }
 
 class ScanState extends Equatable {
   final ScanStatus status;

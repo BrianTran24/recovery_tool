@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
-import 'preview_screen.dart';
 import 'features/scan/bloc/scan_bloc.dart';
 import 'features/scan/bloc/scan_event.dart';
 import 'features/scan/bloc/scan_state.dart';
@@ -20,6 +19,7 @@ class ScanView extends StatefulWidget {
   final int scanMode;
   final String referenceVideo;
   final VoidCallback? onDone;
+  final VoidCallback? onCancel;
 
   const ScanView({
     super.key,
@@ -30,6 +30,7 @@ class ScanView extends StatefulWidget {
     this.scanMode = 1,
     this.referenceVideo = '',
     this.onDone,
+    this.onCancel,
   });
 
   @override
@@ -45,13 +46,14 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   Duration _elapsed = Duration.zero;
   String _etr = '--:--';
 
-  void _startTimer() {
+  void _startTimer(Duration initialOffset) {
+    _timer?.cancel();
     _stopwatch.reset();
     _stopwatch.start();
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
-        _elapsed = _stopwatch.elapsed;
+        _elapsed = initialOffset + _stopwatch.elapsed;
       });
     });
   }
@@ -80,15 +82,27 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    context.read<ScanBloc>().add(StartScanEvent(
-      sourcePath: widget.sourcePath,
-      outputDir: widget.outputDir,
-      enableFat: widget.enableFat,
-      enableCarve: widget.enableCarve,
-      scanMode: widget.scanMode,
-      referenceVideo: widget.referenceVideo,
-    ));
-    _startTimer();
+    final scanBloc = context.read<ScanBloc>();
+    final state = scanBloc.state;
+
+    if (state.status == ScanStatus.initial || state.status == ScanStatus.failure) {
+      scanBloc.add(StartScanEvent(
+        sourcePath: widget.sourcePath,
+        outputDir: widget.outputDir,
+        enableFat: widget.enableFat,
+        enableCarve: widget.enableCarve,
+        scanMode: widget.scanMode,
+        referenceVideo: widget.referenceVideo,
+      ));
+      _startTimer(Duration.zero);
+    } else if (state.status == ScanStatus.inProgress || state.status == ScanStatus.loading) {
+      _elapsed = state.elapsed;
+      _startTimer(state.elapsed);
+    } else if (state.status == ScanStatus.success) {
+      _elapsed = state.elapsed;
+      _etr = '00:00';
+      // No timer needed for finished scan
+    }
   }
 
   @override
@@ -112,12 +126,19 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
           if (state.errorMessage != null) {
             _showErrorDialog(context, state.errorMessage!, state.isHardwareFailure);
           }
+        } else if (state.status == ScanStatus.paused) {
+          _stopTimer();
+        } else if (state.status == ScanStatus.inProgress && _timer == null) {
+          _startTimer(state.elapsed);
+        } else if (state.status == ScanStatus.initial) {
+          widget.onCancel?.call();
         }
         _calculateETR(state.percent);
       },
       builder: (context, state) {
         final files = state.foundFiles;
         final done = state.status == ScanStatus.success || state.status == ScanStatus.failure;
+        final paused = state.status == ScanStatus.paused;
 
         // Group files by folder
         final Map<String, List<FileFoundEvent>> folderGroups = {};
@@ -152,12 +173,33 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                     ),
                   ),
                   if (!done)
-                    TextButton.icon(
-                      onPressed: () {
-                        context.read<ScanBloc>().add(StopScanEvent());
-                      },
-                      icon: const Icon(Icons.stop_circle_rounded, color: Colors.red),
-                      label: Text(l10n.scanStop, style: const TextStyle(color: Colors.red)),
+                    Row(
+                      children: [
+                        if (paused) ...[
+                          TextButton.icon(
+                            onPressed: () {
+                              context.read<ScanBloc>().add(ResumeScanEvent());
+                            },
+                            icon: const Icon(Icons.play_circle_rounded, color: AppTheme.cyberCyan),
+                            label: Text(l10n.scanResume, style: const TextStyle(color: AppTheme.cyberCyan)),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () {
+                              context.read<ScanBloc>().add(CancelScanEvent());
+                            },
+                            icon: const Icon(Icons.cancel_rounded, color: Colors.white54),
+                            label: Text(l10n.scanCancel, style: const TextStyle(color: Colors.white54)),
+                          ),
+                        ] else
+                          TextButton.icon(
+                            onPressed: () {
+                              context.read<ScanBloc>().add(PauseScanEvent());
+                            },
+                            icon: const Icon(Icons.pause_circle_rounded, color: Colors.orange),
+                            label: Text(l10n.scanPause, style: const TextStyle(color: Colors.orange)),
+                          ),
+                      ],
                     ),
                 ],
               ),
@@ -166,32 +208,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
             if (state.fileSystems.isNotEmpty) _buildFsInfo(context, state.fileSystems),
 
             _buildProgressHeader(context, l10n, state, done),
-
-            if (files.isNotEmpty || done)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PreviewScreen(
-                            outputDir: widget.outputDir,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: Icon(done ? Icons.check_circle_rounded : Icons.visibility_rounded),
-                    label: Text(done ? l10n.scanViewAllResults : l10n.scanViewLive(state.foundCount)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: done ? Colors.green.shade600 : AppTheme.cyberCyan,
-                      foregroundColor: done ? Colors.white : AppTheme.cyberDeepNavy,
-                    ),
-                  ),
-                ),
-              ),
 
             Expanded(
               child: Column(

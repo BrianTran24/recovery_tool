@@ -240,6 +240,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanStop => 'Stop';
 
   @override
+  String get scanPause => 'Pause';
+
+  @override
+  String get scanResume => 'Resume';
+
+  @override
+  String get scanCancel => 'Cancel';
+
+  @override
   String get scanViewAllResults => 'VIEW ALL RESULTS';
 
   @override

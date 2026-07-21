@@ -506,6 +506,24 @@ abstract class AppLocalizations {
   /// **'Stop'**
   String get scanStop;
 
+  /// No description provided for @scanPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get scanPause;
+
+  /// No description provided for @scanResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get scanResume;
+
+  /// No description provided for @scanCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get scanCancel;
+
   /// No description provided for @scanViewAllResults.
   ///
   /// In en, this message translates to:

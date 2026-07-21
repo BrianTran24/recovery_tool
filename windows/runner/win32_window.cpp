@@ -144,6 +144,13 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
+  // Set minimum size early by triggering WM_GETMINMAXINFO
+  double scale_factor = dpi / 96.0;
+  SetWindowPos(window, nullptr, 0, 0,
+               Scale(size.width, scale_factor),
+               Scale(size.height, scale_factor),
+               SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
   UpdateTheme(window);
 
   return OnCreate();

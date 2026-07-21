@@ -385,12 +385,12 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               // Main Content
               Expanded(
-                child: Column(
+                child: IndexedStack(
+                  index: _selectedTool.index,
                   children: [
-                    // Custom Header
-                    Expanded(
-                      child: _buildContent(),
-                    ),
+                    _buildDevicesContent(),
+                    _buildRestoreContent(),
+                    const SettingsScreen(),
                   ],
                 ),
               ),
@@ -399,17 +399,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
-  }
-
-  Widget _buildContent() {
-    switch (_selectedTool) {
-      case HomeTool.devices:
-        return _buildDevicesContent();
-      case HomeTool.restore:
-        return _buildRestoreContent();
-      case HomeTool.settings:
-        return const SettingsScreen();
-    }
   }
 
   Widget _buildDevicesContent() {
@@ -623,6 +612,7 @@ class _MyHomePageState extends State<MyHomePage> {
           outputDir: _outputDir,
           scanMode: _scanMode,
           referenceVideo: _referenceVideo,
+          onCancel: _resetRestore,
           onDone: () {
             // Option to go back or show results
           },

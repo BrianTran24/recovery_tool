@@ -239,6 +239,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get scanStop => 'Dừng';
 
   @override
+  String get scanPause => 'Tạm dừng';
+
+  @override
+  String get scanResume => 'Tiếp tục';
+
+  @override
+  String get scanCancel => 'Hủy';
+
+  @override
   String get scanViewAllResults => 'XEM TOÀN BỘ KẾT QUẢ';
 
   @override

@@ -143,6 +143,9 @@
   "scanResults": "Scan Results",
   "scanProcessing": "Processing data...",
   "scanStop": "Stop",
+  "scanPause": "Pause",
+  "scanResume": "Resume",
+  "scanCancel": "Cancel",
   "scanViewAllResults": "VIEW ALL RESULTS",
   "scanViewLive": "VIEW LIVE ({count} files)",
   "@scanViewLive": {

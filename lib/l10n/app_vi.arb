@@ -143,6 +143,9 @@
   "scanResults": "Kết quả Quét",
   "scanProcessing": "Đang xử lý dữ liệu...",
   "scanStop": "Dừng",
+  "scanPause": "Tạm dừng",
+  "scanResume": "Tiếp tục",
+  "scanCancel": "Hủy",
   "scanViewAllResults": "XEM TOÀN BỘ KẾT QUẢ",
   "scanViewLive": "XEM TRỰC TIẾP ({count} file)",
   "@scanViewLive": {

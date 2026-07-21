@@ -167,11 +167,12 @@ class RecoveryService {
     final scanCompleter = Completer<void>();
     
     final subscription = receivePort.listen((message) {
-      if (message is RecoveryEvent) {
-        if (message is DoneEvent) {
-          scanCompleter.complete();
-        } else if (!controller.isClosed) {
-          controller.add(message);
+      if (message is RecoveryEvent && !controller.isClosed) {
+        controller.add(message);
+        if (message is DoneEvent || message is ErrorEvent) {
+          if (!scanCompleter.isCompleted) {
+            scanCompleter.complete();
+          }
         }
       }
     });
