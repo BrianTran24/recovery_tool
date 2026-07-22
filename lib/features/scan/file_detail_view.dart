@@ -367,9 +367,39 @@ class _VideoPreviewState extends State<VideoPreview> {
 
     return Container(
       color: Colors.black,
-      child: Video(
-        controller: controller,
-        controls: MaterialVideoControls,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Video(
+            controller: controller,
+            controls: MaterialVideoControls,
+          ),
+          StreamBuilder<bool>(
+            stream: player.stream.playing,
+            builder: (context, snapshot) {
+              final isPlaying = snapshot.data ?? false;
+              if (isPlaying) return const SizedBox.shrink();
+              
+              return GestureDetector(
+                onTap: () => player.play(),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
