@@ -601,6 +601,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I UNDERSTAND'**
   String get scanUnderstand;
+
+  /// No description provided for @scanNew.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN ANOTHER DEVICE'**
+  String get scanNew;
+
+  /// No description provided for @openFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN OUTPUT FOLDER'**
+  String get openFolder;
 }
 
 class _AppLocalizationsDelegate

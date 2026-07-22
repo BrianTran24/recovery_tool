@@ -287,4 +287,10 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get scanUnderstand => 'ĐÃ HIỂU';
+
+  @override
+  String get scanNew => 'QUÉT THIẾT BỊ KHÁC';
+
+  @override
+  String get openFolder => 'MỞ THƯ MỤC LƯU FILE';
 }

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
@@ -90,7 +89,7 @@ void main() {
       print('Handle: $handle');
       expect(handle, greaterThanOrEqualTo(0));
 
-      final callback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((ptr) {
+      final callback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((Pointer<RecoveryEventNative> ptr) {
         final ev = ptr.ref;
         print('Native Callback: eventType=${ev.eventType}, percent=${ev.percent}');
         // Map native event (simplified)
@@ -140,12 +139,12 @@ void main() {
       int matchCount = 0;
       for (var expected in expectedFiles) {
         final match = foundFiles.any((f) => 
-          f.sectorOffset == expected.sector || 
+          f.sectorOffset == expected.firstSector || 
           f.filename.contains(p.basename(expected.filename))
         );
         if (match) {
           matchCount++;
-          print('Matched: ${expected.filename} at sector ${expected.sector}');
+          print('Matched: ${expected.filename} at sector ${expected.firstSector}');
         }
       }
 

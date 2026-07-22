@@ -165,5 +165,21 @@
   "scanRemaining": "CÒN LẠI (DỰ KIẾN)",
   "scanHardwareError": "Lỗi Phần Cứng",
   "scanSystemError": "Lỗi Hệ Thống",
-  "scanUnderstand": "ĐÃ HIỂU"
+  "scanUnderstand": "ĐÃ HIỂU",
+  "scanNew": "QUÉT THIẾT BỊ KHÁC",
+  "openFolder": "MỞ THƯ MỤC LƯU FILE",
+  "fileDetailTitle": "Chi tiết Tệp tin",
+  "fileDetailProperties": "Thuộc tính",
+  "fileDetailName": "Tên tệp",
+  "fileDetailType": "Loại",
+  "fileDetailSize": "Kích thước",
+  "fileDetailLocation": "Đường dẫn tương đối",
+  "fileDetailOffset": "Vị trí Sector",
+  "fileDetailModified": "Ngày sửa đổi",
+  "fileDetailStatus": "Trạng thái khôi phục",
+  "fileDetailOpenFile": "Mở Tệp",
+  "fileDetailShowInFolder": "Xem trong thư mục",
+  "fileDetailHealthy": "Tốt",
+  "fileDetailOrphaned": "Thất lạc (Orphaned)",
+  "fileDetailCarved": "Khôi phục thô (Carved)"
 }

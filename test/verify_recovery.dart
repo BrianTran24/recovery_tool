@@ -74,7 +74,7 @@ Future<void> main(List<String> args) async {
   // 3. Convert E01 to RAW
   print('\n[Phase 1] Converting E01 to RAW...');
   final convCompleter = Completer<void>();
-  final convCallback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((ptr) {
+  final convCallback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((Pointer<RecoveryEventNative> ptr) {
     final ev = ptr.ref;
     if (ev.eventType == 4) { // Done
       convCompleter.complete();
@@ -100,7 +100,7 @@ Future<void> main(List<String> args) async {
   final foundFiles = <FileFoundInfo>[];
   final scanCompleter = Completer<void>();
 
-  final scanCallback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((ptr) {
+  final scanCallback = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((Pointer<RecoveryEventNative> ptr) {
     final ev = ptr.ref;
     if (ev.eventType == 2) { // FileFound
       final name = _arrayToString(ev.filename, 256);

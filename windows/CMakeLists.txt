@@ -51,6 +51,16 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 
 # --- NATIVE RECOVERY LIBRARY ---
 set(NATIVE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/src")
+
+# Try to find libewf
+find_path(LIBEWF_INCLUDE_DIR NAMES libewf.h)
+find_library(LIBEWF_LIBRARY NAMES ewf)
+
+if(LIBEWF_INCLUDE_DIR AND LIBEWF_LIBRARY)
+    include_directories(${LIBEWF_INCLUDE_DIR})
+    add_definitions(-DHAVE_LIBEWF)
+endif()
+
 add_library(recovery SHARED
     "${NATIVE_SRC_DIR}/sector_reader.c"
     "${NATIVE_SRC_DIR}/fat32_parser.c"
@@ -64,8 +74,12 @@ add_library(recovery SHARED
     "${NATIVE_SRC_DIR}/signature_registry.c"
     "${NATIVE_SRC_DIR}/device_handlers.c"
     "${NATIVE_SRC_DIR}/hardware_health_checker.c"
+    "${NATIVE_SRC_DIR}/e01_handler.c"
 )
 target_include_directories(recovery PRIVATE "${NATIVE_SRC_DIR}")
+if(LIBEWF_LIBRARY)
+    target_link_libraries(recovery PRIVATE ${LIBEWF_LIBRARY})
+endif()
 set_target_properties(recovery PROPERTIES
     OUTPUT_NAME "recovery"
     SUFFIX ".dll"

@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include "shared_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
@@ -136,3 +140,7 @@ EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referenc
  * callback trả về EVENT_PROGRESS.
  */
 EXPORT int32_t recovery_convert_e01(const char* e01_path, const char* output_path, RecoveryCallback callback);
+
+#ifdef __cplusplus
+}
+#endif

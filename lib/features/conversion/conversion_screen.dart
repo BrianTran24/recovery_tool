@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:disks_desktop/disks_desktop.dart';
 import '../../core/theme/app_theme.dart';
 import '../config/config_screen.dart';
 import 'conversion_view.dart';

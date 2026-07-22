@@ -165,5 +165,21 @@
   "scanRemaining": "REMAINING (EST.)",
   "scanHardwareError": "Hardware Error",
   "scanSystemError": "System Error",
-  "scanUnderstand": "I UNDERSTAND"
+  "scanUnderstand": "I UNDERSTAND",
+  "scanNew": "SCAN ANOTHER DEVICE",
+  "openFolder": "OPEN OUTPUT FOLDER",
+  "fileDetailTitle": "File Details",
+  "fileDetailProperties": "Properties",
+  "fileDetailName": "Filename",
+  "fileDetailType": "Type",
+  "fileDetailSize": "Size",
+  "fileDetailLocation": "Relative Path",
+  "fileDetailOffset": "Sector Offset",
+  "fileDetailModified": "Date Modified",
+  "fileDetailStatus": "Recovery Status",
+  "fileDetailOpenFile": "Open File",
+  "fileDetailShowInFolder": "Show in Folder",
+  "fileDetailHealthy": "Healthy",
+  "fileDetailOrphaned": "Orphaned",
+  "fileDetailCarved": "Carved"
 }

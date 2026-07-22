@@ -288,4 +288,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanUnderstand => 'I UNDERSTAND';
+
+  @override
+  String get scanNew => 'SCAN ANOTHER DEVICE';
+
+  @override
+  String get openFolder => 'OPEN OUTPUT FOLDER';
 }

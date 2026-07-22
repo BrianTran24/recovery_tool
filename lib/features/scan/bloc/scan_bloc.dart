@@ -129,13 +129,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   void _onFileFound(FileFoundEventReceived event, Emitter<ScanState> emit) {
     _internalFiles.add(event.event as FileFoundEvent);
 
-    if (_flushTimer == null) {
-      // Throttle file list updates to 1 second to reduce UI jitter
-      _flushTimer = Timer(const Duration(seconds: 1), () {
+    _flushTimer ??= Timer(const Duration(seconds: 1), () {
         _flushTimer = null;
         add(const BatchUpdateFilesEvent());
       });
-    }
   }
 
   void _onBatchUpdateFiles(BatchUpdateFilesEvent event, Emitter<ScanState> emit) {

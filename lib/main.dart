@@ -14,6 +14,7 @@ import 'package:recovery_tool/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
 import 'package:recovery_tool/features/scan/bloc/scan_bloc.dart';
+import 'package:recovery_tool/features/scan/bloc/scan_event.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
@@ -129,7 +130,13 @@ class _MyHomePageState extends State<MyHomePage> {
   late String _referenceVideo;
 
   void _resetRestore() {
+    context.read<ScanBloc>().add(CancelScanEvent());
     setState(() {
+      if (_selectedDisk != null && _selectedDisk!.busType == 'IMAGE') {
+        _selectedTool = HomeTool.restore;
+      } else {
+        _selectedTool = HomeTool.devices;
+      }
       _restoreStep = RestoreStep.pickFile;
       _selectedDisk = null;
       _e01Path = null;
@@ -613,9 +620,7 @@ class _MyHomePageState extends State<MyHomePage> {
           scanMode: _scanMode,
           referenceVideo: _referenceVideo,
           onCancel: _resetRestore,
-          onDone: () {
-            // Option to go back or show results
-          },
+          onDone: _resetRestore,
         );
     }
   }

@@ -3,14 +3,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 import 'features/scan/bloc/scan_bloc.dart';
 import 'features/scan/bloc/scan_event.dart';
 import 'features/scan/bloc/scan_state.dart';
 import 'features/scan/widgets/semi_circle_progress.dart';
+import 'features/scan/file_detail_view.dart';
 import 'core/models/recovery_event.dart';
-import 'core/service/recovery_service.dart';
-import 'core/theme/app_theme.dart';
-import 'l10n/app_localizations.dart';
+import 'package:recovery_tool/core/service/recovery_service.dart';
+import 'package:recovery_tool/core/theme/app_theme.dart';
+import 'package:recovery_tool/l10n/app_localizations.dart';
 
 class ScanView extends StatefulWidget {
   final String sourcePath;
@@ -335,6 +337,36 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                       ),
                   ],
                 ),
+              ] else ...[
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => launchUrl(Uri.directory(widget.outputDir)),
+                      icon: const Icon(Icons.folder_open_rounded, size: 20),
+                      label: Text(l10n.openFolder, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+                        foregroundColor: AppTheme.cyberCyan,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: widget.onDone,
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                      label: Text(l10n.scanNew, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ],
           ),
@@ -494,95 +526,112 @@ class _FileGridItem extends StatelessWidget {
     final isImage = isImageFileType(normalizedType);
     final filePath = p.join(outputDir, event.folder, event.filename);
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Preview Area
-          Expanded(
-            child: Container(
-              color: Colors.white.withValues(alpha: 0.02),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (isImage)
-                    Image.file(
-                      File(filePath),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Center(
-                        child: Icon(icon, color: color.withValues(alpha: 0.2), size: 32),
-                      ),
-                    )
-                  else
-                    Center(
-                      child: Icon(icon, color: color.withValues(alpha: 0.2), size: 32),
-                    ),
-                  
-                  // Sector Offset Overlay
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '#${event.sectorOffset}',
-                        style: const TextStyle(fontSize: 8, color: Colors.white70, fontFamily: 'monospace'),
-                      ),
-                    ),
-                  ),
-                ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => FileDetailView(
+                event: event,
+                outputDir: outputDir,
               ),
             ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: Colors.white.withValues(alpha: 0.05),
+        splashColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
-          
-          // Info Area
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  event.filename,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.white),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Preview Area
+              Expanded(
+                child: Container(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (isImage)
+                        Image.file(
+                          File(filePath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Icon(icon, color: color.withValues(alpha: 0.2), size: 32),
+                          ),
+                        )
+                      else
+                        Center(
+                          child: Icon(icon, color: color.withValues(alpha: 0.2), size: 32),
+                        ),
+                      
+                      // Sector Offset Overlay
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '#${event.sectorOffset}',
+                            style: const TextStyle(fontSize: 8, color: Colors.white70, fontFamily: 'monospace'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              
+              // Info Area
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        normalizedType,
-                        style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.bold),
-                      ),
-                    ),
                     Text(
-                      _formatSize(event.fileSize),
-                      style: const TextStyle(fontSize: 9, color: Colors.white38),
+                      event.filename,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            normalizedType,
+                            style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Text(
+                          _formatSize(event.fileSize),
+                          style: const TextStyle(fontSize: 9, color: Colors.white38),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
