@@ -8,6 +8,8 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../ffi/recovery_bindings.dart';
 import '../models/recovery_event.dart';
+import 'encryption_service.dart';
+import 'package:path/path.dart' as p;
 
 const _kProgress = 1;
 const _kFileFound = 2;
@@ -33,6 +35,7 @@ class FileSystemInfo {
 
 class RecoveryService {
   final RecoveryBindings _bindings = RecoveryBindings();
+  final EncryptionService _encryptionService = EncryptionService();
   int? _activeHandle;
 
   Future<List<FileSystemInfo>> identifyFileSystems(int handle) async {
@@ -194,12 +197,80 @@ class RecoveryService {
     await subscription.cancel();
     receivePort.close();
 
+    // 2.5. Encrypt recovered files (post-processing)
+    if (_encryptionService.isEncryptionEnabled) {
+      debugPrint('DEBUG: Starting file encryption post-processing');
+      await _encryptRecoveredFiles(outputDir, controller);
+    }
+
     // 3. Cleanup and Close
     _bindings.close(handle);
     _activeHandle = null;
 
     if (!controller.isClosed) {
       controller.close();
+    }
+  }
+
+  Future<void> _encryptRecoveredFiles(
+    String outputDir, 
+    StreamController<RecoveryEvent> controller,
+  ) async {
+    try {
+      final outputDirectory = Directory(outputDir);
+      if (!await outputDirectory.exists()) {
+        debugPrint('Output directory does not exist, skipping encryption');
+        return;
+      }
+
+      final files = outputDirectory.listSync(recursive: true).whereType<File>().toList();
+      debugPrint('Found ${files.length} files to encrypt');
+
+      int encryptedCount = 0;
+      int totalFiles = files.length;
+
+      for (var i = 0; i < files.length; i++) {
+        final file = files[i];
+        
+        // Skip already encrypted files
+        if (file.path.endsWith('.encrypted') || file.path.endsWith('.enc')) {
+          continue;
+        }
+
+        debugPrint('Encrypting file ${i + 1}/$totalFiles: ${file.path}');
+        
+        final encryptedFile = await _encryptionService.encryptFile(file);
+        
+        if (encryptedFile != null) {
+          encryptedCount++;
+          
+          // Send progress event
+          if (!controller.isClosed) {
+            final percentEncrypted = ((i + 1) / totalFiles * 100).round();
+            controller.add(
+              ProgressEvent(
+                percent: percentEncrypted,
+                scannedBytes: 0,
+                speedMbps: 0,
+              ),
+            );
+          }
+        } else {
+          debugPrint('Failed to encrypt: ${file.path}');
+        }
+      }
+
+      debugPrint('Encryption completed: $encryptedCount/$totalFiles files encrypted');
+    } catch (e) {
+      debugPrint('Error during file encryption: $e');
+      if (!controller.isClosed) {
+        controller.add(
+          ErrorEvent(
+            code: -1,
+            message: 'Lỗi mã hóa file: ${e.toString()}',
+          ),
+        );
+      }
     }
   }
 

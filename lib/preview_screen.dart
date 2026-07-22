@@ -7,8 +7,12 @@ import 'core/models/recovery_event.dart';
 import 'features/scan/bloc/scan_bloc.dart';
 import 'features/scan/bloc/scan_state.dart';
 import 'core/theme/app_theme.dart';
+import 'core/service/encryption_service.dart';
+import 'core/service/premium_service.dart';
+import 'core/service/storage_service.dart';
+import 'features/premium/premium_unlock_screen.dart';
 
-class PreviewScreen extends StatelessWidget {
+class PreviewScreen extends StatefulWidget {
   final String outputDir;
 
   const PreviewScreen({
@@ -16,16 +20,49 @@ class PreviewScreen extends StatelessWidget {
     required this.outputDir,
   });
 
+  @override
+  State<PreviewScreen> createState() => _PreviewScreenState();
+}
+
+class _PreviewScreenState extends State<PreviewScreen> {
+  bool _isPremium = false;
+  final PremiumService _premiumService = PremiumService(StorageService());
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPremiumStatus();
+  }
+
+  Future<void> _checkPremiumStatus() async {
+    final isPremium = await _premiumService.checkPremiumStatus();
+    if (mounted) {
+      setState(() => _isPremium = isPremium);
+    }
+  }
+
   Future<void> _openFolder() async {
-    final uri = Uri.directory(outputDir);
+    final uri = Uri.directory(widget.outputDir);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
       if (Platform.isMacOS) {
-        Process.run('open', [outputDir]);
+        Process.run('open', [widget.outputDir]);
       } else if (Platform.isWindows) {
-        Process.run('explorer.exe', [outputDir]);
+        Process.run('explorer.exe', [widget.outputDir]);
       }
+    }
+  }
+
+  Future<void> _navigateToPremiumUnlock() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PremiumUnlockScreen(outputDir: widget.outputDir),
+      ),
+    );
+    
+    if (result == true) {
+      _checkPremiumStatus();
     }
   }
 
@@ -51,6 +88,20 @@ class PreviewScreen extends StatelessWidget {
             appBar: AppBar(
               title: const Text('Kho dữ liệu khôi phục'),
               actions: [
+                if (!_isPremium)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: _navigateToPremiumUnlock,
+                      icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+                      label: const Text('Nâng cấp Premium'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: ElevatedButton.icon(
@@ -76,19 +127,92 @@ class PreviewScreen extends StatelessWidget {
                 ],
               ),
             ),
-            body: Container(
-              color: Colors.grey.shade50,
-              child: TabBarView(
-                children: [
-                  _FileGrid(files: images, outputDir: outputDir),
-                  _FileGrid(files: videos, outputDir: outputDir),
-                  _FileGrid(files: others, outputDir: outputDir),
-                ],
-              ),
+            body: Column(
+              children: [
+                if (!_isPremium) _buildPremiumBanner(),
+                Expanded(
+                  child: Container(
+                    color: Colors.grey.shade50,
+                    child: TabBarView(
+                      children: [
+                        _FileGrid(files: images, outputDir: widget.outputDir),
+                        _FileGrid(files: videos, outputDir: widget.outputDir),
+                        _FileGrid(files: others, outputDir: widget.outputDir),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPremiumBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.amber.shade700,
+            Colors.amber.shade500,
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chế độ Preview',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'File đang được mã hóa. Nâng cấp Premium để giải mã và truy cập trực tiếp.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: _navigateToPremiumUnlock,
+            icon: const Icon(Icons.workspace_premium_rounded, size: 16),
+            label: const Text('Nâng cấp'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.amber.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -99,20 +223,58 @@ class _FileGrid extends StatelessWidget {
 
   const _FileGrid({required this.files, required this.outputDir});
 
-  Future<void> _openFile(String filename) async {
+  Future<void> _openFile(BuildContext context, String filename) async {
+    final encryptionService = EncryptionService();
     final normalizedOutputDir = p.normalize(outputDir);
     final filePath = p.join(normalizedOutputDir, filename);
     final file = File(filePath);
     
     if (await file.exists()) {
+      // Check if file is encrypted
+      final isEncrypted = await encryptionService.isFileEncrypted(file);
+      
+      File fileToOpen = file;
+      
+      if (isEncrypted) {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+        
+        // Decrypt to cache
+        final decryptedFile = await encryptionService.decryptToCache(file);
+        
+        // Close loading dialog
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+        
+        if (decryptedFile != null) {
+          fileToOpen = decryptedFile;
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không thể giải mã file để xem')),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Open the file
+      final filePathToOpen = fileToOpen.path;
       if (Platform.isWindows) {
-        Process.run('cmd', ['/c', 'start', '', filePath]);
+        Process.run('cmd', ['/c', 'start', '', filePathToOpen]);
       } else if (Platform.isMacOS) {
-        Process.run('open', [filePath]);
+        Process.run('open', [filePathToOpen]);
       } else if (Platform.isLinux) {
-        Process.run('xdg-open', [filePath]);
+        Process.run('xdg-open', [filePathToOpen]);
       } else {
-        final uri = Uri.file(filePath);
+        final uri = Uri.file(filePathToOpen);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
         }
@@ -154,14 +316,14 @@ class _FileGrid extends StatelessWidget {
           file: file,
           isImage: isImage,
           filePath: filePath,
-          onTap: () => _openFile(file.filename),
+          onTap: () => _openFile(context, file.filename),
         );
       },
     );
   }
 }
 
-class _FileGridItem extends StatelessWidget {
+class _FileGridItem extends StatefulWidget {
   final FileFoundEvent file;
   final bool isImage;
   final String filePath;
@@ -175,9 +337,53 @@ class _FileGridItem extends StatelessWidget {
   });
 
   @override
+  State<_FileGridItem> createState() => _FileGridItemState();
+}
+
+class _FileGridItemState extends State<_FileGridItem> {
+  final EncryptionService _encryptionService = EncryptionService();
+  File? _cachedFile;
+  bool _isLoading = false;
+  bool _isEncrypted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndDecryptFile();
+  }
+
+  Future<void> _checkAndDecryptFile() async {
+    if (!widget.isImage) return;
+    
+    final file = File(widget.filePath);
+    if (!await file.exists()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final isEncrypted = await _encryptionService.isFileEncrypted(file);
+      setState(() => _isEncrypted = isEncrypted);
+
+      if (isEncrypted) {
+        final decrypted = await _encryptionService.decryptToCache(file);
+        if (decrypted != null && mounted) {
+          setState(() => _cachedFile = decrypted);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking/decrypting file: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final displayFile = _cachedFile ?? File(widget.filePath);
     return InkWell(
-      onTap: onTap,
+      onTap: widget.onTap,
       borderRadius: BorderRadius.circular(12),
       child: Card(
         clipBehavior: Clip.antiAlias,
@@ -190,19 +396,47 @@ class _FileGridItem extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    isImage
-                        ? Image.file(
-                            File(filePath),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildIconPlaceholder(),
-                          )
-                        : _buildIconPlaceholder(),
-                    if (!isImage && (canonicalFileType(file.fileType) == 'MP4' || canonicalFileType(file.fileType) == 'MOV'))
+                    if (_isLoading)
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (widget.isImage)
+                      Image.file(
+                        displayFile,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildIconPlaceholder(),
+                      )
+                    else
+                      _buildIconPlaceholder(),
+                    if (!widget.isImage && (canonicalFileType(widget.file.fileType) == 'MP4' || canonicalFileType(widget.file.fileType) == 'MOV'))
                       const Center(
                         child: CircleAvatar(
                           backgroundColor: Colors.black26,
                           child: Icon(Icons.play_arrow_rounded, color: Colors.white),
+                        ),
+                      ),
+                    if (_isEncrypted)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock, size: 10, color: Colors.white),
+                              SizedBox(width: 2),
+                              Text(
+                                'Encrypted',
+                                style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                   ],
@@ -215,7 +449,7 @@ class _FileGridItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    file.filename,
+                    widget.file.filename,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -225,16 +459,16 @@ class _FileGridItem extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _formatSize(file.fileSize),
+                        _formatSize(widget.file.fileSize),
                         style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                       ),
                       Text(
-                        canonicalFileType(file.fileType),
+                        canonicalFileType(widget.file.fileType),
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
                       ),
                     ],
                   ),
-                  if (file.folder.isNotEmpty) ...[
+                  if (widget.file.folder.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -242,7 +476,7 @@ class _FileGridItem extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            file.folder,
+                            widget.file.folder,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 9, color: Colors.amber),
@@ -263,7 +497,7 @@ class _FileGridItem extends StatelessWidget {
   Widget _buildIconPlaceholder() {
     IconData icon;
     Color color;
-    switch (canonicalFileType(file.fileType)) {
+    switch (canonicalFileType(widget.file.fileType)) {
       case 'MP4':
       case 'MOV':
         icon = Icons.videocam_rounded;

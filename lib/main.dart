@@ -6,6 +6,7 @@ import 'package:disks_desktop/disks_desktop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
 import 'package:recovery_tool/features/settings/settings_screen.dart';
@@ -24,9 +25,17 @@ import 'package:recovery_tool/scan_view.dart';
 import 'package:path/path.dart' as p;
 import 'package:media_kit/media_kit.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  
+  // Load environment variables from .env file
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Warning: Could not load .env file: $e');
+  }
+  
   final storageService = StorageService();
   final recoveryService = RecoveryService();
 
