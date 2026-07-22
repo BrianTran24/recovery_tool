@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import 'package:recovery_tool/core/models/recovery_event.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
@@ -54,6 +56,7 @@ class FileDetailView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final normalizedType = canonicalFileType(event.fileType);
     final isImage = isImageFileType(normalizedType);
+    final isVideo = isVideoFileType(normalizedType);
     final filePath = p.join(outputDir, event.folder, event.filename);
     
     return Scaffold(
@@ -84,7 +87,9 @@ class FileDetailView extends StatelessWidget {
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => _buildNoPreview(normalizedType),
                       )
-                    : _buildNoPreview(normalizedType),
+                    : (isVideo 
+                        ? VideoPreview(videoPath: filePath)
+                        : _buildNoPreview(normalizedType)),
               ),
             ),
           ),
@@ -258,5 +263,95 @@ class FileDetailView extends StatelessWidget {
       default:
         return Icons.insert_drive_file_rounded;
     }
+  }
+}
+
+class VideoPreview extends StatefulWidget {
+  final String videoPath;
+
+  const VideoPreview({super.key, required this.videoPath});
+
+  @override
+  State<VideoPreview> createState() => _VideoPreviewState();
+}
+
+class _VideoPreviewState extends State<VideoPreview> {
+  late VideoPlayerController _videoPlayerController;
+  ChewieController? _chewieController;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      _videoPlayerController = VideoPlayerController.file(File(widget.videoPath));
+      await _videoPlayerController.initialize();
+      
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        autoPlay: false,
+        looping: false,
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        placeholder: Container(
+          color: Colors.black,
+          child: const Center(child: CircularProgressIndicator(color: AppTheme.cyberCyan)),
+        ),
+        materialProgressColors: ChewieProgressColors(
+          playedColor: AppTheme.cyberCyan,
+          handleColor: AppTheme.cyberCyan,
+          backgroundColor: Colors.grey,
+          bufferedColor: AppTheme.cyberCyan.withValues(alpha: 0.3),
+        ),
+      );
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error initializing video player: $e');
+      setState(() {
+        _error = true;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 64, color: Colors.redAccent),
+            SizedBox(height: 16),
+            Text('Không thể xem video này', style: TextStyle(color: Colors.white70)),
+          ],
+        ),
+      );
+    }
+
+    if (_chewieController == null || !_videoPlayerController.value.isInitialized) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.cyberCyan),
+      );
+    }
+
+    return Container(
+      color: Colors.black,
+      child: Chewie(
+        controller: _chewieController!,
+      ),
+    );
   }
 }

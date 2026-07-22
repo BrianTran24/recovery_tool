@@ -160,8 +160,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 
         return Column(
           children: [
-            if (state.fileSystems.isNotEmpty) _buildFsInfo(context, state.fileSystems),
-
             _buildProgressHeader(context, l10n, state, done),
 
             Expanded(
@@ -170,13 +168,26 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Text(
-                      l10n.scanTabFiles,
-                      style: const TextStyle(
-                        color: AppTheme.cyberCyan,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    child: Row(
+                      children: [
+                        Text(
+                          l10n.scanTabFiles,
+                          style: const TextStyle(
+                            color: AppTheme.cyberCyan,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (state.fileSystems.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: _buildFsInfo(context, state.fileSystems),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const Divider(height: 1, color: Colors.white10),
@@ -413,24 +424,32 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   }
 
   Widget _buildFsInfo(BuildContext context, List<FileSystemInfo> fileSystems) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      color: AppTheme.cyberCyan.withValues(alpha: 0.05),
-      child: Wrap(
-        spacing: 12,
-        children: fileSystems.map((fs) => Chip(
-          avatar: const Icon(Icons.storage_rounded, size: 16, color: AppTheme.cyberDeepNavy),
-          label: Text(
-            '${fs.typeName} (@${fs.offset})',
-            style: const TextStyle(fontSize: 12, color: AppTheme.cyberDeepNavy, fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: AppTheme.cyberCyan,
-          padding: EdgeInsets.zero,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          side: BorderSide.none,
-        )).toList(),
-      ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: fileSystems.map((fs) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppTheme.cyberCyan.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.storage_rounded, size: 12, color: AppTheme.cyberCyan),
+            const SizedBox(width: 4),
+            Text(
+              '${fs.typeName} (@${fs.offset})',
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.cyberCyan,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      )).toList(),
     );
   }
 

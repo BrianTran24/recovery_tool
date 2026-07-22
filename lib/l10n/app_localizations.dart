@@ -613,6 +613,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OPEN OUTPUT FOLDER'**
   String get openFolder;
+
+  /// No description provided for @fileDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File Details'**
+  String get fileDetailTitle;
+
+  /// No description provided for @fileDetailProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties'**
+  String get fileDetailProperties;
+
+  /// No description provided for @fileDetailName.
+  ///
+  /// In en, this message translates to:
+  /// **'Filename'**
+  String get fileDetailName;
+
+  /// No description provided for @fileDetailType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get fileDetailType;
+
+  /// No description provided for @fileDetailSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get fileDetailSize;
+
+  /// No description provided for @fileDetailLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Relative Path'**
+  String get fileDetailLocation;
+
+  /// No description provided for @fileDetailOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Sector Offset'**
+  String get fileDetailOffset;
+
+  /// No description provided for @fileDetailModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Date Modified'**
+  String get fileDetailModified;
+
+  /// No description provided for @fileDetailStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery Status'**
+  String get fileDetailStatus;
+
+  /// No description provided for @fileDetailOpenFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open File'**
+  String get fileDetailOpenFile;
+
+  /// No description provided for @fileDetailShowInFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in Folder'**
+  String get fileDetailShowInFolder;
+
+  /// No description provided for @fileDetailHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Healthy'**
+  String get fileDetailHealthy;
+
+  /// No description provided for @fileDetailOrphaned.
+  ///
+  /// In en, this message translates to:
+  /// **'Orphaned'**
+  String get fileDetailOrphaned;
+
+  /// No description provided for @fileDetailCarved.
+  ///
+  /// In en, this message translates to:
+  /// **'Carved'**
+  String get fileDetailCarved;
 }
 
 class _AppLocalizationsDelegate

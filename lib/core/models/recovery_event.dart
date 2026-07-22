@@ -109,3 +109,8 @@ bool isImageFileType(String type) {
       normalized == 'CR2' ||
       normalized == 'NEF';
 }
+
+bool isVideoFileType(String type) {
+  final normalized = canonicalFileType(type);
+  return normalized == 'MP4' || normalized == 'MOV';
+}

@@ -294,4 +294,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openFolder => 'OPEN OUTPUT FOLDER';
+
+  @override
+  String get fileDetailTitle => 'File Details';
+
+  @override
+  String get fileDetailProperties => 'Properties';
+
+  @override
+  String get fileDetailName => 'Filename';
+
+  @override
+  String get fileDetailType => 'Type';
+
+  @override
+  String get fileDetailSize => 'Size';
+
+  @override
+  String get fileDetailLocation => 'Relative Path';
+
+  @override
+  String get fileDetailOffset => 'Sector Offset';
+
+  @override
+  String get fileDetailModified => 'Date Modified';
+
+  @override
+  String get fileDetailStatus => 'Recovery Status';
+
+  @override
+  String get fileDetailOpenFile => 'Open File';
+
+  @override
+  String get fileDetailShowInFolder => 'Show in Folder';
+
+  @override
+  String get fileDetailHealthy => 'Healthy';
+
+  @override
+  String get fileDetailOrphaned => 'Orphaned';
+
+  @override
+  String get fileDetailCarved => 'Carved';
 }

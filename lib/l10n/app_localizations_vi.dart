@@ -293,4 +293,46 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get openFolder => 'MỞ THƯ MỤC LƯU FILE';
+
+  @override
+  String get fileDetailTitle => 'Chi tiết Tệp tin';
+
+  @override
+  String get fileDetailProperties => 'Thuộc tính';
+
+  @override
+  String get fileDetailName => 'Tên tệp';
+
+  @override
+  String get fileDetailType => 'Loại';
+
+  @override
+  String get fileDetailSize => 'Kích thước';
+
+  @override
+  String get fileDetailLocation => 'Đường dẫn tương đối';
+
+  @override
+  String get fileDetailOffset => 'Vị trí Sector';
+
+  @override
+  String get fileDetailModified => 'Ngày sửa đổi';
+
+  @override
+  String get fileDetailStatus => 'Trạng thái khôi phục';
+
+  @override
+  String get fileDetailOpenFile => 'Mở Tệp';
+
+  @override
+  String get fileDetailShowInFolder => 'Xem trong thư mục';
+
+  @override
+  String get fileDetailHealthy => 'Tốt';
+
+  @override
+  String get fileDetailOrphaned => 'Thất lạc (Orphaned)';
+
+  @override
+  String get fileDetailCarved => 'Khôi phục thô (Carved)';
 }
