@@ -9,7 +9,6 @@ import 'features/scan/bloc/scan_event.dart';
 import 'features/scan/bloc/scan_state.dart';
 import 'features/scan/widgets/semi_circle_progress.dart';
 import 'features/scan/file_detail_view.dart';
-import 'features/scan/widgets/video_thumbnail.dart';
 import 'core/models/recovery_event.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
@@ -544,7 +543,6 @@ class _FileGridItem extends StatelessWidget {
     final color = _colors[normalizedType] ?? Colors.blueGrey;
     final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_rounded;
     final isImage = isImageFileType(normalizedType);
-    final isVideo = isVideoFileType(normalizedType);
     final filePath = p.join(outputDir, event.folder, event.filename);
 
     return Material(
@@ -586,12 +584,6 @@ class _FileGridItem extends StatelessWidget {
                           errorBuilder: (context, error, stackTrace) => Center(
                             child: Icon(icon, color: color.withValues(alpha: 0.2), size: 32),
                           ),
-                        )
-                      else if (isVideo)
-                        VideoThumbnail(
-                          videoPath: filePath,
-                          fallbackIcon: icon,
-                          fallbackColor: color,
                         )
                       else
                         Center(
