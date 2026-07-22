@@ -87,6 +87,11 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    
+    // Configure Flutter image cache for better performance
+    PaintingBinding.instance.imageCache.maximumSize = 100;
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; // 50 MB
+    
     final scanBloc = context.read<ScanBloc>();
     final state = scanBloc.state;
 
@@ -184,6 +189,9 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
         } else {
           displayedFiles = filteredBySearchAndCategory;
         }
+        
+        // 4. Reverse list once for display (newest first)
+        final reversedFiles = displayedFiles.reversed.toList();
 
         return Column(
           children: [
@@ -247,6 +255,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                                           final isSelected = _selectedFolder == folder;
                                           final count = folderGroups[folder]?.length ?? 0;
                                           return ListTile(
+                                            key: ValueKey(folder),
                                             dense: true,
                                             selected: isSelected,
                                             selectedTileColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
@@ -287,7 +296,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                               _buildTopFilterBar(context),
                               const Divider(height: 1, color: Colors.white10),
                               Expanded(
-                                child: displayedFiles.isEmpty
+                                child: reversedFiles.isEmpty
                                     ? _buildEmptyState(Icons.find_in_page_rounded, l10n.scanSearchingFiles)
                                     : GridView.builder(
                                         padding: const EdgeInsets.all(16),
@@ -297,10 +306,12 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
                                         ),
-                                        itemCount: displayedFiles.length,
+                                        itemCount: reversedFiles.length,
                                         itemBuilder: (context, index) {
+                                          final file = reversedFiles[index];
                                           return _FileGridItem(
-                                            event: displayedFiles[displayedFiles.length - 1 - index],
+                                            key: ValueKey('${file.sectorOffset}_${file.filename}'),
+                                            event: file,
                                             outputDir: widget.outputDir,
                                           );
                                         },
@@ -645,14 +656,23 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   }
 }
 
-class _FileGridItem extends StatelessWidget {
+class _FileGridItem extends StatefulWidget {
   final FileFoundEvent event;
   final String outputDir;
   
   const _FileGridItem({
+    super.key,
     required this.event,
     required this.outputDir,
   });
+
+  @override
+  State<_FileGridItem> createState() => _FileGridItemState();
+}
+
+class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   static const _icons = {
     'JPEG': Icons.image_rounded,
@@ -686,11 +706,13 @@ class _FileGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalizedType = canonicalFileType(event.fileType);
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    final normalizedType = canonicalFileType(widget.event.fileType);
     final color = _colors[normalizedType] ?? Colors.blueGrey;
     final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_rounded;
     final isImage = isImageFileType(normalizedType);
-    final filePath = p.join(outputDir, event.folder, event.filename);
+    final filePath = p.join(widget.outputDir, widget.event.folder, widget.event.filename);
 
     return Material(
       color: Colors.transparent,
@@ -699,8 +721,8 @@ class _FileGridItem extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => FileDetailView(
-                event: event,
-                outputDir: outputDir,
+                event: widget.event,
+                outputDir: widget.outputDir,
               ),
             ),
           );
@@ -748,7 +770,7 @@ class _FileGridItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '#${event.sectorOffset}',
+                            '#${widget.event.sectorOffset}',
                             style: const TextStyle(fontSize: 8, color: Colors.white70, fontFamily: 'monospace'),
                           ),
                         ),
@@ -766,7 +788,7 @@ class _FileGridItem extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      event.filename,
+                      widget.event.filename,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.white),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -787,7 +809,7 @@ class _FileGridItem extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          _formatSize(event.fileSize),
+                          _formatSize(widget.event.fileSize),
                           style: const TextStyle(fontSize: 9, color: Colors.white38),
                         ),
                       ],
