@@ -246,7 +246,7 @@ class RecoveryService {
           
           // Send progress event
           if (!controller.isClosed) {
-            final percentEncrypted = ((i + 1) / totalFiles * 100).round();
+            final percentEncrypted = (i + 1) / totalFiles * 100;
             controller.add(
               ProgressEvent(
                 percent: percentEncrypted,
