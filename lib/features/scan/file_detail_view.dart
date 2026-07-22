@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:recovery_tool/core/models/recovery_event.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
@@ -119,16 +119,62 @@ class FileDetailView extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Expanded(
-                    child: ListView(
-                      children: [
-                        _buildPropertyItem(l10n.fileDetailName, event.filename),
-                        _buildPropertyItem(l10n.fileDetailType, normalizedType),
-                        _buildPropertyItem(l10n.fileDetailSize, _formatSize(event.fileSize)),
-                        _buildPropertyItem(l10n.fileDetailLocation, event.folder.isEmpty ? '/' : event.folder),
-                        _buildPropertyItem(l10n.fileDetailOffset, '#${event.sectorOffset}'),
-                        _buildPropertyItem(l10n.fileDetailModified, event.modifiedTime),
-                        _buildStatusItem(context, l10n.fileDetailStatus, event.status),
-                      ],
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header: Filename & Status
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  event.filename,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              _buildStatusBadge(context, event.status),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Quick Info Grid
+                          Wrap(
+                            spacing: 32,
+                            runSpacing: 24,
+                            children: [
+                              _buildGridItem(Icons.category_outlined, l10n.fileDetailType, normalizedType),
+                              _buildGridItem(Icons.data_usage_outlined, l10n.fileDetailSize, _formatSize(event.fileSize)),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Location (Full Width)
+                          _buildGridItem(
+                            Icons.folder_open_outlined,
+                            l10n.fileDetailLocation,
+                            event.folder.isEmpty ? '/' : event.folder,
+                            isFullWidth: true,
+                          ),
+                          const SizedBox(height: 24),
+
+                          const Divider(color: Colors.white10),
+                          const SizedBox(height: 24),
+
+                          // Technical Details
+                          Row(
+                            children: [
+                              Expanded(child: _buildGridItem(Icons.speed_outlined, l10n.fileDetailOffset, '#${event.sectorOffset}')),
+                              Expanded(child: _buildGridItem(Icons.access_time_outlined, l10n.fileDetailModified, event.modifiedTime)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -147,11 +193,7 @@ class FileDetailView extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
+                      const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => launchUrl(Uri.directory(p.dirname(filePath))),
@@ -176,51 +218,55 @@ class FileDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildPropertyItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+  Widget _buildGridItem(IconData icon, String label, String value, {bool isFullWidth = false}) {
+    return SizedBox(
+      width: isFullWidth ? double.infinity : 140,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+          Row(
+            children: [
+              Icon(icon, size: 14, color: Colors.white38),
+              const SizedBox(width: 6),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusItem(BuildContext context, String label, int status) {
+  Widget _buildStatusBadge(BuildContext context, int status) {
     final color = _getStatusColor(status);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: color.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              _getStatusText(context, status),
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        _getStatusText(context, status),
+        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -276,8 +322,8 @@ class VideoPreview extends StatefulWidget {
 }
 
 class _VideoPreviewState extends State<VideoPreview> {
-  late VideoPlayerController _videoPlayerController;
-  ChewieController? _chewieController;
+  late final player = Player();
+  late final controller = VideoController(player);
   bool _error = false;
 
   @override
@@ -288,28 +334,7 @@ class _VideoPreviewState extends State<VideoPreview> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.file(File(widget.videoPath));
-      await _videoPlayerController.initialize();
-      
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
-        autoPlay: false,
-        looping: false,
-        aspectRatio: _videoPlayerController.value.aspectRatio,
-        allowFullScreen: true,
-        allowMuting: true,
-        showControls: true,
-        placeholder: Container(
-          color: Colors.black,
-          child: const Center(child: CircularProgressIndicator(color: AppTheme.cyberCyan)),
-        ),
-        materialProgressColors: ChewieProgressColors(
-          playedColor: AppTheme.cyberCyan,
-          handleColor: AppTheme.cyberCyan,
-          backgroundColor: Colors.grey,
-          bufferedColor: AppTheme.cyberCyan.withValues(alpha: 0.3),
-        ),
-      );
+      await player.open(Media(widget.videoPath), play: false);
       setState(() {});
     } catch (e) {
       debugPrint('Error initializing video player: $e');
@@ -321,8 +346,7 @@ class _VideoPreviewState extends State<VideoPreview> {
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
-    _chewieController?.dispose();
+    player.dispose();
     super.dispose();
   }
 
@@ -341,16 +365,11 @@ class _VideoPreviewState extends State<VideoPreview> {
       );
     }
 
-    if (_chewieController == null || !_videoPlayerController.value.isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppTheme.cyberCyan),
-      );
-    }
-
     return Container(
       color: Colors.black,
-      child: Chewie(
-        controller: _chewieController!,
+      child: Video(
+        controller: controller,
+        controls: MaterialVideoControls,
       ),
     );
   }

@@ -22,9 +22,11 @@ import 'package:recovery_tool/features/conversion/conversion_view.dart';
 import 'package:recovery_tool/features/config/config_view.dart';
 import 'package:recovery_tool/scan_view.dart';
 import 'package:path/path.dart' as p;
+import 'package:media_kit/media_kit.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   final storageService = StorageService();
   final recoveryService = RecoveryService();
 
