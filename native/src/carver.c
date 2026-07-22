@@ -757,6 +757,7 @@ uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, co
     }
 
     uint64_t last_valid_pos = pos;
+    uint64_t data_start = pos; // Bắt đầu scan-data (sau SOS)
     uint8_t chunk[16 * 1024];
     int continuous_invalid = 0;
 
@@ -765,16 +766,26 @@ uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, co
         ssize_t n = READ(ctx->fd, chunk, sizeof(chunk));
         if (n < 64) break;
 
+        // LUÔN quét EOI (FF D9) trong mọi chunk — không phụ thuộc kết quả
+        // validate_jpeg_fragment. Trước đây chỉ quét EOI khi fragment được coi là
+        // "valid", nên khi phần đuôi ảnh bị đánh giá nhầm là invalid thì EOI thật bị
+        // bỏ qua và carve gộp luôn cả ảnh kế tiếp. Đồng thời dừng trước header của
+        // file JPEG mới (FF D8 FF E0/E1) để không nuốt ảnh sau (best-effort).
+        for (size_t i = 0; i + 1 < (size_t)n; i++) {
+            if (chunk[i] == 0xFF && chunk[i + 1] == 0xD9) {
+                return pos + (uint64_t)i + 2 - file_start;
+            }
+            if (i + 3 < (size_t)n &&
+                chunk[i] == 0xFF && chunk[i + 1] == 0xD8 && chunk[i + 2] == 0xFF &&
+                (chunk[i + 3] == 0xE0 || chunk[i + 3] == 0xE1) &&
+                (pos + (uint64_t)i) > data_start + 1024) {
+                return pos + (uint64_t)i - file_start;
+            }
+        }
+
         if (validate_jpeg_fragment(&jpeg_ctx, chunk, (size_t)n)) {
             continuous_invalid = 0;
             last_valid_pos = pos + (uint64_t)n;
-
-            // Look for EOI
-            for (size_t i = 0; i < (size_t)n - 1; i++) {
-                if (chunk[i] == 0xFF && chunk[i+1] == 0xD9) {
-                    return pos + (uint64_t)i + 2 - file_start;
-                }
-            }
         } else {
             continuous_invalid++;
             if (continuous_invalid > 8) { // 128KB invalid
@@ -796,7 +807,8 @@ uint64_t jpeg_smart_carve_size(const CarverContext* ctx, uint64_t file_start, co
                 continue;
             }
         }
-        pos += (uint64_t)n;
+        // Chừa lại 3 byte để bắt marker (FF D8 FF ..) bị cắt ngang biên chunk.
+        pos += (uint64_t)n - 3;
     }
     return last_valid_pos - file_start;
 }

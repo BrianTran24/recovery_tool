@@ -98,15 +98,16 @@ static void sanitize_relative_path(const char* relPath, char* out, size_t outSiz
         if (len >= sizeof(segment)) len = sizeof(segment) - 1;
         memcpy(segment, start, len);
         segment[len] = '\0';
-        sanitize_path_component(segment, segment, sizeof(segment));
-        if (segment[0] == '\0') continue;
+        char cleaned[256];
+        sanitize_path_component(segment, cleaned, sizeof(cleaned));
+        if (cleaned[0] == '\0') continue;
 
-        size_t segLen = strlen(segment);
+        size_t segLen = strlen(cleaned);
         if (written > 0 && written + 1 < outSize) {
             out[written++] = PATH_SEP;
         }
         if (written + segLen >= outSize) segLen = outSize - written - 1;
-        memcpy(out + written, segment, segLen);
+        memcpy(out + written, cleaned, segLen);
         written += segLen;
         out[written] = '\0';
         if (written + 1 >= outSize) break;
@@ -338,12 +339,20 @@ int ProcessFiles(int fd, int64_t baseSector, FileCollector* collector, const cha
         spc = 1 << boot[109];
         dataStart = baseSector + clusterHeapOffset;
     } else {
+        uint16_t bytesPerSec = *(uint16_t*)(boot + 11);
+        if (bytesPerSec == 0) bytesPerSec = 512;
         uint16_t resSectors = *(uint16_t*)(boot + 14);
         uint8_t numFats = boot[16];
-        uint32_t fatSize = *(uint32_t*)(boot + 36);
+        uint16_t rootEntCnt = *(uint16_t*)(boot + 17);
+        uint16_t fatSize16 = *(uint16_t*)(boot + 22);
+        uint32_t fatSize32 = *(uint32_t*)(boot + 36);
+        uint32_t fatSize = fatSize16 ? fatSize16 : fatSize32; // FAT12/16 dùng 16, FAT32 dùng 32
+        uint32_t rootDirSectors = ((uint32_t)rootEntCnt * 32u + (bytesPerSec - 1)) / bytesPerSec;
         spc = boot[13];
-        bpc = spc * 512;
-        dataStart = baseSector + resSectors + (numFats * fatSize);
+        bpc = spc * bytesPerSec;
+        // FAT12/16 có vùng root directory cố định giữa FAT và data; FAT32 rootEntCnt=0
+        // nên rootDirSectors=0 → công thức đúng cho cả ba loại.
+        dataStart = baseSector + resSectors + (numFats * fatSize) + rootDirSectors;
     }
 
     int recovered = 0;

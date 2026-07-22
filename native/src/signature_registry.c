@@ -16,6 +16,7 @@ void init_signature_registry(SignatureRegistry* reg) {
         .name = "JPEG", .extension = ".jpg",
         .header = {0xFF, 0xD8, 0xFF}, .header_len = 3,
         .strategy = STRATEGY_SMART_JPEG, .max_size = 100ULL * 1024 * 1024,
+        .min_size = 50ULL * 1024, // Ảnh máy ảnh thường 700KB-1MB; ngưỡng 1MB mặc định loại nhầm ảnh thật
         .read_size = jpeg_smart_carve_size,
         .validate = jpeg_validate
     };
@@ -27,6 +28,7 @@ void init_signature_registry(SignatureRegistry* reg) {
         .header = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, .header_len = 8,
         .footer = {0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82}, .footer_len = 8,
         .strategy = STRATEGY_FOOTER, .max_size = 100ULL * 1024 * 1024,
+        .min_size = 16ULL * 1024,
     };
     register_signature(reg, &png);
 

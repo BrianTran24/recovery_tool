@@ -95,6 +95,9 @@ typedef struct {
     uint32_t data_start_sector;  // Sector bắt đầu Data region
     uint32_t root_cluster;       // Cluster đầu tiên của root dir
     uint32_t total_clusters;
+    int      fat_type;           // 12, 16 hoặc 32
+    uint32_t root_entry_count;   // FAT12/16: số entry vùng root cố định (0 với FAT32)
+    uint32_t root_dir_start_sector; // FAT12/16: sector bắt đầu vùng root (tương đối partition)
     int64_t  baseSector;         // LBA bắt đầu của partition
 } FAT32_Info;
 
@@ -133,15 +136,33 @@ int ParseBPB(const uint8_t* sector0, FAT32_BPB* bpb, FAT32_Info* info) {
     info->sectors_per_cluster = bpb->sectors_per_cluster;
     info->bytes_per_cluster   = bpb->bytes_per_sector * bpb->sectors_per_cluster;
 
+    // FAT12/16 dùng fat_size_16, total_sectors_16 và có vùng root directory cố định;
+    // FAT32 dùng fat_size_32, total_sectors_32 và root là cluster chain (root_cluster).
+    uint32_t fat_size    = bpb->fat_size_16 ? bpb->fat_size_16 : bpb->fat_size_32;
+    uint32_t total_secs  = bpb->total_sectors_16 ? bpb->total_sectors_16 : bpb->total_sectors_32;
+    uint32_t root_dir_sectors = ((uint32_t)bpb->root_entry_count * 32u
+                                 + (bpb->bytes_per_sector - 1)) / bpb->bytes_per_sector;
+
     info->fat_start_sector    = bpb->reserved_sectors;
-    info->fat_size_sectors    = bpb->fat_size_32;
+    info->fat_size_sectors    = fat_size;
+    info->root_dir_start_sector = bpb->reserved_sectors + (uint32_t)bpb->num_fats * fat_size;
+    info->root_entry_count    = bpb->root_entry_count;
 
     info->data_start_sector   = bpb->reserved_sectors
-                                + (bpb->num_fats * bpb->fat_size_32);
+                                + (uint32_t)bpb->num_fats * fat_size
+                                + root_dir_sectors;
 
-    info->root_cluster        = bpb->root_cluster; // = 2
-    info->total_clusters      = (bpb->total_sectors_32 - info->data_start_sector)
-                                / bpb->sectors_per_cluster;
+    uint32_t data_secs = (total_secs > info->data_start_sector)
+                         ? (total_secs - info->data_start_sector) : 0;
+    info->total_clusters      = data_secs / bpb->sectors_per_cluster;
+
+    // Xác định loại FAT theo số cluster (chuẩn Microsoft EFI FAT spec).
+    if (info->total_clusters < 4085)       info->fat_type = 12;
+    else if (info->total_clusters < 65525) info->fat_type = 16;
+    else                                   info->fat_type = 32;
+
+    // Root directory: FAT32 theo cluster chain, FAT12/16 theo vùng cố định.
+    info->root_cluster = (info->fat_type == 32) ? bpb->root_cluster : 0;
 
     return 0;
 }
@@ -152,12 +173,60 @@ int ParseBPB(const uint8_t* sector0, FAT32_BPB* bpb, FAT32_Info* info) {
 #define FAT32_FREE        0x00000000  // Cluster trống
 #define FAT32_BAD         0x0FFFFFF7  // Bad cluster
 
+// Số phần tử của bảng FAT hiện tại (đặt bởi LoadFATTable) — dùng để chặn OOB trong
+// FATNextCluster khi gặp số cluster rác.
+static uint32_t g_fat_num_entries = 0;
+
 uint32_t* LoadFATTable(int fd, const FAT32_Info* info) {
     uint32_t fatBytes = info->fat_size_sectors * info->bytes_per_sector;
+
+    // FAT12/16: đọc FAT thô rồi giải mã sang mảng uint32_t chuẩn hoá (EOC/BAD/FREE
+    // theo quy ước FAT32) để mọi hàm FATNextCluster/IsClusterFree/EOC dùng lại được.
+    if (info->fat_type == 12 || info->fat_type == 16) {
+        uint8_t* raw = (uint8_t*)malloc(fatBytes);
+        if (!raw) return NULL;
+        // fat_start_sector là tương đối so với đầu partition → phải cộng baseSector.
+        off_t_64 offset = (off_t_64)(info->baseSector + info->fat_start_sector) * info->bytes_per_sector;
+        int raw_ok = (LSEEK(fd, offset, SEEK_SET) >= 0 &&
+                      READ(fd, raw, fatBytes) == (ssize_t)fatBytes);
+        if (!raw_ok) memset(raw, 0, fatBytes);
+
+        // Mảng đủ lớn để chứa mọi giá trị cluster hợp lệ (12-bit ->4096, 16-bit ->65536),
+        // tránh truy cập ngoài mảng khi chain trỏ tới giá trị lớn.
+        uint32_t arrEntries = (info->fat_type == 12) ? 4096u : 65538u;
+        uint32_t availEntries = (info->fat_type == 12) ? (fatBytes * 2u / 3u) : (fatBytes / 2u);
+        uint32_t* fat = (uint32_t*)calloc(arrEntries, sizeof(uint32_t));
+        if (!fat) { free(raw); return NULL; }
+        g_fat_num_entries = arrEntries;
+
+        for (uint32_t c = 0; c < availEntries && c < arrEntries; c++) {
+            uint32_t val;
+            if (info->fat_type == 16) {
+                val = (uint32_t)raw[c * 2] | ((uint32_t)raw[c * 2 + 1] << 8);
+                if (val >= 0xFFF8)      val = FAT32_EOC;
+                else if (val == 0xFFF7) val = FAT32_BAD;
+            } else { // FAT12
+                uint32_t idx = c + (c >> 1); // c * 1.5
+                if (idx + 1 >= fatBytes) { val = 0; }
+                else {
+                    uint32_t pair = (uint32_t)raw[idx] | ((uint32_t)raw[idx + 1] << 8);
+                    val = (c & 1) ? (pair >> 4) : (pair & 0x0FFF);
+                    if (val >= 0xFF8)      val = FAT32_EOC;
+                    else if (val == 0xFF7) val = FAT32_BAD;
+                }
+            }
+            fat[c] = val;
+        }
+        free(raw);
+        return fat;
+    }
+
+    // FAT32: entry 32-bit, đọc thẳng.
     uint32_t* fat = (uint32_t*)malloc(fatBytes);
     if (!fat) return NULL;
+    g_fat_num_entries = fatBytes / sizeof(uint32_t);
 
-    off_t_64 offset = (off_t_64)info->fat_start_sector * info->bytes_per_sector;
+    off_t_64 offset = (off_t_64)(info->baseSector + info->fat_start_sector) * info->bytes_per_sector;
     if (LSEEK(fd, offset, SEEK_SET) < 0 || READ(fd, fat, fatBytes) != (ssize_t)fatBytes) {
         // Vùng FAT hỏng/không đọc được (thẻ lỗi ghi): zero-fill để coi mọi cluster là
         // FREE. Nhờ đó pha "hunt" bên dưới quét toàn bộ cluster-heap và dựng lại cây
@@ -170,6 +239,10 @@ uint32_t* LoadFATTable(int fd, const FAT32_Info* info) {
 
 // Tra cứu cluster tiếp theo trong chain
 uint32_t FATNextCluster(const uint32_t* fat, uint32_t cluster) {
+    // Chặn truy cập ngoài mảng: directory entry hỏng/orphan có thể chứa số cluster
+    // rác (32-bit bất kỳ). Với FAT12/16 mảng nhỏ hơn nhiều nên rất dễ OOB → coi như
+    // kết thúc chain.
+    if (cluster >= g_fat_num_entries) return FAT32_EOC;
     return fat[cluster] & FAT32_MASK;
 }
 
@@ -266,7 +339,7 @@ static void ProcessLFNEntry(const uint8_t* entry, LFN_State* lfn) {
 
     lfn->expected_seq = seq & 0x1F;
     int start_index = (lfn->expected_seq - 1) * 13;
-    if (start_index + 13 > 255) {
+    if (start_index < 0 || start_index + 13 > 255) {
         lfn->is_valid = 0;
         return;
     }
@@ -707,7 +780,6 @@ static void CollectFromCluster(int fd, const FAT32_Info* info, const uint32_t* f
             char subRelPath[512];
             if (relPath && relPath[0]) snprintf(subRelPath, sizeof(subRelPath), "%s%c%s", relPath, PATH_SEP, subFolderName);
             else snprintf(subRelPath, sizeof(subRelPath), "%s", subFolderName);
-
             uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
             if (subBuf) {
                 CollectFromDirectory(fd, info, fat, subCluster, subBuf, collector, subRelPath, cancelled, paused, scan_mode, visited, depth + 1);
@@ -784,6 +856,82 @@ static int IsFatDirCluster(const uint8_t* buf, uint32_t sz) {
     return (dirEntries >= 1);
 }
 
+// FAT12/16: Root directory nằm ở vùng CỐ ĐỊNH ngay sau các bảng FAT (không theo
+// cluster chain như FAT32). Đọc toàn bộ vùng root, duyệt entry và đệ quy vào thư
+// mục con (thư mục con vẫn theo cluster nên dùng lại CollectFromDirectory).
+static void CollectFromRootRegion(int fd, const FAT32_Info* info, const uint32_t* fat,
+                                  FileCollector* collector, volatile int* cancelled,
+                                  volatile int* paused, int scan_mode, uint8_t* visited) {
+    uint32_t rootBytes = info->root_entry_count * (uint32_t)sizeof(FAT32_DirEntry);
+    if (rootBytes == 0) return;
+    uint8_t* buf = (uint8_t*)malloc(rootBytes);
+    if (!buf) return;
+
+    off_t_64 offset = (off_t_64)(info->baseSector + info->root_dir_start_sector)
+                      * info->bytes_per_sector;
+    if (LSEEK(fd, offset, SEEK_SET) < 0 || READ(fd, buf, rootBytes) != (ssize_t)rootBytes) {
+        free(buf);
+        return;
+    }
+
+    FAT32_DirEntry* entries = (FAT32_DirEntry*)buf;
+    LFN_State lfn = {0};
+    lfn.expected_seq = -1;
+
+    for (uint32_t i = 0; i < info->root_entry_count; i++) {
+        if (cancelled && *cancelled) break;
+        while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
+
+        FAT32_DirEntry* e = &entries[i];
+        if (e->name[0] == 0x00) break;
+
+        if (e->attributes == ATTR_LFN) {
+            ProcessLFNEntry((const uint8_t*)e, &lfn);
+            continue;
+        }
+
+        if (MatchFile(e, scan_mode)) {
+            FileInfo fi;
+            PopulateFileInfo(&fi, e, &lfn, "", FILE_STATUS_HEALTHY);
+            if (!fi.is_deleted) {
+                uint32_t curr = fi.starting_cluster;
+                uint32_t len = 0;
+                while (curr >= 2 && curr < 0x0FFFFFF8 && len < 1000000) {
+                    len++;
+                    curr = FATNextCluster(fat, curr);
+                }
+                if (len > 0) {
+                    fi.chain_length = len;
+                    fi.cluster_chain = (uint32_t*)malloc(len * sizeof(uint32_t));
+                    curr = fi.starting_cluster;
+                    for (uint32_t j = 0; j < len; j++) {
+                        fi.cluster_chain[j] = curr;
+                        curr = FATNextCluster(fat, curr);
+                    }
+                }
+            }
+            AddToFileCollector(collector, &fi);
+        }
+
+        if (e->name[0] != 0xE5 && (e->attributes & ATTR_DIRECTORY) &&
+            !(e->attributes & ATTR_VOLUME_ID) && e->name[0] != '.') {
+            uint32_t subCluster = GetFirstCluster(e);
+            char subFolderName[256];
+            LFN_State tempLfn = lfn;
+            GetFileName(e, &tempLfn, subFolderName, sizeof(subFolderName));
+
+            uint8_t* subBuf = (uint8_t*)malloc(info->bytes_per_cluster);
+            if (subBuf) {
+                CollectFromDirectory(fd, info, fat, subCluster, subBuf, collector,
+                                     subFolderName, cancelled, paused, scan_mode, visited, 1);
+                free(subBuf);
+            }
+        }
+        ResetLFN(&lfn);
+    }
+    free(buf);
+}
+
 void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0, FileCollector* collector, void* context, FatProgressCallback on_progress, volatile int* cancelled, volatile int* paused, int scan_mode) {
     FAT32_BPB bpb;
     FAT32_Info info;
@@ -800,7 +948,11 @@ void CollectHealthyFilesFat32(int fd, int64_t baseSector, const uint8_t* sector0
     uint8_t* visited = (uint8_t*)calloc(((size_t)info.total_clusters + 2) / 8 + 1, 1);
 
     // Duyệt cây thư mục từ Root.
-    CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, paused, scan_mode, visited, 0);
+    if (info.fat_type == 32) {
+        CollectFromDirectory(fd, &info, fat, info.root_cluster, clusterBuf, collector, "", cancelled, paused, scan_mode, visited, 0);
+    } else {
+        CollectFromRootRegion(fd, &info, fat, collector, cancelled, paused, scan_mode, visited);
+    }
 
     if (visited) free(visited);
     free(clusterBuf);
@@ -831,6 +983,14 @@ void ScanOrphanedEntriesFat32(int fd, int64_t baseSector, const uint8_t* sector0
         for (uint32_t c = 2; c < info.total_clusters + 2 && (!cancelled || !*cancelled); c++) {
             while (paused && *paused && (!cancelled || !*cancelled)) SLEEP_MS(100);
             if (VisitedTest(visited, c)) continue;
+
+            // Chỉ quét mù trong vùng KHÔNG gian trống (cluster free trong FAT) — nơi chứa
+            // file đã xóa/thất lạc. Cluster đang được cấp phát (thuộc file khỏe mạnh đã
+            // lấy ở Module 1) sẽ bị bỏ qua: vừa đúng về mặt forensic, vừa tránh việc đọc
+            // nhầm dữ liệu ảnh JPEG thành directory entry → làm ngập collector và treo
+            // (AddToFileCollector dedup O(n^2)). Khi FAT hỏng/không đọc được, LoadFATTable
+            // đã zero-fill nên mọi cluster = free → vẫn quét toàn bộ như "hunt mode".
+            if (!IsClusterFree(fat, c)) continue;
 
             if (ReadCluster(fd, &info, c, clusterBuf) == 0) {
                 // 1. Kiểm tra nếu cluster trông giống thư mục (Lost Directory)

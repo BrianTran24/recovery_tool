@@ -129,6 +129,8 @@ static void on_carve_file(void* ctx, const char* type, const char* name, const c
     s->carve_count++;
 }
 
+static void on_fat_file(void* ctx, const char* type, const char* name, const char* modifiedTime, int64_t size, int64_t sector, int64_t sector_count, const char* folder) {
+    (void)sector_count;
     ScanSession* s = (ScanSession*)ctx;
     int32_t status = (type && strcmp(type, "ORPHAN") == 0) ? FILE_STATUS_ORPHANED : FILE_STATUS_HEALTHY;
 
