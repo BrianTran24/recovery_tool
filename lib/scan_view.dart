@@ -42,6 +42,8 @@ class ScanView extends StatefulWidget {
 
 class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin {
   String? _selectedFolder;
+  String _searchQuery = '';
+  String _selectedCategory = 'All';
   
   // Timing logic
   final Stopwatch _stopwatch = Stopwatch();
@@ -142,9 +144,26 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
         final files = state.foundFiles;
         final done = state.status == ScanStatus.success || state.status == ScanStatus.failure;
 
-        // Group files by folder
+        // 1. Apply Search and Category Filter first
+        final filteredBySearchAndCategory = files.where((f) {
+          final matchesSearch = f.filename.toLowerCase().contains(_searchQuery.toLowerCase());
+          
+          bool matchesCategory = true;
+          if (_selectedCategory == 'Images') {
+            matchesCategory = isImageFileType(f.fileType);
+          } else if (_selectedCategory == 'Videos') {
+            matchesCategory = isVideoFileType(f.fileType);
+          } else if (_selectedCategory == 'Documents') {
+            final type = canonicalFileType(f.fileType);
+            matchesCategory = type == 'PDF' || type == 'DOCX';
+          }
+          
+          return matchesSearch && matchesCategory;
+        }).toList();
+
+        // 2. Group filtered files by folder for the sidebar count
         final Map<String, List<FileFoundEvent>> folderGroups = {};
-        for (var f in files) {
+        for (var f in filteredBySearchAndCategory) {
           final folder = f.folder.isEmpty ? 'Root' : f.folder;
           folderGroups.putIfAbsent(folder, () => []).add(f);
         }
@@ -153,10 +172,18 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
         if (_selectedFolder == null && folders.isNotEmpty) {
           _selectedFolder = folders.first;
         } else if (_selectedFolder != null && !folders.contains(_selectedFolder)) {
-          _selectedFolder = folders.isNotEmpty ? folders.first : null;
+          // If the selected folder is no longer in the filtered list, we don't necessarily reset it, 
+          // because the user might have filtered away all files in that folder.
+          // But for the grid, we need to decide what to show.
         }
 
-        final displayedFiles = _selectedFolder != null ? folderGroups[_selectedFolder] ?? [] : [];
+        // 3. Final display list (either from folder or the whole filtered list if no folder selected)
+        List<FileFoundEvent> displayedFiles;
+        if (_selectedFolder != null && folderGroups.containsKey(_selectedFolder)) {
+          displayedFiles = folderGroups[_selectedFolder]!;
+        } else {
+          displayedFiles = filteredBySearchAndCategory;
+        }
 
         return Column(
           children: [
@@ -200,70 +227,87 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                           decoration: const BoxDecoration(
                             border: Border(right: BorderSide(color: Colors.white10)),
                           ),
-                          child: folders.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    l10n.scanSearchingFiles,
-                                    style: const TextStyle(color: Colors.white24, fontSize: 12),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                )
-                              : ListView.builder(
-                                  itemCount: folders.length,
-                                  itemBuilder: (context, index) {
-                                    final folder = folders[index];
-                                    final isSelected = _selectedFolder == folder;
-                                    final count = folderGroups[folder]?.length ?? 0;
-                                    return ListTile(
-                                      dense: true,
-                                      selected: isSelected,
-                                      selectedTileColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
-                                      leading: Icon(
-                                        folder == 'Root' ? Icons.folder_special_rounded : Icons.folder_rounded,
-                                        size: 18,
-                                        color: isSelected ? AppTheme.cyberCyan : Colors.white54,
-                                      ),
-                                      title: Text(
-                                        folder,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: isSelected ? AppTheme.cyberCyan : Colors.white70,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSidebarSection(Icons.folder_rounded, l10n.scanTabFiles),
+                              Expanded(
+                                child: folders.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          l10n.scanSearchingFiles,
+                                          style: const TextStyle(color: Colors.white24, fontSize: 12),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      )
+                                    : ListView.builder(
+                                        itemCount: folders.length,
+                                        itemBuilder: (context, index) {
+                                          final folder = folders[index];
+                                          final isSelected = _selectedFolder == folder;
+                                          final count = folderGroups[folder]?.length ?? 0;
+                                          return ListTile(
+                                            dense: true,
+                                            selected: isSelected,
+                                            selectedTileColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                                            leading: Icon(
+                                              folder == 'Root' ? Icons.folder_special_rounded : Icons.folder_rounded,
+                                              size: 18,
+                                              color: isSelected ? AppTheme.cyberCyan : Colors.white54,
+                                            ),
+                                            title: Text(
+                                              folder,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isSelected ? AppTheme.cyberCyan : Colors.white70,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            trailing: Text(
+                                              '$count',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: isSelected ? AppTheme.cyberCyan : Colors.white24,
+                                              ),
+                                            ),
+                                            onTap: () => setState(() => _selectedFolder = folder),
+                                          );
+                                        },
                                       ),
-                                      trailing: Text(
-                                        '$count',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: isSelected ? AppTheme.cyberCyan : Colors.white24,
-                                        ),
-                                      ),
-                                      onTap: () => setState(() => _selectedFolder = folder),
-                                    );
-                                  },
-                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         Expanded(
-                          child: displayedFiles.isEmpty
-                              ? _buildEmptyState(Icons.find_in_page_rounded, l10n.scanSearchingFiles)
-                              : GridView.builder(
-                                  padding: const EdgeInsets.all(16),
-                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 180,
-                                    mainAxisExtent: 160,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                  ),
-                                  itemCount: displayedFiles.length,
-                                  itemBuilder: (context, index) {
-                                    return _FileGridItem(
-                                      event: displayedFiles[displayedFiles.length - 1 - index],
-                                      outputDir: widget.outputDir,
-                                    );
-                                  },
-                                ),
+                          child: Column(
+                            children: [
+                              // Top Filter Bar
+                              _buildTopFilterBar(context),
+                              const Divider(height: 1, color: Colors.white10),
+                              Expanded(
+                                child: displayedFiles.isEmpty
+                                    ? _buildEmptyState(Icons.find_in_page_rounded, l10n.scanSearchingFiles)
+                                    : GridView.builder(
+                                        padding: const EdgeInsets.all(16),
+                                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: 180,
+                                          mainAxisExtent: 160,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                        ),
+                                        itemCount: displayedFiles.length,
+                                        itemBuilder: (context, index) {
+                                          return _FileGridItem(
+                                            event: displayedFiles[displayedFiles.length - 1 - index],
+                                            outputDir: widget.outputDir,
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -450,6 +494,109 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
           ],
         ),
       )).toList(),
+    );
+  }
+
+  Widget _buildTopFilterBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white.withValues(alpha: 0.02),
+      child: Row(
+        children: [
+          // Search Box
+          SizedBox(
+            width: 250,
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Search files...',
+                hintStyle: const TextStyle(color: Colors.white24),
+                prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white24),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 24),
+          // Category Chips
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('All', Icons.all_inclusive_rounded),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Images', Icons.image_rounded),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Videos', Icons.videocam_rounded),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Documents', Icons.description_rounded),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, IconData icon) {
+    final isSelected = _selectedCategory == label;
+    return InkWell(
+      onTap: () => setState(() => _selectedCategory = label),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.cyberCyan.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppTheme.cyberCyan.withValues(alpha: 0.5) : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: isSelected ? AppTheme.cyberCyan : Colors.white54),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? AppTheme.cyberCyan : Colors.white70,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarSection(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.white24),
+          const SizedBox(width: 8),
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.white24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
