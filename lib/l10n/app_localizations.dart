@@ -680,6 +680,18 @@ abstract class AppLocalizations {
   /// **'Show in Folder'**
   String get fileDetailShowInFolder;
 
+  /// No description provided for @fileDetailNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next File'**
+  String get fileDetailNext;
+
+  /// No description provided for @fileDetailPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous File'**
+  String get fileDetailPrevious;
+
   /// No description provided for @fileDetailHealthy.
   ///
   /// In en, this message translates to:

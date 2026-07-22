@@ -179,6 +179,8 @@
   "fileDetailStatus": "Recovery Status",
   "fileDetailOpenFile": "Open File",
   "fileDetailShowInFolder": "Show in Folder",
+  "fileDetailNext": "Next File",
+  "fileDetailPrevious": "Previous File",
   "fileDetailHealthy": "Healthy",
   "fileDetailOrphaned": "Orphaned",
   "fileDetailCarved": "Carved"

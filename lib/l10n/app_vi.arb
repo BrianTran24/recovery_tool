@@ -179,6 +179,8 @@
   "fileDetailStatus": "Trạng thái khôi phục",
   "fileDetailOpenFile": "Mở Tệp",
   "fileDetailShowInFolder": "Xem trong thư mục",
+  "fileDetailNext": "Tệp tiếp theo",
+  "fileDetailPrevious": "Tệp trước đó",
   "fileDetailHealthy": "Tốt",
   "fileDetailOrphaned": "Thất lạc (Orphaned)",
   "fileDetailCarved": "Khôi phục thô (Carved)"

@@ -329,6 +329,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileDetailShowInFolder => 'Show in Folder';
 
   @override
+  String get fileDetailNext => 'Next File';
+
+  @override
+  String get fileDetailPrevious => 'Previous File';
+
+  @override
   String get fileDetailHealthy => 'Healthy';
 
   @override

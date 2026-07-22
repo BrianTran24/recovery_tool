@@ -8,15 +8,46 @@ import 'package:recovery_tool/core/models/recovery_event.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
-class FileDetailView extends StatelessWidget {
-  final FileFoundEvent event;
+class FileDetailView extends StatefulWidget {
+  final List<FileFoundEvent> allFiles;
+  final int initialIndex;
   final String outputDir;
 
   const FileDetailView({
     super.key,
-    required this.event,
+    required this.allFiles,
+    required this.initialIndex,
     required this.outputDir,
   });
+
+  @override
+  State<FileDetailView> createState() => _FileDetailViewState();
+}
+
+class _FileDetailViewState extends State<FileDetailView> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  void _goToPrevious() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+      });
+    }
+  }
+
+  void _goToNext() {
+    if (_currentIndex < widget.allFiles.length - 1) {
+      setState(() {
+        _currentIndex++;
+      });
+    }
+  }
 
   String _formatSize(int bytes) {
     if (bytes > 1024 * 1024) return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
@@ -54,10 +85,11 @@ class FileDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final event = widget.allFiles[_currentIndex];
     final normalizedType = canonicalFileType(event.fileType);
     final isImage = isImageFileType(normalizedType);
     final isVideo = isVideoFileType(normalizedType);
-    final filePath = p.join(outputDir, event.folder, event.filename);
+    final filePath = p.join(widget.outputDir, event.folder, event.filename);
     
     return Scaffold(
       backgroundColor: AppTheme.cyberDeepNavy,
@@ -65,32 +97,76 @@ class FileDetailView extends StatelessWidget {
         title: Text(l10n.fileDetailTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: Center(
+              child: Text(
+                '${_currentIndex + 1} / ${widget.allFiles.length}',
+                style: const TextStyle(color: Colors.white38, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Left Side: Large Preview
+          // Left Side: Large Preview with Navigation
           Expanded(
             flex: 3,
-            child: Container(
-              margin: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: isImage
-                    ? Image.file(
-                        File(filePath),
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => _buildNoPreview(normalizedType),
-                      )
-                    : (isVideo 
-                        ? VideoPreview(videoPath: filePath)
-                        : _buildNoPreview(normalizedType)),
-              ),
+            child: Stack(
+              children: [
+                Container(
+                  margin: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: isImage
+                        ? Image.file(
+                            File(filePath),
+                            fit: BoxFit.contain,
+                            key: ValueKey(filePath),
+                            errorBuilder: (context, error, stackTrace) => _buildNoPreview(normalizedType),
+                          )
+                        : (isVideo 
+                            ? VideoPreview(videoPath: filePath, key: ValueKey(filePath))
+                            : _buildNoPreview(normalizedType)),
+                  ),
+                ),
+                
+                // Navigation Overlay
+                if (_currentIndex > 0)
+                  Positioned(
+                    left: 40,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: _buildNavButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onPressed: _goToPrevious,
+                        tooltip: l10n.fileDetailPrevious,
+                      ),
+                    ),
+                  ),
+                if (_currentIndex < widget.allFiles.length - 1)
+                  Positioned(
+                    right: 40,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: _buildNavButton(
+                        icon: Icons.arrow_forward_ios_rounded,
+                        onPressed: _goToNext,
+                        tooltip: l10n.fileDetailNext,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
 
@@ -120,6 +196,7 @@ class FileDetailView extends StatelessWidget {
                   const SizedBox(height: 24),
                   Expanded(
                     child: SingleChildScrollView(
+                      key: ValueKey('info_$_currentIndex'),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -214,6 +291,30 @@ class FileDetailView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(icon, color: Colors.white, size: 28),
+          onPressed: onPressed,
+          style: IconButton.styleFrom(
+            hoverColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+            padding: const EdgeInsets.all(12),
+          ),
+        ),
       ),
     );
   }
@@ -335,12 +436,14 @@ class _VideoPreviewState extends State<VideoPreview> {
   Future<void> _initializePlayer() async {
     try {
       await player.open(Media(widget.videoPath), play: false);
-      setState(() {});
+      if (mounted) setState(() {});
     } catch (e) {
       debugPrint('Error initializing video player: $e');
-      setState(() {
-        _error = true;
-      });
+      if (mounted) {
+        setState(() {
+          _error = true;
+        });
+      }
     }
   }
 

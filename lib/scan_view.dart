@@ -311,7 +311,8 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                                           final file = reversedFiles[index];
                                           return _FileGridItem(
                                             key: ValueKey('${file.sectorOffset}_${file.filename}'),
-                                            event: file,
+                                            allFiles: reversedFiles,
+                                            index: index,
                                             outputDir: widget.outputDir,
                                           );
                                         },
@@ -657,12 +658,14 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 }
 
 class _FileGridItem extends StatefulWidget {
-  final FileFoundEvent event;
+  final List<FileFoundEvent> allFiles;
+  final int index;
   final String outputDir;
   
   const _FileGridItem({
     super.key,
-    required this.event,
+    required this.allFiles,
+    required this.index,
     required this.outputDir,
   });
 
@@ -708,11 +711,12 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     
-    final normalizedType = canonicalFileType(widget.event.fileType);
+    final event = widget.allFiles[widget.index];
+    final normalizedType = canonicalFileType(event.fileType);
     final color = _colors[normalizedType] ?? Colors.blueGrey;
     final icon  = _icons[normalizedType]  ?? Icons.insert_drive_file_rounded;
     final isImage = isImageFileType(normalizedType);
-    final filePath = p.join(widget.outputDir, widget.event.folder, widget.event.filename);
+    final filePath = p.join(widget.outputDir, event.folder, event.filename);
 
     return Material(
       color: Colors.transparent,
@@ -721,7 +725,8 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => FileDetailView(
-                event: widget.event,
+                allFiles: widget.allFiles,
+                initialIndex: widget.index,
                 outputDir: widget.outputDir,
               ),
             ),
@@ -770,7 +775,7 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '#${widget.event.sectorOffset}',
+                            '#${event.sectorOffset}',
                             style: const TextStyle(fontSize: 8, color: Colors.white70, fontFamily: 'monospace'),
                           ),
                         ),
@@ -788,7 +793,7 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      widget.event.filename,
+                      event.filename,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Colors.white),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -809,7 +814,7 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
                           ),
                         ),
                         Text(
-                          _formatSize(widget.event.fileSize),
+                          _formatSize(event.fileSize),
                           style: const TextStyle(fontSize: 9, color: Colors.white38),
                         ),
                       ],

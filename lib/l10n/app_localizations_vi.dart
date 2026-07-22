@@ -328,6 +328,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get fileDetailShowInFolder => 'Xem trong thư mục';
 
   @override
+  String get fileDetailNext => 'Tệp tiếp theo';
+
+  @override
+  String get fileDetailPrevious => 'Tệp trước đó';
+
+  @override
   String get fileDetailHealthy => 'Tốt';
 
   @override
