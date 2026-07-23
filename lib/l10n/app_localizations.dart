@@ -614,6 +614,42 @@ abstract class AppLocalizations {
   /// **'OPEN OUTPUT FOLDER'**
   String get openFolder;
 
+  /// No description provided for @freeScanMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Scan & Preview Mode'**
+  String get freeScanMode;
+
+  /// No description provided for @upgradeToSave.
+  ///
+  /// In en, this message translates to:
+  /// **'UPGRADE TO SAVE'**
+  String get upgradeToSave;
+
+  /// No description provided for @upgradeRequiredDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Premium to save recovered files to your computer.'**
+  String get upgradeRequiredDesc;
+
+  /// No description provided for @saveToDiskPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Disk (Premium)'**
+  String get saveToDiskPremium;
+
+  /// No description provided for @premiumFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Feature'**
+  String get premiumFeature;
+
+  /// No description provided for @freeModeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning to temporary storage for preview. Files may be cleared by system.'**
+  String get freeModeDesc;
+
   /// No description provided for @fileDetailTitle.
   ///
   /// In en, this message translates to:
@@ -709,6 +745,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Carved'**
   String get fileDetailCarved;
+
+  /// No description provided for @clearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all temporary scan files to free up disk space.'**
+  String get clearCacheDesc;
+
+  /// No description provided for @cacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared successfully'**
+  String get cacheCleared;
+
+  /// No description provided for @clearCacheError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error clearing cache: {error}'**
+  String clearCacheError(String error);
 }
 
 class _AppLocalizationsDelegate

@@ -18,12 +18,16 @@ class ProgressEvent extends RecoveryEvent {
   final double percent;
   final int scannedBytes;
   final int speedMbps;
-  ProgressEvent({required this.percent,
+  final String? statusMessage;
+  ProgressEvent({
+    required this.percent,
     required this.scannedBytes,
-    required this.speedMbps});
+    required this.speedMbps,
+    this.statusMessage,
+  });
 
   @override
-  String toString() => 'ProgressEvent(percent: ${percent.toStringAsFixed(1)}%, scanned: $scannedBytes, speed: $speedMbps Mbps)';
+  String toString() => 'ProgressEvent(percent: ${percent.toStringAsFixed(1)}%, scanned: $scannedBytes, speed: $speedMbps Mbps, status: $statusMessage)';
 }
 
 class FileFoundEvent extends RecoveryEvent {

@@ -49,7 +49,11 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       if (event is FsIdentifiedEvent) {
         add(FsIdentifiedEventReceived(event.filesystems));
       } else if (event is ProgressEvent) {
-        add(ScanProgressUpdatedEvent(event.percent, event.speedMbps));
+        add(ScanProgressUpdatedEvent(
+          event.percent, 
+          event.speedMbps, 
+          statusMessage: event.statusMessage,
+        ));
       } else if (event is FileFoundEvent) {
         add(FileFoundEventReceived(event));
       } else if (event is DoneEvent) {
@@ -122,6 +126,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       status: ScanStatus.inProgress,
       percent: event.percent,
       speed: event.speedMbps,
+      statusMessage: event.statusMessage,
       elapsed: elapsed,
     ));
   }

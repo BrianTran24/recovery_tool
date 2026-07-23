@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isCleaning = false;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LocaleCubit, Locale>(
       builder: (context, currentLocale) {
         final l10n = AppLocalizations.of(context)!;
-        return Padding(
+        return SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,6 +59,40 @@ class SettingsScreen extends StatelessWidget {
                       label: l10n.english,
                       isSelected: currentLocale.languageCode == 'en',
                       onTap: () => context.read<LocaleCubit>().setLocale(const Locale('en')),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+
+              _buildSettingsSection(
+                context,
+                title: 'Storage',
+                icon: Icons.storage_rounded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.clearCacheDesc,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _isCleaning ? null : () => _clearCache(context, l10n),
+                      icon: _isCleaning 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor))
+                          : const Icon(Icons.cleaning_services_rounded, size: 18),
+                      label: Text(l10n.clearCache),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        foregroundColor: AppTheme.primaryColor,
+                        side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      ),
                     ),
                   ],
                 ),
@@ -99,6 +141,26 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _clearCache(BuildContext context, AppLocalizations l10n) async {
+    setState(() => _isCleaning = true);
+    try {
+      await context.read<StorageService>().clearCache();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.cacheCleared)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.clearCacheError(e.toString()))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCleaning = false);
+    }
   }
 
   Widget _buildSettingsSection(BuildContext context, {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:disks_desktop/disks_desktop.dart';
+import '../../core/bloc/premium/premium_cubit.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'widgets/animated_scan_button.dart';
@@ -31,7 +34,17 @@ class _ConfigViewState extends State<ConfigView> {
   @override
   void initState() {
     super.initState();
-    _outputDir = r'E:\test';
+    _initPath();
+  }
+
+  Future<void> _initPath() async {
+    final isPremium = context.read<PremiumCubit>().state;
+    if (isPremium) {
+      _outputDir = r'E:\test';
+    } else {
+      final temp = await getTemporaryDirectory();
+      _outputDir = temp.path;
+    }
     _pathController.text = _outputDir!;
   }
 
@@ -60,101 +73,152 @@ class _ConfigViewState extends State<ConfigView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Disk Info Card
-          _buildSectionHeader(l10n.sourceDevice),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cyberCyan.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.storage_rounded, color: AppTheme.cyberCyan),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.disk.raw.startsWith('/dev/')
-                              ? (widget.disk.devicePath ?? l10n.unknownDevice)
-                              : l10n.backupImage(widget.disk.devicePath ?? 'Unknown'),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+    return BlocBuilder<PremiumCubit, bool>(
+      builder: (context, isPremium) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Disk Info Card
+              _buildSectionHeader(l10n.sourceDevice),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.disk.raw.startsWith('/dev/')
-                              ? l10n.capacity((widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024))
-                              : l10n.readOnlyMode,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (widget.onBack != null || widget.onPickNewFile != null)
-                    TextButton.icon(
-                      onPressed: () {
-                        if (widget.onPickNewFile != null && !widget.disk.raw.startsWith('/dev/')) {
-                          widget.onPickNewFile!();
-                        } else {
-                          widget.onBack?.call();
-                        }
-                      },
-                      icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.cyberCyan),
-                      label: Text(
-                        l10n.change,
-                        style: const TextStyle(
-                          color: AppTheme.cyberCyan,
-                          fontWeight: FontWeight.bold,
+                        child: const Icon(Icons.storage_rounded, color: AppTheme.cyberCyan),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.disk.raw.startsWith('/dev/')
+                                  ? (widget.disk.devicePath ?? l10n.unknownDevice)
+                                  : l10n.backupImage(widget.disk.devicePath ?? 'Unknown'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.disk.raw.startsWith('/dev/')
+                                  ? l10n.capacity((widget.disk.size ?? 0) ~/ (1024 * 1024 * 1024))
+                                  : l10n.readOnlyMode,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
+                            ),
+                          ],
                         ),
                       ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.05),
-                      ),
-                    ),
-                ],
+                      if (widget.onBack != null || widget.onPickNewFile != null)
+                        TextButton.icon(
+                          onPressed: () {
+                            if (widget.onPickNewFile != null && !widget.disk.raw.startsWith('/dev/')) {
+                              widget.onPickNewFile!();
+                            } else {
+                              widget.onBack?.call();
+                            }
+                          },
+                          icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.cyberCyan),
+                          label: Text(
+                            l10n.change,
+                            style: const TextStyle(
+                              color: AppTheme.cyberCyan,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.05),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
+              
+              if (!isPremium) ...[
+                const SizedBox(height: 12),
+                _buildPremiumBanner(l10n),
+              ],
+
+              // GC/Trim Warning
+              if (widget.disk.raw.startsWith('/dev/')) ...[
+                const SizedBox(height: 12),
+                _buildGCTrimWarning(),
+              ],
+              
+              const SizedBox(height: 16),
+              _buildSectionHeader(l10n.recoveryMode),
+              _buildScanModeSelector(l10n),
+              
+              const SizedBox(height: 16),
+              _buildSectionHeader(l10n.storageConfig),
+              _buildPathSelector(
+                label: l10n.outputDirectory,
+                controller: _pathController,
+                onTap: isPremium ? _pickDirectory : () {},
+                icon: Icons.folder_open_rounded,
+                isPremium: isPremium,
+              ),
+              
+              const Spacer(),
+              Center(
+                child: AnimatedScanButton(
+                  onTap: _startScan,
+                  label: l10n.startScanNow,
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPremiumBanner(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.workspace_premium_rounded, color: AppTheme.primaryColor, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.freeScanMode,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.freeModeDesc,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
-          
-          // GC/Trim Warning
-          if (widget.disk.raw.startsWith('/dev/')) ...[
-            const SizedBox(height: 12),
-            _buildGCTrimWarning(),
-          ],
-          
-          const SizedBox(height: 16),
-          _buildSectionHeader(l10n.recoveryMode),
-          _buildScanModeSelector(l10n),
-          
-          const SizedBox(height: 16),
-          _buildSectionHeader(l10n.storageConfig),
-          _buildPathSelector(
-            label: l10n.outputDirectory,
-            controller: _pathController,
-            onTap: _pickDirectory,
-            icon: Icons.folder_open_rounded,
-          ),
-          
-          const Spacer(),
-          Center(
-            child: AnimatedScanButton(
-              onTap: _startScan,
-              label: l10n.startScanNow,
-            ),
-          ),
-          const Spacer(),
         ],
       ),
     );
@@ -311,6 +375,7 @@ class _ConfigViewState extends State<ConfigView> {
     required VoidCallback onTap,
     required IconData icon,
     bool isSmall = false,
+    bool isPremium = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,22 +388,25 @@ class _ConfigViewState extends State<ConfigView> {
         Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: controller,
-                readOnly: true,
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: label,
-                  prefixIcon: Icon(icon, size: 20, color: AppTheme.cyberCyan),
-                  filled: true,
-                  fillColor: AppTheme.cyberGlass,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.cyberCyan.withValues(alpha: 0.2)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.cyberCyan.withValues(alpha: 0.2)),
+              child: Opacity(
+                opacity: isPremium ? 1.0 : 0.6,
+                child: TextField(
+                  controller: controller,
+                  readOnly: true,
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: label,
+                    prefixIcon: Icon(icon, size: 20, color: AppTheme.cyberCyan),
+                    filled: true,
+                    fillColor: AppTheme.cyberGlass,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.cyberCyan.withValues(alpha: 0.2)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.cyberCyan.withValues(alpha: 0.2)),
+                    ),
                   ),
                 ),
               ),
@@ -347,7 +415,7 @@ class _ConfigViewState extends State<ConfigView> {
             SizedBox(
               height: 56,
               child: ElevatedButton(
-                onPressed: onTap,
+                onPressed: isPremium ? onTap : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.cyberGlass,
                   foregroundColor: AppTheme.cyberCyan,

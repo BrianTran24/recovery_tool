@@ -296,6 +296,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openFolder => 'OPEN OUTPUT FOLDER';
 
   @override
+  String get freeScanMode => 'Free Scan & Preview Mode';
+
+  @override
+  String get upgradeToSave => 'UPGRADE TO SAVE';
+
+  @override
+  String get upgradeRequiredDesc =>
+      'Upgrade to Premium to save recovered files to your computer.';
+
+  @override
+  String get saveToDiskPremium => 'Save to Disk (Premium)';
+
+  @override
+  String get premiumFeature => 'Premium Feature';
+
+  @override
+  String get freeModeDesc =>
+      'Scanning to temporary storage for preview. Files may be cleared by system.';
+
+  @override
   String get fileDetailTitle => 'File Details';
 
   @override
@@ -342,4 +362,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fileDetailCarved => 'Carved';
+
+  @override
+  String get clearCache => 'Clear Cache';
+
+  @override
+  String get clearCacheDesc =>
+      'Delete all temporary scan files to free up disk space.';
+
+  @override
+  String get cacheCleared => 'Cache cleared successfully';
+
+  @override
+  String clearCacheError(String error) {
+    return 'Error clearing cache: $error';
+  }
 }

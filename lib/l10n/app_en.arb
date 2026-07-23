@@ -168,6 +168,12 @@
   "scanUnderstand": "I UNDERSTAND",
   "scanNew": "SCAN ANOTHER DEVICE",
   "openFolder": "OPEN OUTPUT FOLDER",
+  "freeScanMode": "Free Scan & Preview Mode",
+  "upgradeToSave": "UPGRADE TO SAVE",
+  "upgradeRequiredDesc": "Upgrade to Premium to save recovered files to your computer.",
+  "saveToDiskPremium": "Save to Disk (Premium)",
+  "premiumFeature": "Premium Feature",
+  "freeModeDesc": "Scanning to temporary storage for preview. Files may be cleared by system.",
   "fileDetailTitle": "File Details",
   "fileDetailProperties": "Properties",
   "fileDetailName": "Filename",
@@ -183,5 +189,16 @@
   "fileDetailPrevious": "Previous File",
   "fileDetailHealthy": "Healthy",
   "fileDetailOrphaned": "Orphaned",
-  "fileDetailCarved": "Carved"
+  "fileDetailCarved": "Carved",
+  "clearCache": "Clear Cache",
+  "clearCacheDesc": "Delete all temporary scan files to free up disk space.",
+  "cacheCleared": "Cache cleared successfully",
+  "clearCacheError": "Error clearing cache: {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

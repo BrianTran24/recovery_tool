@@ -11,8 +11,10 @@ import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/features/onboarding/onboarding_screen.dart';
 import 'package:recovery_tool/features/settings/settings_screen.dart';
 import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
+import 'package:recovery_tool/core/bloc/premium/premium_cubit.dart';
 import 'package:recovery_tool/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:recovery_tool/core/service/storage_service.dart';
+import 'package:recovery_tool/core/service/premium_service.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
 import 'package:recovery_tool/features/scan/bloc/scan_bloc.dart';
 import 'package:recovery_tool/features/scan/bloc/scan_event.dart';
@@ -47,11 +49,13 @@ void main() async {
         providers: [
           RepositoryProvider.value(value: storageService),
           RepositoryProvider.value(value: recoveryService),
+          RepositoryProvider(create: (context) => PremiumService(storageService)),
         ],
         child: MultiBlocProvider(
           providers: [
             BlocProvider(create: (context) => LocaleCubit(storageService)),
             BlocProvider(create: (context) => OnboardingCubit(storageService)),
+            BlocProvider(create: (context) => PremiumCubit(context.read<PremiumService>())),
             BlocProvider(create: (context) => ScanBloc(recoveryService)),
           ],
           child: const MyApp(),

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -117,5 +119,22 @@ class StorageService {
     final expiry = await getPremiumExpiry();
     if (expiry == null) return false;
     return DateTime.now().isAfter(expiry);
+  }
+
+  Future<void> clearCache() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (tempDir.existsSync()) {
+        final entities = tempDir.listSync();
+        for (var entity in entities) {
+          // Safety check: only delete directories and files, avoid system files if any
+          if (entity is Directory || entity is File) {
+            await entity.delete(recursive: true);
+          }
+        }
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 }

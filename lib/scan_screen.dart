@@ -8,6 +8,7 @@ class ScanScreen extends StatelessWidget {
   final bool enableCarve;
   final int scanMode;
   final String referenceVideo;
+  final bool isPremium;
 
   const ScanScreen({
     super.key,
@@ -17,6 +18,7 @@ class ScanScreen extends StatelessWidget {
     this.enableCarve = true,
     this.scanMode = 1,
     this.referenceVideo = '',
+    this.isPremium = false,
   });
 
   @override
@@ -30,6 +32,7 @@ class ScanScreen extends StatelessWidget {
           enableCarve: enableCarve,
           scanMode: scanMode,
           referenceVideo: referenceVideo,
+          isPremium: isPremium,
         ),
       ),
     );

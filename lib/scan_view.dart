@@ -9,6 +9,7 @@ import 'features/scan/bloc/scan_event.dart';
 import 'features/scan/bloc/scan_state.dart';
 import 'features/scan/widgets/semi_circle_progress.dart';
 import 'features/scan/file_detail_view.dart';
+import 'features/premium/premium_unlock_screen.dart';
 import 'core/models/recovery_event.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
@@ -21,6 +22,7 @@ class ScanView extends StatefulWidget {
   final bool enableCarve;
   final int scanMode;
   final String referenceVideo;
+  final bool isPremium;
   final VoidCallback? onDone;
   final VoidCallback? onCancel;
 
@@ -32,6 +34,7 @@ class ScanView extends StatefulWidget {
     this.enableCarve = true,
     this.scanMode = 1,
     this.referenceVideo = '',
+    this.isPremium = false,
     this.onDone,
     this.onCancel,
   });
@@ -314,6 +317,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                                             allFiles: reversedFiles,
                                             index: index,
                                             outputDir: widget.outputDir,
+                                            isPremium: widget.isPremium,
                                           );
                                         },
                                       ),
@@ -358,6 +362,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
               SemiCircleProgressIndicator(
                 progress: state.percent / 100,
                 label: done ? l10n.scanResults : l10n.scanProcessing,
+                subLabel: state.statusMessage,
                 speed: done ? null : state.speed,
                 size: 240,
               ),
@@ -409,17 +414,39 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    FilledButton.icon(
-                      onPressed: () => launchUrl(Uri.directory(widget.outputDir)),
-                      icon: const Icon(Icons.folder_open_rounded, size: 20),
-                      label: Text(l10n.openFolder, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
-                        foregroundColor: AppTheme.cyberCyan,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    if (widget.isPremium)
+                      FilledButton.icon(
+                        onPressed: () => launchUrl(Uri.directory(widget.outputDir)),
+                        icon: const Icon(Icons.folder_open_rounded, size: 20),
+                        label: Text(l10n.openFolder, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+                          foregroundColor: AppTheme.cyberCyan,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      )
+                    else
+                      FilledButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => PremiumUnlockScreen(outputDir: widget.outputDir),
+                            ),
+                          );
+                          if (result == true) {
+                            widget.onDone?.call();
+                          }
+                        },
+                        icon: const Icon(Icons.workspace_premium_rounded, size: 20),
+                        label: Text(l10n.upgradeToSave, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          foregroundColor: AppTheme.primaryColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 12),
                     OutlinedButton.icon(
                       onPressed: widget.onDone,
@@ -661,12 +688,14 @@ class _FileGridItem extends StatefulWidget {
   final List<FileFoundEvent> allFiles;
   final int index;
   final String outputDir;
+  final bool isPremium;
   
   const _FileGridItem({
     super.key,
     required this.allFiles,
     required this.index,
     required this.outputDir,
+    this.isPremium = false,
   });
 
   @override
@@ -728,6 +757,7 @@ class _FileGridItemState extends State<_FileGridItem> with AutomaticKeepAliveCli
                 allFiles: widget.allFiles,
                 initialIndex: widget.index,
                 outputDir: widget.outputDir,
+                isPremium: widget.isPremium,
               ),
             ),
           );

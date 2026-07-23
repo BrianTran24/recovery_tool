@@ -168,6 +168,12 @@
   "scanUnderstand": "ĐÃ HIỂU",
   "scanNew": "QUÉT THIẾT BỊ KHÁC",
   "openFolder": "MỞ THƯ MỤC LƯU FILE",
+  "freeScanMode": "Chế độ Quét & Xem trước Miễn phí",
+  "upgradeToSave": "NÂNG CẤP ĐỂ LƯU",
+  "upgradeRequiredDesc": "Nâng cấp lên Premium để lưu các tệp tin đã khôi phục vào máy tính của bạn.",
+  "saveToDiskPremium": "Lưu ra ổ cứng (Premium)",
+  "premiumFeature": "Tính năng Premium",
+  "freeModeDesc": "Đang quét vào bộ nhớ tạm để xem trước. Các tệp tin có thể bị hệ thống tự động xóa.",
   "fileDetailTitle": "Chi tiết Tệp tin",
   "fileDetailProperties": "Thuộc tính",
   "fileDetailName": "Tên tệp",
@@ -183,5 +189,16 @@
   "fileDetailPrevious": "Tệp trước đó",
   "fileDetailHealthy": "Tốt",
   "fileDetailOrphaned": "Thất lạc (Orphaned)",
-  "fileDetailCarved": "Khôi phục thô (Carved)"
+  "fileDetailCarved": "Khôi phục thô (Carved)",
+  "clearCache": "Dọn dẹp bộ nhớ tạm",
+  "clearCacheDesc": "Xóa toàn bộ các tệp tin quét tạm thời để giải phóng dung lượng ổ cứng.",
+  "cacheCleared": "Đã dọn dẹp bộ nhớ tạm thành công",
+  "clearCacheError": "Lỗi khi dọn dẹp: {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -12,6 +12,7 @@ class ScanState extends Equatable {
   final List<FileFoundEvent> foundFiles;
   final List<FileSystemInfo> fileSystems;
   final String? errorMessage;
+  final String? statusMessage;
   final bool isHardwareFailure;
   final Duration elapsed;
 
@@ -23,6 +24,7 @@ class ScanState extends Equatable {
     this.foundFiles = const [],
     this.fileSystems = const [],
     this.errorMessage,
+    this.statusMessage,
     this.isHardwareFailure = false,
     this.elapsed = Duration.zero,
   });
@@ -35,6 +37,7 @@ class ScanState extends Equatable {
     List<FileFoundEvent>? foundFiles,
     List<FileSystemInfo>? fileSystems,
     String? errorMessage,
+    String? statusMessage,
     bool? isHardwareFailure,
     Duration? elapsed,
   }) {
@@ -46,6 +49,7 @@ class ScanState extends Equatable {
       foundFiles: foundFiles ?? this.foundFiles,
       fileSystems: fileSystems ?? this.fileSystems,
       errorMessage: errorMessage ?? this.errorMessage,
+      statusMessage: statusMessage ?? this.statusMessage,
       isHardwareFailure: isHardwareFailure ?? this.isHardwareFailure,
       elapsed: elapsed ?? this.elapsed,
     );
@@ -60,6 +64,7 @@ class ScanState extends Equatable {
     foundFiles,
     fileSystems,
     errorMessage,
+    statusMessage,
     isHardwareFailure,
     elapsed,
   ];

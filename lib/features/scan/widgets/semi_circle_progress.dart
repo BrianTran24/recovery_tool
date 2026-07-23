@@ -6,6 +6,7 @@ class SemiCircleProgressIndicator extends StatelessWidget {
   final double progress; // 0.0 to 1.0
   final double size;
   final String label;
+  final String? subLabel;
   final int? speed;
 
   const SemiCircleProgressIndicator({
@@ -13,6 +14,7 @@ class SemiCircleProgressIndicator extends StatelessWidget {
     required this.progress,
     this.size = 220,
     required this.label,
+    this.subLabel,
     this.speed,
   });
 
@@ -83,6 +85,18 @@ class SemiCircleProgressIndicator extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
+        if (subLabel != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subLabel!,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ],
     );
   }

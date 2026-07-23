@@ -52,11 +52,8 @@ dependencies:
   media_kit_video: ^1.2.4
   media_kit_libs_video: ^1.0.4
   flutter_dotenv: ^5.1.0
-  aes_encrypt_file: ^0.0.12
   flutter_secure_storage: ^9.0.0
-  http: ^1.1.0
-#  flutter_quick_usb:
-#  flutter_mtp_picker:
+ #  flutter_mtp_picker:
 
 dev_dependencies:
   flutter_test:

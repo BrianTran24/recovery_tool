@@ -39,11 +39,12 @@ class CancelScanEvent extends ScanEvent {}
 class ScanProgressUpdatedEvent extends ScanEvent {
   final double percent;
   final int speedMbps;
+  final String? statusMessage;
 
-  const ScanProgressUpdatedEvent(this.percent, this.speedMbps);
+  const ScanProgressUpdatedEvent(this.percent, this.speedMbps, {this.statusMessage});
 
   @override
-  List<Object?> get props => [percent, speedMbps];
+  List<Object?> get props => [percent, speedMbps, statusMessage];
 }
 
 class FileFoundEventReceived extends ScanEvent {

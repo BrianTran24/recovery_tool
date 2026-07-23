@@ -7,7 +7,6 @@ import 'core/models/recovery_event.dart';
 import 'features/scan/bloc/scan_bloc.dart';
 import 'features/scan/bloc/scan_state.dart';
 import 'core/theme/app_theme.dart';
-import 'core/service/encryption_service.dart';
 import 'core/service/premium_service.dart';
 import 'core/service/storage_service.dart';
 import 'features/premium/premium_unlock_screen.dart';
@@ -224,49 +223,13 @@ class _FileGrid extends StatelessWidget {
   const _FileGrid({required this.files, required this.outputDir});
 
   Future<void> _openFile(BuildContext context, String filename) async {
-    final encryptionService = EncryptionService();
     final normalizedOutputDir = p.normalize(outputDir);
     final filePath = p.join(normalizedOutputDir, filename);
     final file = File(filePath);
     
     if (await file.exists()) {
-      // Check if file is encrypted
-      final isEncrypted = await encryptionService.isFileEncrypted(file);
-      
-      File fileToOpen = file;
-      
-      if (isEncrypted) {
-        // Show loading dialog
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-        
-        // Decrypt to cache
-        final decryptedFile = await encryptionService.decryptToCache(file);
-        
-        // Close loading dialog
-        if (context.mounted) {
-          Navigator.of(context).pop();
-        }
-        
-        if (decryptedFile != null) {
-          fileToOpen = decryptedFile;
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Không thể giải mã file để xem')),
-            );
-          }
-          return;
-        }
-      }
-      
       // Open the file
-      final filePathToOpen = fileToOpen.path;
+      final filePathToOpen = file.path;
       if (Platform.isWindows) {
         Process.run('cmd', ['/c', 'start', '', filePathToOpen]);
       } else if (Platform.isMacOS) {
@@ -341,18 +304,15 @@ class _FileGridItem extends StatefulWidget {
 }
 
 class _FileGridItemState extends State<_FileGridItem> {
-  final EncryptionService _encryptionService = EncryptionService();
-  File? _cachedFile;
   bool _isLoading = false;
-  bool _isEncrypted = false;
 
   @override
   void initState() {
     super.initState();
-    _checkAndDecryptFile();
+    _checkFile();
   }
 
-  Future<void> _checkAndDecryptFile() async {
+  Future<void> _checkFile() async {
     if (!widget.isImage) return;
     
     final file = File(widget.filePath);
@@ -361,17 +321,9 @@ class _FileGridItemState extends State<_FileGridItem> {
     setState(() => _isLoading = true);
 
     try {
-      final isEncrypted = await _encryptionService.isFileEncrypted(file);
-      setState(() => _isEncrypted = isEncrypted);
-
-      if (isEncrypted) {
-        final decrypted = await _encryptionService.decryptToCache(file);
-        if (decrypted != null && mounted) {
-          setState(() => _cachedFile = decrypted);
-        }
-      }
+      // No longer checking for encryption
     } catch (e) {
-      debugPrint('Error checking/decrypting file: $e');
+      debugPrint('Error checking file: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -381,7 +333,7 @@ class _FileGridItemState extends State<_FileGridItem> {
 
   @override
   Widget build(BuildContext context) {
-    final displayFile = _cachedFile ?? File(widget.filePath);
+    final displayFile = File(widget.filePath);
     return InkWell(
       onTap: widget.onTap,
       borderRadius: BorderRadius.circular(12),
@@ -414,29 +366,6 @@ class _FileGridItemState extends State<_FileGridItem> {
                         child: CircleAvatar(
                           backgroundColor: Colors.black26,
                           child: Icon(Icons.play_arrow_rounded, color: Colors.white),
-                        ),
-                      ),
-                    if (_isEncrypted)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.lock, size: 10, color: Colors.white),
-                              SizedBox(width: 2),
-                              Text(
-                                'Encrypted',
-                                style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                   ],

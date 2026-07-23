@@ -295,6 +295,26 @@ class AppLocalizationsVi extends AppLocalizations {
   String get openFolder => 'MỞ THƯ MỤC LƯU FILE';
 
   @override
+  String get freeScanMode => 'Chế độ Quét & Xem trước Miễn phí';
+
+  @override
+  String get upgradeToSave => 'NÂNG CẤP ĐỂ LƯU';
+
+  @override
+  String get upgradeRequiredDesc =>
+      'Nâng cấp lên Premium để lưu các tệp tin đã khôi phục vào máy tính của bạn.';
+
+  @override
+  String get saveToDiskPremium => 'Lưu ra ổ cứng (Premium)';
+
+  @override
+  String get premiumFeature => 'Tính năng Premium';
+
+  @override
+  String get freeModeDesc =>
+      'Đang quét vào bộ nhớ tạm để xem trước. Các tệp tin có thể bị hệ thống tự động xóa.';
+
+  @override
   String get fileDetailTitle => 'Chi tiết Tệp tin';
 
   @override
@@ -341,4 +361,19 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get fileDetailCarved => 'Khôi phục thô (Carved)';
+
+  @override
+  String get clearCache => 'Dọn dẹp bộ nhớ tạm';
+
+  @override
+  String get clearCacheDesc =>
+      'Xóa toàn bộ các tệp tin quét tạm thời để giải phóng dung lượng ổ cứng.';
+
+  @override
+  String get cacheCleared => 'Đã dọn dẹp bộ nhớ tạm thành công';
+
+  @override
+  String clearCacheError(String error) {
+    return 'Lỗi khi dọn dẹp: $error';
+  }
 }

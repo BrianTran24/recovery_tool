@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:disks_desktop/disks_desktop.dart';
+import '../../core/bloc/premium/premium_cubit.dart';
 import '../../scan_screen.dart';
 import 'config_view.dart';
 
@@ -34,6 +36,7 @@ class ConfigScreen extends StatelessWidget {
                 enableCarve: true,
                 scanMode: scanMode,
                 referenceVideo: '',
+                isPremium: context.read<PremiumCubit>().state,
               ),
             ),
           );

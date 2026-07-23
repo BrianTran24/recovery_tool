@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:recovery_tool/core/models/recovery_event.dart';
+import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
@@ -12,12 +13,14 @@ class FileDetailView extends StatefulWidget {
   final List<FileFoundEvent> allFiles;
   final int initialIndex;
   final String outputDir;
+  final bool isPremium;
 
   const FileDetailView({
     super.key,
     required this.allFiles,
     required this.initialIndex,
     required this.outputDir,
+    this.isPremium = false,
   });
 
   @override
@@ -255,40 +258,91 @@ class _FileDetailViewState extends State<FileDetailView> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => launchUrl(Uri.file(filePath)),
-                          icon: const Icon(Icons.open_in_new_rounded),
-                          label: Text(l10n.fileDetailOpenFile),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
-                            foregroundColor: AppTheme.cyberCyan,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (widget.isPremium)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => launchUrl(Uri.file(filePath)),
+                            icon: const Icon(Icons.open_in_new_rounded),
+                            label: Text(l10n.fileDetailOpenFile),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+                              foregroundColor: AppTheme.cyberCyan,
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => launchUrl(Uri.directory(p.dirname(filePath))),
-                          icon: const Icon(Icons.folder_open_rounded),
-                          label: Text(l10n.fileDetailShowInFolder),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white70,
-                            side: const BorderSide(color: Colors.white10),
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => launchUrl(Uri.directory(p.dirname(filePath))),
+                            icon: const Icon(Icons.folder_open_rounded),
+                            label: Text(l10n.fileDetailShowInFolder),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                              side: const BorderSide(color: Colors.white10),
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           ),
                         ),
+                      ],
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _showPaywall(context, l10n),
+                        icon: const Icon(Icons.workspace_premium_rounded),
+                        label: Text(l10n.saveToDiskPremium),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          foregroundColor: AppTheme.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPaywall(BuildContext context, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cyberDeepNavy,
+        title: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: AppTheme.primaryColor),
+            const SizedBox(width: 12),
+            Text(l10n.premiumFeature, style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(l10n.upgradeRequiredDesc, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.skip, style: const TextStyle(color: Colors.white38)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => PremiumUnlockScreen(outputDir: widget.outputDir),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+            child: Text(l10n.startRecovery),
           ),
         ],
       ),
