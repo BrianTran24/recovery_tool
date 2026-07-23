@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:aes_encrypt_file/aes_encrypt_file.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart'; // Add this for MethodChannel
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
@@ -13,31 +14,93 @@ class EncryptionService {
   static const String _keyStorageKey = 'aes_encryption_key';
   static const String _ivStorageKey = 'aes_encryption_iv';
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  
+  // Add a flag to track if we've checked bindings
+  static bool _bindingsChecked = false;
 
   bool get isEncryptionEnabled {
     final enabled = dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'true');
+    debugPrint('🔐 [EncryptionService] Checking isEncryptionEnabled: $enabled');
     return enabled.toLowerCase() == 'true';
+  }
+  
+  // Ensure bindings are initialized
+  void _ensureBindingsInitialized() {
+    if (!_bindingsChecked) {
+      try {
+        // Check if we can access the method channel
+        ServicesBinding.instance;
+        _bindingsChecked = true;
+        debugPrint('✅ [EncryptionService] Flutter bindings are initialized');
+      } catch (e) {
+        debugPrint('⚠️ [EncryptionService] Flutter bindings not initialized: $e');
+      }
+    }
   }
 
   Future<String> _getOrCreateEncryptionKey() async {
+    // First try to get from .env (for consistent key across sessions)
+    final envKey = dotenv.get('AES_ENCRYPTION_KEY', fallback: '');
+    if (envKey.isNotEmpty) {
+      debugPrint('🔐 Using encryption key from .env (${envKey.length} chars)');
+      // Ensure key is exactly 32 characters for AES-256
+      if (envKey.length < 32) {
+        final paddedKey = envKey.padRight(32, '0');
+        debugPrint('⚠️ Key padded to 32 characters');
+        return paddedKey;
+      } else if (envKey.length > 32) {
+        final truncatedKey = envKey.substring(0, 32);
+        debugPrint('⚠️ Key truncated to 32 characters');
+        return truncatedKey;
+      }
+      return envKey;
+    }
+    
+    // Fallback: check secure storage
     String? key = await _secureStorage.read(key: _keyStorageKey);
     
     if (key == null) {
+      // Generate new key and save to secure storage
       key = _generateRandomKey(32);
       await _secureStorage.write(key: _keyStorageKey, value: key);
-      debugPrint('Generated new encryption key');
+      debugPrint('🔐 Generated new encryption key and saved to secure storage');
+      debugPrint('⚠️ IMPORTANT: Add this key to .env as AES_ENCRYPTION_KEY for consistency');
+    } else {
+      debugPrint('🔐 Using encryption key from secure storage');
     }
     
     return key;
   }
 
   Future<String> _getOrCreateIV() async {
+    // First try to get from .env (for consistent IV across sessions)
+    final envIV = dotenv.get('AES_ENCRYPTION_IV', fallback: '');
+    if (envIV.isNotEmpty) {
+      debugPrint('🔐 Using encryption IV from .env (${envIV.length} chars)');
+      // Ensure IV is exactly 16 characters for AES
+      if (envIV.length < 16) {
+        final paddedIV = envIV.padRight(16, '0');
+        debugPrint('⚠️ IV padded to 16 characters');
+        return paddedIV;
+      } else if (envIV.length > 16) {
+        final truncatedIV = envIV.substring(0, 16);
+        debugPrint('⚠️ IV truncated to 16 characters');
+        return truncatedIV;
+      }
+      return envIV;
+    }
+    
+    // Fallback: check secure storage
     String? iv = await _secureStorage.read(key: _ivStorageKey);
     
     if (iv == null) {
+      // Generate new IV and save to secure storage
       iv = _generateRandomKey(16);
       await _secureStorage.write(key: _ivStorageKey, value: iv);
-      debugPrint('Generated new encryption IV');
+      debugPrint('🔐 Generated new encryption IV and saved to secure storage');
+      debugPrint('⚠️ IMPORTANT: Add this IV to .env as AES_ENCRYPTION_IV for consistency');
+    } else {
+      debugPrint('🔐 Using encryption IV from secure storage');
     }
     
     return iv;
@@ -50,6 +113,9 @@ class EncryptionService {
   }
 
   Future<File?> encryptFile(File sourceFile) async {
+    // Ensure bindings are ready
+    _ensureBindingsInitialized();
+    
     if (!isEncryptionEnabled) {
       debugPrint('⚠️ Encryption disabled - skipping: ${sourceFile.path}');
       debugPrint('⚠️ isEncryptionEnabled = false');
@@ -68,15 +134,18 @@ class EncryptionService {
       
       debugPrint('🔐 Calling AES encrypt: $encryptedPath');
       
+      // Ensure the AES library can access platform channels
       final aesEncryptFile = AesEncryptFile();
-      final success = await aesEncryptFile.encryptFile(
-        inputPath: sourceFile.path,
-        outputPath: encryptedPath,
-        key: key,
-        iv: iv,
-      );
       
-      debugPrint('🔐 AES encrypt result: $success');
+      try {
+        final success = await aesEncryptFile.encryptFile(
+          inputPath: sourceFile.path,
+          outputPath: encryptedPath,
+          key: key,
+          iv: iv,
+        );
+        
+        debugPrint('🔐 AES encrypt result: $success');
       
       if (!success) {
         debugPrint('❌ Encryption failed - AES library returned false');
@@ -98,6 +167,11 @@ class EncryptionService {
         return finalFile;
       } else {
         debugPrint('❌ Encrypted file not created at: $encryptedPath');
+        return null;
+      }
+      } catch (pluginError) {
+        debugPrint('❌ Plugin/Binding error during encryption: $pluginError');
+        debugPrint('💡 Hint: This usually means Flutter bindings are not initialized or plugin is not properly registered');
         return null;
       }
     } catch (e, stackTrace) {
