@@ -51,17 +51,22 @@ class EncryptionService {
 
   Future<File?> encryptFile(File sourceFile) async {
     if (!isEncryptionEnabled) {
-      debugPrint('Encryption disabled in dev mode - skipping');
+      debugPrint('⚠️ Encryption disabled - skipping: ${sourceFile.path}');
+      debugPrint('⚠️ isEncryptionEnabled = false');
       return sourceFile;
     }
 
+    debugPrint('🔐 Starting encryption for: ${sourceFile.path}');
+    
     try {
       final key = await _getOrCreateEncryptionKey();
       final iv = await _getOrCreateIV();
       
+      debugPrint('🔐 Generated/Retrieved key length: ${key.length}, IV length: ${iv.length}');
+      
       final encryptedPath = '${sourceFile.path}.encrypted';
       
-      debugPrint('Encrypting file: ${sourceFile.path}');
+      debugPrint('🔐 Calling AES encrypt: $encryptedPath');
       
       final aesEncryptFile = AesEncryptFile();
       final success = await aesEncryptFile.encryptFile(
@@ -71,26 +76,33 @@ class EncryptionService {
         iv: iv,
       );
       
+      debugPrint('🔐 AES encrypt result: $success');
+      
       if (!success) {
-        debugPrint('Encryption failed');
+        debugPrint('❌ Encryption failed - AES library returned false');
         return null;
       }
 
       final encryptedFile = File(encryptedPath);
       
       if (await encryptedFile.exists()) {
+        debugPrint('🔐 Encrypted file created: ${encryptedFile.path}');
+        
         // Delete original file and rename encrypted file
         await sourceFile.delete();
+        debugPrint('🔐 Deleted original file');
+        
         final finalFile = await encryptedFile.rename(sourceFile.path);
         
-        debugPrint('File encrypted successfully: ${finalFile.path}');
+        debugPrint('✅ File encrypted successfully: ${finalFile.path}');
         return finalFile;
       } else {
-        debugPrint('Encrypted file not created');
+        debugPrint('❌ Encrypted file not created at: $encryptedPath');
         return null;
       }
-    } catch (e) {
-      debugPrint('Encryption error: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Encryption error: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       return null;
     }
   }

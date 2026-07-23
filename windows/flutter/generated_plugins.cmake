@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  aes_encrypt_file
   disks_desktop
   flutter_secure_storage_windows
   media_kit_libs_windows_video

@@ -5,10 +5,10 @@ packages:
     dependency: "direct main"
     description:
       name: aes_encrypt_file
-      sha256: "031e6ea1d94a67b951f1923530d2161534c44f39d9b000a7ca6a8300a8658162"
+      sha256: "0e1e84580941f9242c6c4b38347052ae209d0e37e74576941478acde2a92f38a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.11"
+    version: "0.0.12"
   archive:
     dependency: transitive
     description:

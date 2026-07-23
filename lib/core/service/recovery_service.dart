@@ -199,8 +199,12 @@ class RecoveryService {
 
     // 2.5. Encrypt recovered files (post-processing)
     if (_encryptionService.isEncryptionEnabled) {
-      debugPrint('DEBUG: Starting file encryption post-processing');
+      debugPrint('🔐 Starting file encryption post-processing');
+      debugPrint('🔐 Encryption enabled: ${_encryptionService.isEncryptionEnabled}');
       await _encryptRecoveredFiles(outputDir, controller);
+    } else {
+      debugPrint('⚠️ File encryption is DISABLED - files will not be encrypted');
+      debugPrint('⚠️ Check .env file: ENABLE_FILE_ENCRYPTION should be "true"');
     }
 
     // 3. Cleanup and Close
@@ -216,17 +220,22 @@ class RecoveryService {
     String outputDir, 
     StreamController<RecoveryEvent> controller,
   ) async {
+    debugPrint('🔐 === ENCRYPTION POST-PROCESSING START ===');
+    debugPrint('🔐 Output directory: $outputDir');
+    
     try {
       final outputDirectory = Directory(outputDir);
       if (!await outputDirectory.exists()) {
-        debugPrint('Output directory does not exist, skipping encryption');
+        debugPrint('❌ Output directory does not exist, skipping encryption');
         return;
       }
 
       final files = outputDirectory.listSync(recursive: true).whereType<File>().toList();
-      debugPrint('Found ${files.length} files to encrypt');
+      debugPrint('🔐 Found ${files.length} files to process for encryption');
 
       int encryptedCount = 0;
+      int skippedCount = 0;
+      int failedCount = 0;
       int totalFiles = files.length;
 
       for (var i = 0; i < files.length; i++) {
@@ -234,15 +243,18 @@ class RecoveryService {
         
         // Skip already encrypted files
         if (file.path.endsWith('.encrypted') || file.path.endsWith('.enc')) {
+          debugPrint('⏭️  Skipping already encrypted file: ${file.path}');
+          skippedCount++;
           continue;
         }
 
-        debugPrint('Encrypting file ${i + 1}/$totalFiles: ${file.path}');
+        debugPrint('🔐 [${i + 1}/$totalFiles] Encrypting: ${file.path}');
         
         final encryptedFile = await _encryptionService.encryptFile(file);
         
         if (encryptedFile != null) {
           encryptedCount++;
+          debugPrint('✅ [${i + 1}/$totalFiles] Successfully encrypted: ${file.path}');
           
           // Send progress event
           if (!controller.isClosed) {
@@ -256,13 +268,19 @@ class RecoveryService {
             );
           }
         } else {
-          debugPrint('Failed to encrypt: ${file.path}');
+          failedCount++;
+          debugPrint('❌ [${i + 1}/$totalFiles] FAILED to encrypt: ${file.path}');
         }
       }
 
-      debugPrint('Encryption completed: $encryptedCount/$totalFiles files encrypted');
-    } catch (e) {
-      debugPrint('Error during file encryption: $e');
+      debugPrint('🔐 === ENCRYPTION COMPLETE ===');
+      debugPrint('🔐 Total files: $totalFiles');
+      debugPrint('🔐 Encrypted: $encryptedCount');
+      debugPrint('🔐 Skipped: $skippedCount');
+      debugPrint('🔐 Failed: $failedCount');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR during file encryption: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       if (!controller.isClosed) {
         controller.add(
           ErrorEvent(

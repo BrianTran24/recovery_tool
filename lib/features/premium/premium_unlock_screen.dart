@@ -174,7 +174,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             end: Alignment.bottomRight,
             colors: [
               AppTheme.cyberDeepNavy,
-              AppTheme.cyberNavy,
+              AppTheme.cyberDeepNavy,
             ],
           ),
         ),
