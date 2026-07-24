@@ -334,6 +334,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     // Premium Status Badge
                     BlocBuilder<PremiumCubit, PremiumState>(
                       builder: (context, state) {
+                        if (!state.isPremium) return const SizedBox.shrink();
                         return Padding(
                           padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 12 : 16),
                           child: Container(
@@ -342,33 +343,27 @@ class _MyHomePageState extends State<MyHomePage> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: state.isPremium
-                                  ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                                  : Colors.white.withValues(alpha: 0.05),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: state.isPremium
-                                    ? AppTheme.primaryColor.withValues(alpha: 0.3)
-                                    : Colors.white.withValues(alpha: 0.1),
+                                color: AppTheme.primaryColor.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: _isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
                               children: [
-                                Icon(
-                                  state.isPremium
-                                      ? Icons.workspace_premium_rounded
-                                      : Icons.account_circle_outlined,
-                                  color: state.isPremium ? AppTheme.primaryColor : Colors.white54,
+                                const Icon(
+                                  Icons.workspace_premium_rounded,
+                                  color: AppTheme.primaryColor,
                                   size: 16,
                                 ),
                                 if (!_isCollapsed) ...[
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      state.isPremium ? l10n.premiumPlan : l10n.freePlan,
-                                      style: TextStyle(
-                                        color: state.isPremium ? AppTheme.primaryColor : Colors.white70,
+                                      l10n.premiumPlan,
+                                      style: const TextStyle(
+                                        color: AppTheme.primaryColor,
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1,

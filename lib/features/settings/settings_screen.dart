@@ -1,8 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:recovery_tool/core/bloc/premium/premium_cubit.dart';
 import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
@@ -140,43 +138,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               
               const SizedBox(height: 24),
-              
-              // Debug section for environment variables
-              _buildSettingsSection(
-                context,
-                title: l10n.debugInfo,
-                icon: Icons.bug_report_rounded,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDebugRow(
-                      'ENABLE_FILE_ENCRYPTION',
-                      dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET'),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildDebugRow(
-                      'API_BASE_URL',
-                      dotenv.get('API_BASE_URL', fallback: 'NOT_SET'),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        final value = dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET');
-                        Clipboard.setData(ClipboardData(text: value));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.copiedToClipboard)),
-                        );
-                      },
-                      icon: const Icon(Icons.copy, size: 16),
-                      label: Text(l10n.copyEncryptionValue),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
-                        foregroundColor: AppTheme.cyberCyan,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );
@@ -247,54 +208,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child,
         ],
       ),
-    );
-  }
-  
-  Widget _buildDebugRow(String key, String value) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            key,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 12,
-              fontFamily: 'monospace',
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: value == 'true' 
-                    ? Colors.green.withValues(alpha: 0.5)
-                    : value == 'NOT_SET' 
-                        ? Colors.red.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Text(
-              value,
-              style: TextStyle(
-                color: value == 'true' 
-                    ? Colors.green
-                    : value == 'NOT_SET' 
-                        ? Colors.red
-                        : Colors.white,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
