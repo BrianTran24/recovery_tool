@@ -40,12 +40,12 @@ class _ConfigViewState extends State<ConfigView> {
   Future<void> _initPath() async {
     final isPremium = context.read<PremiumCubit>().state;
     if (isPremium) {
-      _outputDir = r'E:\test';
+      _outputDir = null;
     } else {
       final temp = await getTemporaryDirectory();
       _outputDir = temp.path;
     }
-    _pathController.text = _outputDir!;
+    _pathController.text = _outputDir ?? '';
   }
 
   Future<void> _pickDirectory() async {
@@ -158,15 +158,17 @@ class _ConfigViewState extends State<ConfigView> {
               _buildSectionHeader(l10n.recoveryMode),
               _buildScanModeSelector(l10n),
               
-              const SizedBox(height: 16),
-              _buildSectionHeader(l10n.storageConfig),
-              _buildPathSelector(
-                label: l10n.outputDirectory,
-                controller: _pathController,
-                onTap: isPremium ? _pickDirectory : () {},
-                icon: Icons.folder_open_rounded,
-                isPremium: isPremium,
-              ),
+              if (isPremium) ...[
+                const SizedBox(height: 16),
+                _buildSectionHeader(l10n.storageConfig),
+                _buildPathSelector(
+                  label: l10n.outputDirectory,
+                  controller: _pathController,
+                  onTap: _pickDirectory,
+                  icon: Icons.folder_open_rounded,
+                  isPremium: true,
+                ),
+              ],
               
               const Spacer(),
               Center(
