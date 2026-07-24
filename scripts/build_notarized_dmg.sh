@@ -48,7 +48,30 @@ export OTHER_CODE_SIGN_FLAGS="--timestamp"
 
 flutter build macos --release --device-id=macos
 
-echo "🔍 Step 1.5: Verifying binary for Hardened Runtime and Signing Identity..."
+echo "🖋️ Step 1.25: Re-signing app with secure timestamp (inside-out)..."
+# Flutter/xcodebuild's signing during build does NOT reliably include a secure
+# timestamp, which causes notarization to fail with:
+#   "The signature does not include a secure timestamp."
+# We re-sign every nested Mach-O (dylibs/frameworks/helpers) first, then the app
+# bundle itself, all with --timestamp and hardened runtime enabled.
+SIGN_IDENTITY="${CODE_SIGN_IDENTITY}"
+ENTITLEMENTS="macos/Runner/Release.entitlements"
+
+# Sign nested dylibs and frameworks first (deepest paths first).
+find "${APP_PATH}/Contents/Frameworks" \
+    \( -name "*.dylib" -o -name "*.framework" \) -print 2>/dev/null \
+    | while read -r nested; do
+        echo "   → Signing nested: ${nested}"
+        codesign --force --timestamp --options runtime \
+            --sign "${SIGN_IDENTITY}" "${nested}"
+    done
+
+# Finally, sign the main app bundle with entitlements.
+codesign --force --timestamp --options runtime \
+    --entitlements "${ENTITLEMENTS}" \
+    --sign "${SIGN_IDENTITY}" "${APP_PATH}"
+
+echo "🔍 Step 1.5: Verifying binary for Hardened Runtime, Signing Identity, and Timestamp..."
 if ! codesign -dvvv "${APP_PATH}" 2>&1 | grep -q "runtime"; then
     echo "❌ Error: Hardened Runtime is not enabled for ${APP_NAME}."
     echo "💡 Please check your Xcode project settings or Release.xcconfig."
@@ -59,6 +82,19 @@ if ! codesign -dvvv "${APP_PATH}" 2>&1 | grep -q "Authority=Developer ID Applica
     echo "❌ Error: ${APP_NAME} is not signed with a Developer ID Application certificate."
     echo "💡 Current signature info:"
     codesign -dvvv "${APP_PATH}" 2>&1 | grep "Authority"
+    exit 1
+fi
+
+# A missing secure timestamp is the most common cause of notarization "Invalid".
+if ! codesign -dvvv "${APP_PATH}" 2>&1 | grep -q "^Timestamp="; then
+    echo "❌ Error: ${APP_NAME} signature is missing a secure timestamp."
+    echo "💡 Ensure you have network access to Apple's timestamp server and re-run."
+    exit 1
+fi
+
+if ! codesign -dvvv "${APP_PATH}/Contents/Frameworks/librecovery.dylib" 2>&1 | grep -q "^Timestamp="; then
+    echo "❌ Error: librecovery.dylib signature is missing a secure timestamp."
+    echo "💡 Ensure you have network access to Apple's timestamp server and re-run."
     exit 1
 fi
 
@@ -90,7 +126,7 @@ create-dmg \
   "${APP_PATH}"
 
 echo "🖋️ Step 3: Signing the DMG..."
-codesign --force --timestamp --options runtime --sign "Developer ID Application" "${DMG_NAME}"
+codesign --force --timestamp --options runtime --sign "${CODE_SIGN_IDENTITY}" "${DMG_NAME}"
 
 echo "📤 Step 4: Submitting DMG to Apple for notarization..."
 xcrun notarytool submit "${DMG_NAME}" \
