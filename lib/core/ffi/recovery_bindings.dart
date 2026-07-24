@@ -122,9 +122,19 @@ class RecoveryBindings {
   late final ConvertE01Dart convertE01;
 
   RecoveryBindings() {
-    final libPath = Platform.isMacOS
-        ? '/Users/hieutran/AndroidStudioProjects/recovery_sd/librecovery.dylib'
-        : 'recovery.dll';
+    String libPath;
+    if (Platform.isMacOS) {
+      // Kiểm tra xem app có đang chạy trong bundle (.app) không
+      if (Platform.resolvedExecutable.contains('.app/Contents/MacOS/')) {
+        // Chế độ Release: macOS sẽ tự tìm trong Contents/Frameworks/ nếu chỉ đưa tên file
+        libPath = 'librecovery.dylib';
+      } else {
+        // Chế độ Debug: dùng đường dẫn tuyệt đối để tiện phát triển trên máy của bạn
+        libPath = '/Users/hieutran/AndroidStudioProjects/recovery_sd/librecovery.dylib';
+      }
+    } else {
+      libPath = 'recovery.dll';
+    }
 
     _lib = DynamicLibrary.open(libPath);
 
