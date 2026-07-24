@@ -200,5 +200,116 @@
         "type": "String"
       }
     }
-  }
+  },
+  "errorOpenDevice": "Error opening device ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "Serious hardware/firmware error detected: {message}. Recommended: Use specialized equipment (PC-3000 Flash) to read NAND chip directly.",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "Unknown event type: {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "Could not verify license. Please try again later.",
+  "errorTimeout": "Connection timeout. Please check your internet.",
+  "errorConnection": "Connection error: {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "Premium activated successfully!",
+  "licenseExpired": "License key has expired.",
+  "licenseInvalid": "Invalid license key.",
+  "errorActivatePremium": "Error activating premium: {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "This feature has been removed.",
+  "conversionInitializing": "Initializing...",
+  "conversionDecrypting": "Decrypting E01 file...",
+  "conversionStatus": "Converting: {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "Conversion complete!",
+  "errorFileNotFoundAfterConversion": "Error: Output file not found after conversion.",
+  "conversionTitle": "E01 FORMAT CONVERSION",
+  "convertedRawImage": "Converted Raw Image",
+  "pleaseEnterLicenseKey": "Please enter license key",
+  "premiumActivatedTitle": "Premium Activated!",
+  "askDecryptNow": "Do you want to decrypt all files now?",
+  "later": "Later",
+  "decryptNow": "Decrypt Now",
+  "success": "Success!",
+  "decryptedFilesCount": "Successfully decrypted {decrypted}/{total} files!",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "You can access files directly from the output directory.",
+  "close": "Close",
+  "unlockPremiumTitle": "Unlock Premium",
+  "upgradeToPremium": "Upgrade to Premium",
+  "unlockAllFilesDesc": "Unlock all recovered files and access them directly from the directory",
+  "featureDecryptAll": "Decrypt all files",
+  "featureDirectAccess": "Direct access from directory",
+  "featureNoWatermark": "No watermark",
+  "licenseKeyHint": "Enter your license key",
+  "buyLicenseKey": "Buy license key",
+  "decryptingFiles": "Decrypting files...",
+  "preparing": "Preparing...",
+  "dontCloseApp": "Please do not close the application",
+  "storage": "Storage",
+  "debugInfo": "Debug Info",
+  "copiedToClipboard": "Copied to clipboard",
+  "copyEncryptionValue": "Copy Encryption Value",
+  "categoryAll": "All",
+  "categoryImages": "Images",
+  "categoryVideos": "Videos",
+  "categoryDocuments": "Documents",
+  "searchFilesHint": "Search files...",
+  "previewNotAvailable": "Preview not available for {type}",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "Cannot view this video",
+  "unknown": "Unknown",
+  "errorIdentifyPath": "Error: Could not identify device path",
+  "backupImageFile": "Backup Image File"
 }

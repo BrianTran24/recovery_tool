@@ -30,20 +30,20 @@ class ApiService {
         debugPrint('API Error: ${response.statusCode} - ${response.body}');
         return PremiumVerificationResult(
           isValid: false,
-          message: 'Không thể xác thực license. Vui lòng thử lại sau.',
+          message: 'errorVerifyLicense',
         );
       }
     } on TimeoutException {
       debugPrint('API Timeout');
       return PremiumVerificationResult(
         isValid: false,
-        message: 'Kết nối timeout. Vui lòng kiểm tra internet.',
+        message: 'errorTimeout',
       );
     } catch (e) {
       debugPrint('API Exception: $e');
       return PremiumVerificationResult(
         isValid: false,
-        message: 'Lỗi kết nối: ${e.toString()}',
+        message: 'errorConnection:${e.toString()}',
       );
     }
   }

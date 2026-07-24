@@ -189,11 +189,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Disk _buildImageDisk(String path) {
+    final l10n = AppLocalizations.of(context)!;
     final size = File(path).lengthSync();
     return Disk(
       blockSize: 512,
       busType: 'IMAGE',
-      description: 'Backup Image File',
+      description: l10n.backupImageFile,
       device: path,
       devicePath: path,
       readOnly: true,
@@ -521,8 +522,8 @@ class _MyHomePageState extends State<MyHomePage> {
                               child: InkWell(
                                 onTap: () {
                                   if (path == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                        content: Text('Error: Could not identify device path')));
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text(l10n.errorIdentifyPath)));
                                     return;
                                   }
                                   setState(() {
@@ -557,7 +558,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             Text(
                                               disk.raw.startsWith('/dev/')
                                                   ? (disk.devicePath ?? l10n.unknownDevice)
-                                                  : 'Image: ${disk.devicePath ?? l10n.unknownDevice}',
+                                                  : l10n.backupImage(disk.devicePath ?? l10n.unknownDevice),
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w900,
                                                 fontSize: 16,

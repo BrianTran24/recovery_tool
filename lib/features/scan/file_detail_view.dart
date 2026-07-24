@@ -68,7 +68,7 @@ class _FileDetailViewState extends State<FileDetailView> {
       case 3:
         return l10n.fileDetailCarved;
       default:
-        return 'Unknown';
+        return l10n.unknown;
     }
   }
 
@@ -134,11 +134,11 @@ class _FileDetailViewState extends State<FileDetailView> {
                             File(filePath),
                             fit: BoxFit.contain,
                             key: ValueKey(filePath),
-                            errorBuilder: (context, error, stackTrace) => _buildNoPreview(normalizedType),
+                            errorBuilder: (context, error, stackTrace) => _buildNoPreview(context, normalizedType),
                           )
                         : (isVideo 
                             ? VideoPreview(videoPath: filePath, key: ValueKey(filePath))
-                            : _buildNoPreview(normalizedType)),
+                            : _buildNoPreview(context, normalizedType)),
                   ),
                 ),
                 
@@ -426,7 +426,8 @@ class _FileDetailViewState extends State<FileDetailView> {
     );
   }
 
-  Widget _buildNoPreview(String type) {
+  Widget _buildNoPreview(BuildContext context, String type) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -438,7 +439,7 @@ class _FileDetailViewState extends State<FileDetailView> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Preview not available for $type',
+            l10n.previewNotAvailable(type),
             style: TextStyle(color: Colors.white.withValues(alpha: 0.2)),
           ),
         ],
@@ -509,14 +510,15 @@ class _VideoPreviewState extends State<VideoPreview> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_error) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline_rounded, size: 64, color: Colors.redAccent),
-            SizedBox(height: 16),
-            Text('Không thể xem video này', style: TextStyle(color: Colors.white70)),
+            const Icon(Icons.error_outline_rounded, size: 64, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text(l10n.cannotViewVideo, style: const TextStyle(color: Colors.white70)),
           ],
         ),
       );

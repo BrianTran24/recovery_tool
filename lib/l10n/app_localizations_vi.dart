@@ -376,4 +376,181 @@ class AppLocalizationsVi extends AppLocalizations {
   String clearCacheError(String error) {
     return 'Lỗi khi dọn dẹp: $error';
   }
+
+  @override
+  String errorOpenDevice(int handle) {
+    return 'Lỗi mở thiết bị ($handle)';
+  }
+
+  @override
+  String errorHardwareSerious(String message) {
+    return 'Phát hiện lỗi phần cứng/firmware nghiêm trọng: $message. Khuyến nghị sử dụng thiết bị chuyên dụng (PC-3000 Flash) để đọc trực tiếp chip NAND.';
+  }
+
+  @override
+  String errorUnknownEvent(int type) {
+    return 'Loại sự kiện không xác định: $type';
+  }
+
+  @override
+  String get errorVerifyLicense =>
+      'Không thể xác thực license. Vui lòng thử lại sau.';
+
+  @override
+  String get errorTimeout => 'Kết nối timeout. Vui lòng kiểm tra internet.';
+
+  @override
+  String errorConnection(String error) {
+    return 'Lỗi kết nối: $error';
+  }
+
+  @override
+  String get premiumActivated => 'Premium đã được kích hoạt thành công!';
+
+  @override
+  String get licenseExpired => 'License key đã hết hạn.';
+
+  @override
+  String get licenseInvalid => 'License key không hợp lệ.';
+
+  @override
+  String errorActivatePremium(String error) {
+    return 'Lỗi kích hoạt premium: $error';
+  }
+
+  @override
+  String get featureRemoved => 'Tính năng này đã được gỡ bỏ.';
+
+  @override
+  String get conversionInitializing => 'Đang khởi tạo...';
+
+  @override
+  String get conversionDecrypting => 'Đang giải mã file E01...';
+
+  @override
+  String conversionStatus(String percent) {
+    return 'Đang chuyển đổi: $percent%';
+  }
+
+  @override
+  String get conversionComplete => 'Chuyển đổi hoàn tất!';
+
+  @override
+  String get errorFileNotFoundAfterConversion =>
+      'Lỗi: Không tìm thấy file đích sau khi chuyển đổi.';
+
+  @override
+  String get conversionTitle => 'CHUYỂN ĐỔI ĐỊNH DẠNG E01';
+
+  @override
+  String get convertedRawImage => 'Ảnh Raw đã chuyển đổi';
+
+  @override
+  String get pleaseEnterLicenseKey => 'Vui lòng nhập license key';
+
+  @override
+  String get premiumActivatedTitle => 'Premium Đã Kích Hoạt!';
+
+  @override
+  String get askDecryptNow =>
+      'Bạn có muốn giải mã toàn bộ file ngay bây giờ không?';
+
+  @override
+  String get later => 'Để sau';
+
+  @override
+  String get decryptNow => 'Giải mã ngay';
+
+  @override
+  String get success => 'Thành công!';
+
+  @override
+  String decryptedFilesCount(int decrypted, int total) {
+    return 'Đã giải mã thành công $decrypted/$total file!';
+  }
+
+  @override
+  String get accessFilesFromOutput =>
+      'Bạn có thể truy cập file trực tiếp từ thư mục output.';
+
+  @override
+  String get close => 'Đóng';
+
+  @override
+  String get unlockPremiumTitle => 'Kích hoạt Premium';
+
+  @override
+  String get upgradeToPremium => 'Nâng cấp lên Premium';
+
+  @override
+  String get unlockAllFilesDesc =>
+      'Mở khóa toàn bộ file đã khôi phục và truy cập trực tiếp từ thư mục';
+
+  @override
+  String get featureDecryptAll => 'Giải mã toàn bộ file';
+
+  @override
+  String get featureDirectAccess => 'Truy cập trực tiếp từ thư mục';
+
+  @override
+  String get featureNoWatermark => 'Không có watermark';
+
+  @override
+  String get licenseKeyHint => 'Nhập license key của bạn';
+
+  @override
+  String get buyLicenseKey => 'Mua license key';
+
+  @override
+  String get decryptingFiles => 'Đang giải mã file...';
+
+  @override
+  String get preparing => 'Đang chuẩn bị...';
+
+  @override
+  String get dontCloseApp => 'Vui lòng không đóng ứng dụng';
+
+  @override
+  String get storage => 'Lưu trữ';
+
+  @override
+  String get debugInfo => 'Thông tin gỡ lỗi';
+
+  @override
+  String get copiedToClipboard => 'Đã sao chép vào bộ nhớ tạm';
+
+  @override
+  String get copyEncryptionValue => 'Sao chép giá trị mã hóa';
+
+  @override
+  String get categoryAll => 'Tất cả';
+
+  @override
+  String get categoryImages => 'Ảnh';
+
+  @override
+  String get categoryVideos => 'Video';
+
+  @override
+  String get categoryDocuments => 'Tài liệu';
+
+  @override
+  String get searchFilesHint => 'Tìm kiếm tệp tin...';
+
+  @override
+  String previewNotAvailable(String type) {
+    return 'Không có bản xem trước cho $type';
+  }
+
+  @override
+  String get cannotViewVideo => 'Không thể xem video này';
+
+  @override
+  String get unknown => 'Không xác định';
+
+  @override
+  String get errorIdentifyPath => 'Lỗi: Không thể xác định đường dẫn thiết bị';
+
+  @override
+  String get backupImageFile => 'Tệp ảnh Backup';
 }

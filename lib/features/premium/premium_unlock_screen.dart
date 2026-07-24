@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/service/premium_service.dart';
 import '../../core/service/storage_service.dart';
+import '../../core/utils/l10n_utils.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class PremiumUnlockScreen extends StatefulWidget {
   final String outputDir;
@@ -33,10 +35,11 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
   }
 
   Future<void> _activateLicense() async {
+    final l10n = AppLocalizations.of(context)!;
     final licenseKey = _licenseController.text.trim();
     
     if (licenseKey.isEmpty) {
-      setState(() => _errorMessage = 'Vui lòng nhập license key');
+      setState(() => _errorMessage = l10n.pleaseEnterLicenseKey);
       return;
     }
 
@@ -55,33 +58,34 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
           // Show success and ask to decrypt
           _showDecryptDialog();
         } else {
-          setState(() => _errorMessage = result.message);
+          setState(() => _errorMessage = L10nUtils.translate(context, result.message));
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Lỗi: ${e.toString()}';
+          _errorMessage = '${l10n.scanError(e.toString())}';
         });
       }
     }
   }
 
   void _showDecryptDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Premium đã kích hoạt!'),
-        content: const Text('Bạn có muốn giải mã toàn bộ file ngay bây giờ không?'),
+        title: Text(l10n.premiumActivatedTitle),
+        content: Text(l10n.askDecryptNow),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               Navigator.of(context).pop(true); // Return to preview
             },
-            child: const Text('Để sau'),
+            child: Text(l10n.later),
           ),
           ElevatedButton(
             onPressed: () {
@@ -91,7 +95,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: const Text('Giải mã ngay'),
+            child: Text(l10n.decryptNow),
           ),
         ],
       ),
@@ -116,33 +120,35 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
         if (progress.success) {
           _showSuccessDialog();
         } else {
-          setState(() => _errorMessage = progress.message);
+          setState(() => _errorMessage = L10nUtils.translate(context, progress.message));
         }
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           _isDecrypting = false;
-          _errorMessage = 'Lỗi giải mã: ${e.toString()}';
+          _errorMessage = '${l10n.scanError(e.toString())}';
         });
       }
     }
   }
 
   void _showSuccessDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 12),
-            Text('Thành công!'),
+            const Icon(Icons.check_circle, color: Colors.green, size: 32),
+            const SizedBox(width: 12),
+            Text(l10n.success),
           ],
         ),
         content: Text(
-          'Đã giải mã thành công ${_decryptionProgress?.decryptedFiles}/${_decryptionProgress?.totalFiles} file!\n\n'
-          'Bạn có thể truy cập file trực tiếp từ thư mục output.',
+          '${l10n.decryptedFilesCount(_decryptionProgress?.decryptedFiles ?? 0, _decryptionProgress?.totalFiles ?? 0)}\n\n'
+          '${l10n.accessFilesFromOutput}',
         ),
         actions: [
           ElevatedButton(
@@ -153,7 +159,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: const Text('Đóng'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -162,9 +168,10 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kích hoạt Premium'),
+        title: Text(l10n.unlockPremiumTitle),
         backgroundColor: AppTheme.cyberDeepNavy,
       ),
       body: Container(
@@ -184,6 +191,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
   }
 
   Widget _buildActivationForm() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -205,9 +213,9 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                   color: AppTheme.primaryColor,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Nâng cấp lên Premium',
-                  style: TextStyle(
+                Text(
+                  l10n.upgradeToPremium,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -215,7 +223,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Mở khóa toàn bộ file đã khôi phục và truy cập trực tiếp từ thư mục',
+                  l10n.unlockAllFilesDesc,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -223,17 +231,17 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                _buildFeatureItem(Icons.lock_open_rounded, 'Giải mã toàn bộ file'),
+                _buildFeatureItem(Icons.lock_open_rounded, l10n.featureDecryptAll),
                 const SizedBox(height: 12),
-                _buildFeatureItem(Icons.folder_open_rounded, 'Truy cập trực tiếp từ thư mục'),
+                _buildFeatureItem(Icons.folder_open_rounded, l10n.featureDirectAccess),
                 const SizedBox(height: 12),
-                _buildFeatureItem(Icons.verified_user_rounded, 'Không có watermark'),
+                _buildFeatureItem(Icons.verified_user_rounded, l10n.featureNoWatermark),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _licenseController,
                   decoration: InputDecoration(
                     labelText: 'License Key',
-                    hintText: 'Nhập license key của bạn',
+                    hintText: l10n.licenseKeyHint,
                     prefixIcon: const Icon(Icons.key_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -265,9 +273,9 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Kích hoạt Premium',
-                          style: TextStyle(
+                      : Text(
+                          l10n.unlockPremiumTitle,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -278,7 +286,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                   onPressed: () {
                     // TODO: Open purchase page
                   },
-                  child: const Text('Mua license key'),
+                  child: Text(l10n.buyLicenseKey),
                 ),
               ],
             ),
@@ -302,6 +310,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
   }
 
   Widget _buildDecryptionProgress() {
+    final l10n = AppLocalizations.of(context)!;
     final progress = _decryptionProgress;
     
     return Center(
@@ -322,9 +331,9 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                 color: AppTheme.primaryColor,
               ),
               const SizedBox(height: 32),
-              const Text(
-                'Đang giải mã file...',
-                style: TextStyle(
+              Text(
+                l10n.decryptingFiles,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -354,7 +363,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                 ),
               ] else
                 Text(
-                  'Đang chuẩn bị...',
+                  l10n.preparing,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -362,7 +371,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                 ),
               const SizedBox(height: 24),
               Text(
-                'Vui lòng không đóng ứng dụng',
+                l10n.dontCloseApp,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade500,

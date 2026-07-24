@@ -46,24 +46,24 @@ class PremiumService {
         
         return PremiumActivationResult(
           success: true,
-          message: 'Premium đã được kích hoạt thành công!',
+          message: 'premiumActivated',
         );
       } else if (result.isExpired) {
         return PremiumActivationResult(
           success: false,
-          message: 'License key đã hết hạn.',
+          message: 'licenseExpired',
         );
       } else {
         return PremiumActivationResult(
           success: false,
-          message: result.message ?? 'License key không hợp lệ.',
+          message: result.message ?? 'licenseInvalid',
         );
       }
     } catch (e) {
       debugPrint('Premium activation error: $e');
       return PremiumActivationResult(
         success: false,
-        message: 'Lỗi kích hoạt premium: ${e.toString()}',
+        message: 'errorActivatePremium:${e.toString()}',
       );
     }
   }
@@ -71,7 +71,7 @@ class PremiumService {
   Future<DecryptionProgress> unlockPremium(String outputDir) async {
     return DecryptionProgress(
       success: true,
-      message: 'Tính năng mã hóa đã được gỡ bỏ.',
+      message: 'featureRemoved',
       totalFiles: 0,
       decryptedFiles: 0,
       failedFiles: 0,
@@ -81,7 +81,7 @@ class PremiumService {
   Future<DecryptionProgress> decryptAllFiles(String outputDir) async {
     return DecryptionProgress(
       success: true,
-      message: 'Tính năng mã hóa đã được gỡ bỏ.',
+      message: 'featureRemoved',
       totalFiles: 0,
       decryptedFiles: 0,
       failedFiles: 0,

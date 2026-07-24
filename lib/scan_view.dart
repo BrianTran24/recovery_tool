@@ -11,6 +11,7 @@ import 'features/scan/widgets/semi_circle_progress.dart';
 import 'features/scan/file_detail_view.dart';
 import 'features/premium/premium_unlock_screen.dart';
 import 'core/models/recovery_event.dart';
+import 'core/utils/l10n_utils.dart';
 import 'package:recovery_tool/core/service/recovery_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
@@ -179,10 +180,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
         
         if (_selectedFolder == null && folders.isNotEmpty) {
           _selectedFolder = folders.first;
-        } else if (_selectedFolder != null && !folders.contains(_selectedFolder)) {
-          // If the selected folder is no longer in the filtered list, we don't necessarily reset it, 
-          // because the user might have filtered away all files in that folder.
-          // But for the grid, we need to decide what to show.
         }
 
         // 3. Final display list (either from folder or the whole filtered list if no folder selected)
@@ -296,7 +293,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
                           child: Column(
                             children: [
                               // Top Filter Bar
-                              _buildTopFilterBar(context),
+                              _buildTopFilterBar(context, l10n),
                               const Divider(height: 1, color: Colors.white10),
                               Expanded(
                                 child: reversedFiles.isEmpty
@@ -523,7 +520,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
             const Icon(Icons.storage_rounded, size: 12, color: AppTheme.cyberCyan),
             const SizedBox(width: 4),
             Text(
-              '${fs.typeName} (@${fs.offset})',
+              '${fs.typeName == 'Unknown' ? AppLocalizations.of(context)!.unknown : fs.typeName} (@${fs.offset})',
               style: const TextStyle(
                 fontSize: 11,
                 color: AppTheme.cyberCyan,
@@ -536,7 +533,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildTopFilterBar(BuildContext context) {
+  Widget _buildTopFilterBar(BuildContext context, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: Colors.white.withValues(alpha: 0.02),
@@ -550,7 +547,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Search files...',
+                hintText: l10n.searchFilesHint,
                 hintStyle: const TextStyle(color: Colors.white24),
                 prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white24),
                 filled: true,
@@ -570,13 +567,13 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('All', Icons.all_inclusive_rounded),
+                  _buildFilterChip('All', l10n.categoryAll, Icons.all_inclusive_rounded),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Images', Icons.image_rounded),
+                  _buildFilterChip('Images', l10n.categoryImages, Icons.image_rounded),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Videos', Icons.videocam_rounded),
+                  _buildFilterChip('Videos', l10n.categoryVideos, Icons.videocam_rounded),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Documents', Icons.description_rounded),
+                  _buildFilterChip('Documents', l10n.categoryDocuments, Icons.description_rounded),
                 ],
               ),
             ),
@@ -586,10 +583,10 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildFilterChip(String label, IconData icon) {
-    final isSelected = _selectedCategory == label;
+  Widget _buildFilterChip(String value, String label, IconData icon) {
+    final isSelected = _selectedCategory == value;
     return InkWell(
-      onTap: () => setState(() => _selectedCategory = label),
+      onTap: () => setState(() => _selectedCategory = value),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -672,7 +669,7 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
             Text(isHardware ? l10n.scanHardwareError : l10n.scanSystemError, style: const TextStyle(color: Colors.white)),
           ],
         ),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        content: Text(L10nUtils.translate(context, message), style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),

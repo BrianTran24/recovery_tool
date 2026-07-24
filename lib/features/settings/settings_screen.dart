@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               _buildSettingsSection(
                 context,
-                title: 'Storage',
+                title: l10n.storage,
                 icon: Icons.storage_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Debug section for environment variables
               _buildSettingsSection(
                 context,
-                title: 'Debug Info',
+                title: l10n.debugInfo,
                 icon: Icons.bug_report_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,11 +123,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         final value = dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET');
                         Clipboard.setData(ClipboardData(text: value));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Copied to clipboard')),
+                          SnackBar(content: Text(l10n.copiedToClipboard)),
                         );
                       },
                       icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('Copy Encryption Value'),
+                      label: Text(l10n.copyEncryptionValue),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
                         foregroundColor: AppTheme.cyberCyan,

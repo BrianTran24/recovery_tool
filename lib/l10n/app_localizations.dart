@@ -769,6 +769,318 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error clearing cache: {error}'**
   String clearCacheError(String error);
+
+  /// No description provided for @errorOpenDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Error opening device ({handle})'**
+  String errorOpenDevice(int handle);
+
+  /// No description provided for @errorHardwareSerious.
+  ///
+  /// In en, this message translates to:
+  /// **'Serious hardware/firmware error detected: {message}. Recommended: Use specialized equipment (PC-3000 Flash) to read NAND chip directly.'**
+  String errorHardwareSerious(String message);
+
+  /// No description provided for @errorUnknownEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown event type: {type}'**
+  String errorUnknownEvent(int type);
+
+  /// No description provided for @errorVerifyLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not verify license. Please try again later.'**
+  String get errorVerifyLicense;
+
+  /// No description provided for @errorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timeout. Please check your internet.'**
+  String get errorTimeout;
+
+  /// No description provided for @errorConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection error: {error}'**
+  String errorConnection(String error);
+
+  /// No description provided for @premiumActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium activated successfully!'**
+  String get premiumActivated;
+
+  /// No description provided for @licenseExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'License key has expired.'**
+  String get licenseExpired;
+
+  /// No description provided for @licenseInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid license key.'**
+  String get licenseInvalid;
+
+  /// No description provided for @errorActivatePremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Error activating premium: {error}'**
+  String errorActivatePremium(String error);
+
+  /// No description provided for @featureRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature has been removed.'**
+  String get featureRemoved;
+
+  /// No description provided for @conversionInitializing.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing...'**
+  String get conversionInitializing;
+
+  /// No description provided for @conversionDecrypting.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypting E01 file...'**
+  String get conversionDecrypting;
+
+  /// No description provided for @conversionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Converting: {percent}%'**
+  String conversionStatus(String percent);
+
+  /// No description provided for @conversionComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversion complete!'**
+  String get conversionComplete;
+
+  /// No description provided for @errorFileNotFoundAfterConversion.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Output file not found after conversion.'**
+  String get errorFileNotFoundAfterConversion;
+
+  /// No description provided for @conversionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'E01 FORMAT CONVERSION'**
+  String get conversionTitle;
+
+  /// No description provided for @convertedRawImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Converted Raw Image'**
+  String get convertedRawImage;
+
+  /// No description provided for @pleaseEnterLicenseKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter license key'**
+  String get pleaseEnterLicenseKey;
+
+  /// No description provided for @premiumActivatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Activated!'**
+  String get premiumActivatedTitle;
+
+  /// No description provided for @askDecryptNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to decrypt all files now?'**
+  String get askDecryptNow;
+
+  /// No description provided for @later.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get later;
+
+  /// No description provided for @decryptNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypt Now'**
+  String get decryptNow;
+
+  /// No description provided for @success.
+  ///
+  /// In en, this message translates to:
+  /// **'Success!'**
+  String get success;
+
+  /// No description provided for @decryptedFilesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully decrypted {decrypted}/{total} files!'**
+  String decryptedFilesCount(int decrypted, int total);
+
+  /// No description provided for @accessFilesFromOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'You can access files directly from the output directory.'**
+  String get accessFilesFromOutput;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @unlockPremiumTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Premium'**
+  String get unlockPremiumTitle;
+
+  /// No description provided for @upgradeToPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Premium'**
+  String get upgradeToPremium;
+
+  /// No description provided for @unlockAllFilesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock all recovered files and access them directly from the directory'**
+  String get unlockAllFilesDesc;
+
+  /// No description provided for @featureDecryptAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypt all files'**
+  String get featureDecryptAll;
+
+  /// No description provided for @featureDirectAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct access from directory'**
+  String get featureDirectAccess;
+
+  /// No description provided for @featureNoWatermark.
+  ///
+  /// In en, this message translates to:
+  /// **'No watermark'**
+  String get featureNoWatermark;
+
+  /// No description provided for @licenseKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your license key'**
+  String get licenseKeyHint;
+
+  /// No description provided for @buyLicenseKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy license key'**
+  String get buyLicenseKey;
+
+  /// No description provided for @decryptingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypting files...'**
+  String get decryptingFiles;
+
+  /// No description provided for @preparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing...'**
+  String get preparing;
+
+  /// No description provided for @dontCloseApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Please do not close the application'**
+  String get dontCloseApp;
+
+  /// No description provided for @storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get storage;
+
+  /// No description provided for @debugInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug Info'**
+  String get debugInfo;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
+  /// No description provided for @copyEncryptionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Encryption Value'**
+  String get copyEncryptionValue;
+
+  /// No description provided for @categoryAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get categoryAll;
+
+  /// No description provided for @categoryImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get categoryImages;
+
+  /// No description provided for @categoryVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get categoryVideos;
+
+  /// No description provided for @categoryDocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get categoryDocuments;
+
+  /// No description provided for @searchFilesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search files...'**
+  String get searchFilesHint;
+
+  /// No description provided for @previewNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview not available for {type}'**
+  String previewNotAvailable(String type);
+
+  /// No description provided for @cannotViewVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot view this video'**
+  String get cannotViewVideo;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @errorIdentifyPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Could not identify device path'**
+  String get errorIdentifyPath;
+
+  /// No description provided for @backupImageFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Image File'**
+  String get backupImageFile;
 }
 
 class _AppLocalizationsDelegate

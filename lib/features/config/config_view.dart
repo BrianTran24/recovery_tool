@@ -103,7 +103,7 @@ class _ConfigViewState extends State<ConfigView> {
                             Text(
                               widget.disk.raw.startsWith('/dev/')
                                   ? (widget.disk.devicePath ?? l10n.unknownDevice)
-                                  : l10n.backupImage(widget.disk.devicePath ?? 'Unknown'),
+                                  : l10n.backupImage(widget.disk.devicePath ?? l10n.unknown),
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                             ),
                             const SizedBox(height: 4),

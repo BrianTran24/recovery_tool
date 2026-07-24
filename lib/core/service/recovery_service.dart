@@ -117,7 +117,7 @@ class RecoveryService {
 
     if (handle < 0) {
       controller.add(
-        ErrorEvent(code: handle, message: 'Lỗi mở thiết bị ($handle)'),
+        ErrorEvent(code: handle, message: 'errorOpenDevice:$handle'),
       );
       controller.close();
       return;
@@ -133,8 +133,7 @@ class RecoveryService {
       controller.add(
         ErrorEvent(
           code: hwResult,
-          message:
-              'Phát hiện lỗi phần cứng/firmware nghiêm trọng: $errorMsg. Khuyến nghị sử dụng thiết bị chuyên dụng (PC-3000 Flash) để đọc trực tiếp chip NAND.',
+          message: 'errorHardwareSerious:$errorMsg',
           isHardwareFailure: true,
         ),
       );
@@ -290,7 +289,7 @@ class RecoveryService {
       default:
         return ErrorEvent(
           code: -1,
-          message: 'Unknown event type: ${ev.eventType}',
+          message: 'errorUnknownEvent:${ev.eventType}',
         );
     }
   }
@@ -364,7 +363,7 @@ class RecoveryService {
       subscription.cancel();
       receivePort.close();
       if (!controller.isClosed) {
-        controller.add(ErrorEvent(code: -1, message: e.toString()));
+        controller.add(ErrorEvent(code: -1, message: 'errorConnection:${e.toString()}'));
         controller.close();
       }
     });

@@ -200,5 +200,116 @@
         "type": "String"
       }
     }
-  }
+  },
+  "errorOpenDevice": "Lỗi mở thiết bị ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "Phát hiện lỗi phần cứng/firmware nghiêm trọng: {message}. Khuyến nghị sử dụng thiết bị chuyên dụng (PC-3000 Flash) để đọc trực tiếp chip NAND.",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "Loại sự kiện không xác định: {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "Không thể xác thực license. Vui lòng thử lại sau.",
+  "errorTimeout": "Kết nối timeout. Vui lòng kiểm tra internet.",
+  "errorConnection": "Lỗi kết nối: {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "Premium đã được kích hoạt thành công!",
+  "licenseExpired": "License key đã hết hạn.",
+  "licenseInvalid": "License key không hợp lệ.",
+  "errorActivatePremium": "Lỗi kích hoạt premium: {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "Tính năng này đã được gỡ bỏ.",
+  "conversionInitializing": "Đang khởi tạo...",
+  "conversionDecrypting": "Đang giải mã file E01...",
+  "conversionStatus": "Đang chuyển đổi: {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "Chuyển đổi hoàn tất!",
+  "errorFileNotFoundAfterConversion": "Lỗi: Không tìm thấy file đích sau khi chuyển đổi.",
+  "conversionTitle": "CHUYỂN ĐỔI ĐỊNH DẠNG E01",
+  "convertedRawImage": "Ảnh Raw đã chuyển đổi",
+  "pleaseEnterLicenseKey": "Vui lòng nhập license key",
+  "premiumActivatedTitle": "Premium Đã Kích Hoạt!",
+  "askDecryptNow": "Bạn có muốn giải mã toàn bộ file ngay bây giờ không?",
+  "later": "Để sau",
+  "decryptNow": "Giải mã ngay",
+  "success": "Thành công!",
+  "decryptedFilesCount": "Đã giải mã thành công {decrypted}/{total} file!",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "Bạn có thể truy cập file trực tiếp từ thư mục output.",
+  "close": "Đóng",
+  "unlockPremiumTitle": "Kích hoạt Premium",
+  "upgradeToPremium": "Nâng cấp lên Premium",
+  "unlockAllFilesDesc": "Mở khóa toàn bộ file đã khôi phục và truy cập trực tiếp từ thư mục",
+  "featureDecryptAll": "Giải mã toàn bộ file",
+  "featureDirectAccess": "Truy cập trực tiếp từ thư mục",
+  "featureNoWatermark": "Không có watermark",
+  "licenseKeyHint": "Nhập license key của bạn",
+  "buyLicenseKey": "Mua license key",
+  "decryptingFiles": "Đang giải mã file...",
+  "preparing": "Đang chuẩn bị...",
+  "dontCloseApp": "Vui lòng không đóng ứng dụng",
+  "storage": "Lưu trữ",
+  "debugInfo": "Thông tin gỡ lỗi",
+  "copiedToClipboard": "Đã sao chép vào bộ nhớ tạm",
+  "copyEncryptionValue": "Sao chép giá trị mã hóa",
+  "categoryAll": "Tất cả",
+  "categoryImages": "Ảnh",
+  "categoryVideos": "Video",
+  "categoryDocuments": "Tài liệu",
+  "searchFilesHint": "Tìm kiếm tệp tin...",
+  "previewNotAvailable": "Không có bản xem trước cho {type}",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "Không thể xem video này",
+  "unknown": "Không xác định",
+  "errorIdentifyPath": "Lỗi: Không thể xác định đường dẫn thiết bị",
+  "backupImageFile": "Tệp ảnh Backup"
 }

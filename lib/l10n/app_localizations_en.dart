@@ -377,4 +377,180 @@ class AppLocalizationsEn extends AppLocalizations {
   String clearCacheError(String error) {
     return 'Error clearing cache: $error';
   }
+
+  @override
+  String errorOpenDevice(int handle) {
+    return 'Error opening device ($handle)';
+  }
+
+  @override
+  String errorHardwareSerious(String message) {
+    return 'Serious hardware/firmware error detected: $message. Recommended: Use specialized equipment (PC-3000 Flash) to read NAND chip directly.';
+  }
+
+  @override
+  String errorUnknownEvent(int type) {
+    return 'Unknown event type: $type';
+  }
+
+  @override
+  String get errorVerifyLicense =>
+      'Could not verify license. Please try again later.';
+
+  @override
+  String get errorTimeout => 'Connection timeout. Please check your internet.';
+
+  @override
+  String errorConnection(String error) {
+    return 'Connection error: $error';
+  }
+
+  @override
+  String get premiumActivated => 'Premium activated successfully!';
+
+  @override
+  String get licenseExpired => 'License key has expired.';
+
+  @override
+  String get licenseInvalid => 'Invalid license key.';
+
+  @override
+  String errorActivatePremium(String error) {
+    return 'Error activating premium: $error';
+  }
+
+  @override
+  String get featureRemoved => 'This feature has been removed.';
+
+  @override
+  String get conversionInitializing => 'Initializing...';
+
+  @override
+  String get conversionDecrypting => 'Decrypting E01 file...';
+
+  @override
+  String conversionStatus(String percent) {
+    return 'Converting: $percent%';
+  }
+
+  @override
+  String get conversionComplete => 'Conversion complete!';
+
+  @override
+  String get errorFileNotFoundAfterConversion =>
+      'Error: Output file not found after conversion.';
+
+  @override
+  String get conversionTitle => 'E01 FORMAT CONVERSION';
+
+  @override
+  String get convertedRawImage => 'Converted Raw Image';
+
+  @override
+  String get pleaseEnterLicenseKey => 'Please enter license key';
+
+  @override
+  String get premiumActivatedTitle => 'Premium Activated!';
+
+  @override
+  String get askDecryptNow => 'Do you want to decrypt all files now?';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get decryptNow => 'Decrypt Now';
+
+  @override
+  String get success => 'Success!';
+
+  @override
+  String decryptedFilesCount(int decrypted, int total) {
+    return 'Successfully decrypted $decrypted/$total files!';
+  }
+
+  @override
+  String get accessFilesFromOutput =>
+      'You can access files directly from the output directory.';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get unlockPremiumTitle => 'Unlock Premium';
+
+  @override
+  String get upgradeToPremium => 'Upgrade to Premium';
+
+  @override
+  String get unlockAllFilesDesc =>
+      'Unlock all recovered files and access them directly from the directory';
+
+  @override
+  String get featureDecryptAll => 'Decrypt all files';
+
+  @override
+  String get featureDirectAccess => 'Direct access from directory';
+
+  @override
+  String get featureNoWatermark => 'No watermark';
+
+  @override
+  String get licenseKeyHint => 'Enter your license key';
+
+  @override
+  String get buyLicenseKey => 'Buy license key';
+
+  @override
+  String get decryptingFiles => 'Decrypting files...';
+
+  @override
+  String get preparing => 'Preparing...';
+
+  @override
+  String get dontCloseApp => 'Please do not close the application';
+
+  @override
+  String get storage => 'Storage';
+
+  @override
+  String get debugInfo => 'Debug Info';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get copyEncryptionValue => 'Copy Encryption Value';
+
+  @override
+  String get categoryAll => 'All';
+
+  @override
+  String get categoryImages => 'Images';
+
+  @override
+  String get categoryVideos => 'Videos';
+
+  @override
+  String get categoryDocuments => 'Documents';
+
+  @override
+  String get searchFilesHint => 'Search files...';
+
+  @override
+  String previewNotAvailable(String type) {
+    return 'Preview not available for $type';
+  }
+
+  @override
+  String get cannotViewVideo => 'Cannot view this video';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get errorIdentifyPath => 'Error: Could not identify device path';
+
+  @override
+  String get backupImageFile => 'Backup Image File';
 }
