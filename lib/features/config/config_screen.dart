@@ -36,7 +36,7 @@ class ConfigScreen extends StatelessWidget {
                 enableCarve: true,
                 scanMode: scanMode,
                 referenceVideo: '',
-                isPremium: context.read<PremiumCubit>().state,
+                isPremium: context.read<PremiumCubit>().state.isPremium,
               ),
             ),
           );

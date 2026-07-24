@@ -8,7 +8,6 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../ffi/recovery_bindings.dart';
 import '../models/recovery_event.dart';
-import 'package:path/path.dart' as p;
 
 const _kProgress = 1;
 const _kFileFound = 2;

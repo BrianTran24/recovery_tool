@@ -311,5 +311,17 @@
   "cannotViewVideo": "Cannot view this video",
   "unknown": "Unknown",
   "errorIdentifyPath": "Error: Could not identify device path",
-  "backupImageFile": "Backup Image File"
+  "backupImageFile": "Backup Image File",
+  "premiumPlan": "PREMIUM PLAN",
+  "freePlan": "FREE PLAN",
+  "outputConfig": "Output Configuration",
+  "selectOutputDir": "Select Output Directory",
+  "currentOutputPath": "Current Path: {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  }
 }

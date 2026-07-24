@@ -1,6 +1,8 @@
-import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/bloc/premium/premium_cubit.dart';
 import '../../core/service/premium_service.dart';
 import '../../core/service/storage_service.dart';
 import '../../core/utils/l10n_utils.dart';
@@ -55,6 +57,15 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
         setState(() => _isLoading = false);
         
         if (result.success) {
+          // Refresh premium status in cubit
+          await context.read<PremiumCubit>().refreshStatus();
+          
+          // Check if output dir is set, if not ask for it
+          final premiumState = context.read<PremiumCubit>().state;
+          if (premiumState.outputDir == null || premiumState.outputDir!.isEmpty) {
+            await _promptForOutputDir();
+          }
+
           // Show success and ask to decrypt
           _showDecryptDialog();
         } else {
@@ -68,6 +79,20 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
           _errorMessage = '${l10n.scanError(e.toString())}';
         });
       }
+    }
+  }
+
+  Future<void> _promptForOutputDir() async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Show a simple snackbar or dialog to explain why we need this
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.selectOutputDir)),
+    );
+
+    String? result = await FilePicker.platform.getDirectoryPath();
+    if (result != null && mounted) {
+      await context.read<PremiumCubit>().updateOutputDir(result);
     }
   }
 

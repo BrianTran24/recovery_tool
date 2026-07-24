@@ -553,4 +553,21 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get backupImageFile => 'Tệp ảnh Backup';
+
+  @override
+  String get premiumPlan => 'GÓI PREMIUM';
+
+  @override
+  String get freePlan => 'GÓI MIỄN PHÍ';
+
+  @override
+  String get outputConfig => 'Cấu hình đầu ra';
+
+  @override
+  String get selectOutputDir => 'Chọn thư mục đầu ra';
+
+  @override
+  String currentOutputPath(String path) {
+    return 'Đường dẫn hiện tại: $path';
+  }
 }

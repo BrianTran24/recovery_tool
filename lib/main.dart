@@ -24,6 +24,7 @@ import 'package:recovery_tool/l10n/app_localizations.dart';
 import 'package:recovery_tool/features/conversion/conversion_view.dart';
 import 'package:recovery_tool/features/config/config_view.dart';
 import 'package:recovery_tool/scan_view.dart';
+import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:media_kit/media_kit.dart';
 
@@ -55,7 +56,7 @@ void main() async {
           providers: [
             BlocProvider(create: (context) => LocaleCubit(storageService)),
             BlocProvider(create: (context) => OnboardingCubit(storageService)),
-            BlocProvider(create: (context) => PremiumCubit(context.read<PremiumService>())),
+            BlocProvider(create: (context) => PremiumCubit(context.read<PremiumService>(), storageService)),
             BlocProvider(create: (context) => ScanBloc(recoveryService)),
           ],
           child: const MyApp(),
@@ -329,6 +330,58 @@ class _MyHomePageState extends State<MyHomePage> {
                       isCollapsed: _isCollapsed,
                       onTap: () => setState(() => _selectedTool = HomeTool.settings),
                     ),
+                    const SizedBox(height: 24),
+                    // Premium Status Badge
+                    BlocBuilder<PremiumCubit, PremiumState>(
+                      builder: (context, state) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 12 : 16),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _isCollapsed ? 4 : 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: state.isPremium
+                                  ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                                  : Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: state.isPremium
+                                    ? AppTheme.primaryColor.withValues(alpha: 0.3)
+                                    : Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: _isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  state.isPremium
+                                      ? Icons.workspace_premium_rounded
+                                      : Icons.account_circle_outlined,
+                                  color: state.isPremium ? AppTheme.primaryColor : Colors.white54,
+                                  size: 16,
+                                ),
+                                if (!_isCollapsed) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      state.isPremium ? l10n.premiumPlan : l10n.freePlan,
+                                      style: TextStyle(
+                                        color: state.isPremium ? AppTheme.primaryColor : Colors.white70,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const Spacer(),
                     // System Status & Toggle
                     Padding(
@@ -420,6 +473,73 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ],
+          ),
+          // Buy Now Button
+          BlocBuilder<PremiumCubit, PremiumState>(
+            builder: (context, state) {
+              if (state.isPremium) return const SizedBox.shrink();
+              return Positioned(
+                top: 24,
+                right: 32,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => PremiumUnlockScreen(outputDir: state.outputDir ?? ''),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFFF1744), // Deep Neon Red
+                            Color(0xFFFF8A80), // Soft Neon Red
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(30), // Pill shape
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF1744).withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.workspace_premium_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'BUY NOW',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -632,13 +752,18 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       case RestoreStep.scanning:
         final path = (_selectedDisk!.raw.startsWith('/dev/')) ? _selectedDisk!.raw : _selectedDisk!.devicePath;
-        return ScanView(
-          sourcePath: path!,
-          outputDir: _outputDir,
-          scanMode: _scanMode,
-          referenceVideo: _referenceVideo,
-          onCancel: _resetRestore,
-          onDone: _resetRestore,
+        return BlocBuilder<PremiumCubit, PremiumState>(
+          builder: (context, state) {
+            return ScanView(
+              sourcePath: path!,
+              outputDir: _outputDir,
+              scanMode: _scanMode,
+              referenceVideo: _referenceVideo,
+              isPremium: state.isPremium,
+              onCancel: _resetRestore,
+              onDone: _resetRestore,
+            );
+          },
         );
     }
   }

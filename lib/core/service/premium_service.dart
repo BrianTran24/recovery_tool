@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
 
@@ -26,6 +26,21 @@ class PremiumService {
   Future<PremiumActivationResult> activatePremium(String licenseKey) async {
     try {
       debugPrint('Verifying license key: $licenseKey');
+      
+      // Check for development bypass key
+      final devKey = dotenv.maybeGet('DEV_LICENSE_KEY');
+      if (devKey != null && devKey.isNotEmpty && licenseKey == devKey) {
+        debugPrint('✅ Development license bypass detected');
+        await _storageService.setPremiumStatus(true);
+        await _storageService.setPremiumUserId('DEV_USER');
+        await _storageService.setPremiumExpiry(DateTime.now().add(const Duration(days: 365)));
+        await _storageService.setPremiumLicenseKey(licenseKey);
+        
+        return PremiumActivationResult(
+          success: true,
+          message: 'premiumActivated',
+        );
+      }
       
       final result = await _apiService.verifyPremiumLicense(licenseKey);
       

@@ -1,7 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:recovery_tool/core/bloc/premium/premium_cubit.dart';
 import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
@@ -65,6 +67,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               
               const SizedBox(height: 24),
+
+              BlocBuilder<PremiumCubit, PremiumState>(
+                builder: (context, premiumState) {
+                  if (!premiumState.isPremium) return const SizedBox.shrink();
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _buildSettingsSection(
+                      context,
+                      title: l10n.outputConfig,
+                      icon: Icons.folder_open_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.currentOutputPath(premiumState.outputDir ?? l10n.unknown),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () => _pickOutputDir(context),
+                            icon: const Icon(Icons.edit_rounded, size: 18),
+                            label: Text(l10n.selectOutputDir),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                              foregroundColor: AppTheme.cyberCyan,
+                              side: BorderSide(color: AppTheme.cyberCyan.withValues(alpha: 0.3)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
 
               _buildSettingsSection(
                 context,
@@ -160,6 +201,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _isCleaning = false);
+    }
+  }
+
+  Future<void> _pickOutputDir(BuildContext context) async {
+    String? result = await FilePicker.platform.getDirectoryPath();
+    if (result != null && mounted) {
+      await context.read<PremiumCubit>().updateOutputDir(result);
     }
   }
 

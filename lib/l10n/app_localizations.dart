@@ -1081,6 +1081,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Backup Image File'**
   String get backupImageFile;
+
+  /// No description provided for @premiumPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'PREMIUM PLAN'**
+  String get premiumPlan;
+
+  /// No description provided for @freePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'FREE PLAN'**
+  String get freePlan;
+
+  /// No description provided for @outputConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Configuration'**
+  String get outputConfig;
+
+  /// No description provided for @selectOutputDir.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Output Directory'**
+  String get selectOutputDir;
+
+  /// No description provided for @currentOutputPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Path: {path}'**
+  String currentOutputPath(String path);
 }
 
 class _AppLocalizationsDelegate

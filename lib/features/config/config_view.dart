@@ -38,9 +38,9 @@ class _ConfigViewState extends State<ConfigView> {
   }
 
   Future<void> _initPath() async {
-    final isPremium = context.read<PremiumCubit>().state;
-    if (isPremium) {
-      _outputDir = null;
+    final premiumState = context.read<PremiumCubit>().state;
+    if (premiumState.isPremium) {
+      _outputDir = premiumState.outputDir;
     } else {
       final temp = await getTemporaryDirectory();
       _outputDir = temp.path;
@@ -55,6 +55,11 @@ class _ConfigViewState extends State<ConfigView> {
         _outputDir = result;
         _pathController.text = result;
       });
+      // If premium, also persist this selection
+      final premiumState = context.read<PremiumCubit>().state;
+      if (premiumState.isPremium) {
+        await context.read<PremiumCubit>().updateOutputDir(result);
+      }
     }
   }
 
@@ -73,8 +78,9 @@ class _ConfigViewState extends State<ConfigView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return BlocBuilder<PremiumCubit, bool>(
-      builder: (context, isPremium) {
+    return BlocBuilder<PremiumCubit, PremiumState>(
+      builder: (context, premiumState) {
+        final isPremium = premiumState.isPremium;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(

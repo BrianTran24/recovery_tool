@@ -311,5 +311,17 @@
   "cannotViewVideo": "Không thể xem video này",
   "unknown": "Không xác định",
   "errorIdentifyPath": "Lỗi: Không thể xác định đường dẫn thiết bị",
-  "backupImageFile": "Tệp ảnh Backup"
+  "backupImageFile": "Tệp ảnh Backup",
+  "premiumPlan": "GÓI PREMIUM",
+  "freePlan": "GÓI MIỄN PHÍ",
+  "outputConfig": "Cấu hình đầu ra",
+  "selectOutputDir": "Chọn thư mục đầu ra",
+  "currentOutputPath": "Đường dẫn hiện tại: {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  }
 }

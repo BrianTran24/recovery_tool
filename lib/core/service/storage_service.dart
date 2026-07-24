@@ -9,6 +9,7 @@ class StorageService {
   static const String _premiumUserIdKey = 'premium_user_id';
   static const String _premiumExpiryKey = 'premium_expiry';
   static const String _premiumLicenseKey = 'premium_license_key';
+  static const String _premiumOutputDirKey = 'premium_output_dir';
   static const String _encryptedFilesListKey = 'encrypted_files_list';
 
   Future<void> setLanguage(String languageCode) async {
@@ -80,12 +81,23 @@ class StorageService {
     return prefs.getString(_premiumLicenseKey);
   }
 
+  Future<void> setPremiumOutputDir(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_premiumOutputDirKey, path);
+  }
+
+  Future<String?> getPremiumOutputDir() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_premiumOutputDirKey);
+  }
+
   Future<void> clearPremiumData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_premiumStatusKey);
     await prefs.remove(_premiumUserIdKey);
     await prefs.remove(_premiumExpiryKey);
     await prefs.remove(_premiumLicenseKey);
+    await prefs.remove(_premiumOutputDirKey);
   }
 
   // Encrypted files tracking

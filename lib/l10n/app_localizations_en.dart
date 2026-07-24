@@ -553,4 +553,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupImageFile => 'Backup Image File';
+
+  @override
+  String get premiumPlan => 'PREMIUM PLAN';
+
+  @override
+  String get freePlan => 'FREE PLAN';
+
+  @override
+  String get outputConfig => 'Output Configuration';
+
+  @override
+  String get selectOutputDir => 'Select Output Directory';
+
+  @override
+  String currentOutputPath(String path) {
+    return 'Current Path: $path';
+  }
 }
