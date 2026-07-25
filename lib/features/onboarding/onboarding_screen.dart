@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/features/onboarding/bloc/onboarding_cubit.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 
@@ -23,28 +24,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         subtitle: l10n.onboardingSubtitle1,
         description: l10n.onboardingDesc1,
         icon: Icons.memory_rounded,
-        color: const Color(0xFF00E5FF), // Cyan Neon
+        color: AppTheme.cyberCyan,
       ),
       OnboardingData(
         title: l10n.onboardingTitle2,
         subtitle: l10n.onboardingSubtitle2,
         description: l10n.onboardingDesc2,
         icon: Icons.radar_rounded,
-        color: const Color(0xFF00B0FF), // Bright Blue
+        color: AppTheme.cyberCyan,
       ),
       OnboardingData(
         title: l10n.onboardingTitle3,
         subtitle: l10n.onboardingSubtitle3,
         description: l10n.onboardingDesc3,
         icon: Icons.visibility_rounded,
-        color: const Color(0xFF76FF03), // Neon Green
+        color: AppTheme.cyberCyan,
       ),
       OnboardingData(
         title: l10n.onboardingTitle4,
         subtitle: l10n.onboardingSubtitle4,
         description: l10n.onboardingDesc4,
         icon: Icons.security_rounded,
-        color: const Color(0xFFFF3D00), // Neon Orange
+        color: AppTheme.cyberCyan,
       ),
     ];
   }
@@ -55,32 +56,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF020817), // Deep Navy Black
+      backgroundColor: AppTheme.cyberDeepNavy,
       body: Stack(
         children: [
           // Cyber Background with Circuit Lines
           Positioned.fill(
             child: CustomPaint(
               painter: CircuitPainter(
-                color: pages[_currentPage].color.withValues(alpha: 0.1),
+                color: AppTheme.cyberCyan.withValues(alpha: 0.05),
                 seed: _currentPage,
               ),
             ),
           ),
           
-          // Glow background
-          Positioned(
-            top: -100,
-            right: -100,
+          // Dynamic Glow background
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 800),
+            top: -150,
+            right: _currentPage.isEven ? -100 : 200,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 400,
+              height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: pages[_currentPage].color.withValues(alpha: 0.1),
-                    blurRadius: 100,
+                    color: AppTheme.cyberCyan.withValues(alpha: 0.08),
+                    blurRadius: 150,
                     spreadRadius: 50,
                   ),
                 ],
@@ -104,15 +106,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           // Skip button
           Positioned(
             top: 50,
-            right: 30,
+            right: 40,
             child: TextButton(
               onPressed: () => _finishOnboarding(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white.withValues(alpha: 0.4),
+              ),
               child: Text(
                 l10n.skip,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                style: const TextStyle(
                   letterSpacing: 2,
                   fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -120,57 +125,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           // Bottom Navigation
           Positioned(
-            bottom: 50,
-            left: 40,
-            right: 40,
+            bottom: 40,
+            left: 0,
+            right: 0,
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     pages.length,
-                    (index) => buildCyberDot(index, pages),
+                    (index) => buildCyberDot(index),
                   ),
                 ),
-                const SizedBox(height: 40),
-                GestureDetector(
-                  onTap: () {
-                    if (_currentPage == pages.length - 1) {
-                      _finishOnboarding(context);
-                    } else {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeInOutCubic,
-                      );
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          pages[_currentPage].color,
-                          pages[_currentPage].color.withValues(alpha: 0.6),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: pages[_currentPage].color.withValues(alpha: 0.4),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 120),
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_currentPage == pages.length - 1) {
+                          _finishOnboarding(context);
+                        } else {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 800),
+                            curve: Curves.fastOutSlowIn,
+                          );
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: double.infinity,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.cyberCyan,
+                              AppTheme.cyberCyan.withValues(alpha: 0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(26),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.cyberCyan.withValues(alpha: 0.2),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _currentPage == pages.length - 1 ? l10n.startRecovery : l10n.nextStep,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
+                        child: Center(
+                          child: Text(
+                            _currentPage == pages.length - 1 ? l10n.startRecovery : l10n.nextStep,
+                            style: const TextStyle(
+                              color: AppTheme.cyberDeepNavy,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -185,26 +197,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _finishOnboarding(BuildContext context) async {
-    await context.read<OnboardingCubit>().completeOnboarding();
+    final cubit = context.read<OnboardingCubit>();
+    final navigator = Navigator.of(context);
+    await cubit.completeOnboarding();
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+      navigator.pushReplacementNamed('/home');
     }
   }
 
-  Widget buildCyberDot(int index, List<OnboardingData> pages) {
+  Widget buildCyberDot(int index) {
     bool isSelected = _currentPage == index;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(right: 12),
-      height: 4,
-      width: isSelected ? 40 : 12,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.fastOutSlowIn,
+      margin: const EdgeInsets.only(right: 8),
+      height: 6,
+      width: isSelected ? 32 : 6,
       decoration: BoxDecoration(
-        color: isSelected ? pages[_currentPage].color : Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(2),
+        color: isSelected ? AppTheme.cyberCyan : Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(3),
         boxShadow: isSelected ? [
           BoxShadow(
-            color: pages[_currentPage].color.withValues(alpha: 0.5),
-            blurRadius: 10,
+            color: AppTheme.cyberCyan.withValues(alpha: 0.4),
+            blurRadius: 8,
           )
         ] : null,
       ),
@@ -238,53 +253,47 @@ class CyberOnboardingPage extends StatelessWidget {
     final isFirstPage = data.icon == Icons.memory_rounded;
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Glowing Icon/Logo Container
+          // Illustration Area with Glass Effect
           Stack(
             alignment: Alignment.center,
             children: [
-              // Outer glow
+              // Rotating decorative ring
+              const _RotatingRing(),
+              
+              // Glass Container
               Container(
-                width: 200,
-                height: 200,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  color: AppTheme.cyberCyan.withValues(alpha: 0.03),
                   border: Border.all(
-                    color: data.color.withValues(alpha: 0.2),
-                    width: 2,
+                    color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                    width: 1.5,
                   ),
                 ),
               ),
-              // Radar pulse (simulated)
-              Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: data.color.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-              ),
+              
               // Main Icon or Logo
               if (isFirstPage)
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 140,
+                  height: 140,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(32),
                     image: const DecorationImage(
                       image: AssetImage('assets/logo.jpeg'),
                       fit: BoxFit.cover,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: data.color.withValues(alpha: 0.5),
-                        blurRadius: 30,
+                        color: AppTheme.cyberCyan.withValues(alpha: 0.4),
+                        blurRadius: 40,
+                        spreadRadius: -10,
                       ),
                     ],
                   ),
@@ -292,54 +301,135 @@ class CyberOnboardingPage extends StatelessWidget {
               else
                 Icon(
                   data.icon,
-                  size: 100,
-                  color: data.color,
+                  size: 110,
+                  color: AppTheme.cyberCyan,
                 ),
-              // Glowing shadow (only for icons)
+                
+              // Subtle glow for icons
               if (!isFirstPage)
                 Icon(
                   data.icon,
-                  size: 104,
-                  color: data.color.withValues(alpha: 0.2),
+                  size: 114,
+                  color: AppTheme.cyberCyan.withValues(alpha: 0.15),
                 ),
             ],
           ),
           const SizedBox(height: 60),
-          // Subtitle (Small & Technical)
-          Text(
-            data.subtitle,
-            style: TextStyle(
-              color: data.color,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 4,
+          // Content Card (Glassmorphism)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            decoration: BoxDecoration(
+              color: AppTheme.cyberGlass,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Subtitle (Small & Technical)
+                Text(
+                  data.subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppTheme.cyberCyan,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Main Title (Large & Bold)
+                Text(
+                  data.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Description
+                Text(
+                  data.description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 14,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          // Main Title (Large & Bold)
-          Text(
-            data.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Description
-          Text(
-            data.description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 16,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 120), // Bottom space
+          const SizedBox(height: 80), // Adjusted bottom space
         ],
+      ),
+    );
+  }
+}
+
+class _RotatingRing extends StatefulWidget {
+  const _RotatingRing();
+
+  @override
+  State<_RotatingRing> createState() => _RotatingRingState();
+}
+
+class _RotatingRingState extends State<_RotatingRing> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _controller,
+      child: Container(
+        width: 280,
+        height: 280,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppTheme.cyberCyan.withValues(alpha: 0.05),
+            width: 1,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Stack(
+          children: List.generate(4, (index) {
+            final angle = (index * 90) * (math.pi / 180);
+            return Positioned(
+              left: 140 + 140 * math.cos(angle) - 4,
+              top: 140 + 140 * math.sin(angle) - 4,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppTheme.cyberCyan,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }

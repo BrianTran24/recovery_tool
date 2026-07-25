@@ -13,6 +13,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get onboardingTitle1 => 'RECOVERY SD TOOL';
+RECOVERY SD TOOL';
 
   @override
   String get onboardingSubtitle1 => 'UNLOCK YOUR LOST DATA!';
