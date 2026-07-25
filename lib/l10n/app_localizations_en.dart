@@ -570,4 +570,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String currentOutputPath(String path) {
     return 'Current Path: $path';
   }
+
+  @override
+  String get authorContact => 'Author Contact';
+
+  @override
+  String get authorName => 'Name';
+
+  @override
+  String get authorEmail => 'Email';
+
+  @override
+  String get authorZalo => 'Zalo';
+
+  @override
+  String get authorLinkedIn => 'LinkedIn';
+
+  @override
+  String get authorFacebook => 'Facebook';
 }

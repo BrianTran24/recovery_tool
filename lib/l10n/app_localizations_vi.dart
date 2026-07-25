@@ -570,4 +570,22 @@ class AppLocalizationsVi extends AppLocalizations {
   String currentOutputPath(String path) {
     return 'Đường dẫn hiện tại: $path';
   }
+
+  @override
+  String get authorContact => 'Thông tin tác giả';
+
+  @override
+  String get authorName => 'Họ tên';
+
+  @override
+  String get authorEmail => 'Email';
+
+  @override
+  String get authorZalo => 'Zalo';
+
+  @override
+  String get authorLinkedIn => 'LinkedIn';
+
+  @override
+  String get authorFacebook => 'Facebook';
 }

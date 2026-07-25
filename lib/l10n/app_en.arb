@@ -323,5 +323,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "authorContact": "Author Contact",
+  "authorName": "Name",
+  "authorEmail": "Email",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook"
 }

@@ -323,5 +323,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "authorContact": "Thông tin tác giả",
+  "authorName": "Họ tên",
+  "authorEmail": "Email",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook"
 }

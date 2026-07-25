@@ -1111,6 +1111,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current Path: {path}'**
   String currentOutputPath(String path);
+
+  /// No description provided for @authorContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Author Contact'**
+  String get authorContact;
+
+  /// No description provided for @authorName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get authorName;
+
+  /// No description provided for @authorEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authorEmail;
+
+  /// No description provided for @authorZalo.
+  ///
+  /// In en, this message translates to:
+  /// **'Zalo'**
+  String get authorZalo;
+
+  /// No description provided for @authorLinkedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'LinkedIn'**
+  String get authorLinkedIn;
+
+  /// No description provided for @authorFacebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Facebook'**
+  String get authorFacebook;
 }
 
 class _AppLocalizationsDelegate

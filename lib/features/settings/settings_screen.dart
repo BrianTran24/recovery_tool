@@ -6,6 +6,7 @@ import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isCleaning = false;
+  bool _isAuthorExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +140,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               
               const SizedBox(height: 24),
+
+              _buildSettingsSection(
+                context,
+                title: l10n.authorContact,
+                icon: Icons.person_outline_rounded,
+                isExpanded: _isAuthorExpanded,
+                onToggle: () => setState(() => _isAuthorExpanded = !_isAuthorExpanded),
+                child: Column(
+                  children: [
+                    _ContactItem(
+                      label: l10n.authorName,
+                      value: 'Trần Văn Hiếu (Brian)',
+                      icon: Icons.badge_outlined,
+                    ),
+                    const Divider(height: 32, color: Colors.white10),
+                    _ContactItem(
+                      label: l10n.authorEmail,
+                      value: 'tranhieuglpk@gmail.com',
+                      icon: Icons.email_outlined,
+                      onTap: () => launchUrl(Uri.parse('mailto:tranhieuglpk@gmail.com')),
+                    ),
+                    const Divider(height: 32, color: Colors.white10),
+                    _ContactItem(
+                      label: l10n.authorZalo,
+                      value: '0335286360',
+                      icon: Icons.chat_bubble_outline_rounded,
+                    ),
+                    const Divider(height: 32, color: Colors.white10),
+                    _ContactItem(
+                      label: l10n.authorLinkedIn,
+                      value: 'brian-tran1998',
+                      icon: Icons.link_rounded,
+                      onTap: () => launchUrl(Uri.parse('https://www.linkedin.com/in/brian-tran1998/')),
+                    ),
+                    const Divider(height: 32, color: Colors.white10),
+                    _ContactItem(
+                      label: l10n.authorFacebook,
+                      value: 'haylachinhminh1998',
+                      icon: Icons.facebook_rounded,
+                      onTap: () => launchUrl(Uri.parse('https://www.facebook.com/haylachinhminh1998')),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
             ],
           ),
         );
@@ -176,6 +224,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required IconData icon,
     required Widget child,
+    bool? isExpanded,
+    VoidCallback? onToggle,
   }) {
     return Container(
       width: double.infinity,
@@ -190,23 +240,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: AppTheme.cyberCyan, size: 24),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+            splashColor: AppTheme.cyberCyan.withValues(alpha: 0.2),
+            highlightColor: Colors.transparent,
+            mouseCursor: SystemMouseCursors.click,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Icon(icon, color: AppTheme.cyberCyan, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (isExpanded != null)
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 200),
+                      turns: isExpanded ? 0.5 : 0,
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: AppTheme.cyberCyan,
+                      ),
+                    ),
+                ],
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 24),
-          child,
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Column(
+              children: [
+                const SizedBox(height: 24),
+                child,
+              ],
+            ),
+            crossFadeState: (isExpanded == null || isExpanded)
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+            sizeCurve: Curves.easeInOut,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ContactItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _ContactItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      hoverColor: AppTheme.cyberCyan.withValues(alpha: 0.05),
+      splashColor: AppTheme.cyberCyan.withValues(alpha: 0.1),
+      highlightColor: Colors.transparent,
+      mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cyberCyan.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: AppTheme.cyberCyan, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                Icons.open_in_new_rounded,
+                color: AppTheme.cyberCyan.withValues(alpha: 0.5),
+                size: 16,
+              ),
+          ],
+        ),
       ),
     );
   }
