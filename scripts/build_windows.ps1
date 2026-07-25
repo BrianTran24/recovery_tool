@@ -1,46 +1,66 @@
 # Build Windows Installer Script for Recovery Tool
 
-Write-Host "Step 1: Cleaning previous builds..." -ForegroundColor Cyan
-flutter clean
-
-Write-Host "Step 2: Getting dependencies..." -ForegroundColor Cyan
-flutter pub get
-
-Write-Host "Step 3: Building Flutter Windows application (Release)..." -ForegroundColor Cyan
-flutter build windows --release
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Flutter build failed. Exiting." -ForegroundColor Red
-    exit $LASTEXITCODE
+# --- Onboarding Control for Production Build ---
+Write-Host "Step 0: Disabling ALWAYS_SHOW_ONBOARDING for production build..." -ForegroundColor Cyan
+if (Test-Path ".env") {
+    Copy-Item ".env" ".env.bak" -Force
+} else {
+    Write-Host "Error: .env file not found." -ForegroundColor Red
+    exit 1
 }
 
-Write-Host "Step 4: Locating Inno Setup Compiler (iscc.exe)..." -ForegroundColor Cyan
-$iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue
-if (-not $iscc) {
-    $searchPaths = @(
-        "C:\Program Files (x86)\Inno Setup 6\iscc.exe",
-        "$env:LocalAppData\Programs\Inno Setup 6\iscc.exe"
-    )
-    foreach ($path in $searchPaths) {
-        if (Test-Path $path) {
-            $iscc = $path
-            break
+try {
+    # Comment out ALWAYS_SHOW_ONBOARDING to use standard logic (returns null in app)
+    (Get-Content ".env") -replace '^ALWAYS_SHOW_ONBOARDING=.*', '# ALWAYS_SHOW_ONBOARDING=null (disabled for build)' | Set-Content ".env"
+
+    Write-Host "Step 1: Cleaning previous builds..." -ForegroundColor Cyan
+    flutter clean
+
+    Write-Host "Step 2: Getting dependencies..." -ForegroundColor Cyan
+    flutter pub get
+
+    Write-Host "Step 3: Building Flutter Windows application (Release)..." -ForegroundColor Cyan
+    flutter build windows --release
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Flutter build failed. Exiting." -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+
+    Write-Host "Step 4: Locating Inno Setup Compiler (iscc.exe)..." -ForegroundColor Cyan
+    $iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue
+    if (-not $iscc) {
+        $searchPaths = @(
+            "C:\Program Files (x86)\Inno Setup 6\iscc.exe",
+            "$env:LocalAppData\Programs\Inno Setup 6\iscc.exe"
+        )
+        foreach ($path in $searchPaths) {
+            if (Test-Path $path) {
+                $iscc = $path
+                break
+            }
+        }
+
+        if (-not $iscc) {
+            Write-Host "Error: Inno Setup (iscc.exe) not found in PATH or standard locations." -ForegroundColor Red
+            Write-Host "Please install Inno Setup or add its folder to your PATH." -ForegroundColor Yellow
+            exit 1
         }
     }
 
-    if (-not $iscc) {
-        Write-Host "Error: Inno Setup (iscc.exe) not found in PATH or standard locations." -ForegroundColor Red
-        Write-Host "Please install Inno Setup or add its folder to your PATH." -ForegroundColor Yellow
-        exit 1
+    Write-Host "Step 5: Compiling Installer..." -ForegroundColor Cyan
+    & $iscc scripts\windows_installer.iss
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "`nSuccess! Installer created at: build\windows\installer\RecoveryToolInstaller.exe" -ForegroundColor Green
+    } else {
+        Write-Host "`nError: Installer compilation failed." -ForegroundColor Red
+        exit $LASTEXITCODE
     }
 }
-
-Write-Host "Step 5: Compiling Installer..." -ForegroundColor Cyan
-& $iscc scripts\windows_installer.iss
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`nSuccess! Installer created at: build\windows\installer\RecoveryToolInstaller.exe" -ForegroundColor Green
-} else {
-    Write-Host "`nError: Installer compilation failed." -ForegroundColor Red
-    exit $LASTEXITCODE
+finally {
+    if (Test-Path ".env.bak") {
+        Write-Host "Step 6: Restoring original .env..." -ForegroundColor Cyan
+        Move-Item ".env.bak" ".env" -Force
+    }
 }

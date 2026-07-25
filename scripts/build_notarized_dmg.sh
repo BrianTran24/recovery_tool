@@ -22,6 +22,25 @@ for var in "${REQUIRED_VARS[@]}"; do
     fi
 done
 
+# --- Onboarding Control for Production Build ---
+echo "⚙️  Disabling ALWAYS_SHOW_ONBOARDING for production build..."
+# Backup .env
+cp .env .env.bak
+
+# Function to restore .env on exit (success or failure)
+cleanup() {
+    if [ -f .env.bak ]; then
+        echo "🧹 Restoring original .env..."
+        mv .env.bak .env
+    fi
+}
+trap cleanup EXIT
+
+# Comment out ALWAYS_SHOW_ONBOARDING to use standard logic (returns null in app)
+# Using a portable sed approach
+sed -i.tmp 's/^ALWAYS_SHOW_ONBOARDING=.*$/# ALWAYS_SHOW_ONBOARDING=null (disabled for build)/' .env && rm .env.tmp
+# -----------------------------------------------
+
 APP_NAME="Recovery SD Tool"
 VERSION="1.0.0"
 DMG_NAME="Recovery_SD_Tool_v${VERSION}.dmg"
