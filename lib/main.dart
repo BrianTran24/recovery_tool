@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:disks_desktop/disks_desktop.dart';
 import 'package:file_picker/file_picker.dart';
@@ -28,45 +29,52 @@ import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:media_kit/media_kit.dart';
 
-void main() {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    MediaKit.ensureInitialized();
-    
-    // Load environment variables from .env file
-    try {
-      await dotenv.load(fileName: ".env");
-      debugPrint('✅ .env loaded successfully');
-      debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
-    } catch (e) {
-      debugPrint('❌ Warning: Could not load .env file: $e');
-    }
-    
-    final storageService = StorageService();
-    final recoveryService = RecoveryService();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
 
-    runApp(
-      MultiRepositoryProvider(
+  // Modern error handling (replaces runZonedGuarded)
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter Error: ${details.exception}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught async error: $error');
+    debugPrint('Stack trace: $stack');
+    return true; // Error was handled
+  };
+
+  // Load environment variables from .env file
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ .env loaded successfully');
+    debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
+  } catch (e) {
+    debugPrint('❌ Warning: Could not load .env file: $e');
+  }
+
+  final storageService = StorageService();
+  final recoveryService = RecoveryService();
+
+  runApp(
+    MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: storageService),
+        RepositoryProvider.value(value: recoveryService),
+        RepositoryProvider(create: (context) => PremiumService(storageService)),
+      ],
+      child: MultiBlocProvider(
         providers: [
-          RepositoryProvider.value(value: storageService),
-          RepositoryProvider.value(value: recoveryService),
-          RepositoryProvider(create: (context) => PremiumService(storageService)),
+          BlocProvider(create: (context) => LocaleCubit(storageService)),
+          BlocProvider(create: (context) => OnboardingCubit(storageService)),
+          BlocProvider(create: (context) => PremiumCubit(context.read<PremiumService>(), storageService)),
+          BlocProvider(create: (context) => ScanBloc(recoveryService)),
         ],
-        child: MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (context) => LocaleCubit(storageService)),
-            BlocProvider(create: (context) => OnboardingCubit(storageService)),
-            BlocProvider(create: (context) => PremiumCubit(context.read<PremiumService>(), storageService)),
-            BlocProvider(create: (context) => ScanBloc(recoveryService)),
-          ],
-          child: const MyApp(),
-        ),
+        child: const MyApp(),
       ),
-    );
-  }, (error, stackTrace) {
-    debugPrint('Uncaught error: $error');
-    debugPrint('Stack trace: $stackTrace');
-  });
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
