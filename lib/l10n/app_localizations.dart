@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// No description provided for @vietnamese.
   ///
   /// In en, this message translates to:
-  /// **'Vietnamese'**
+  /// **'Tiếng Việt'**
   String get vietnamese;
 
   /// No description provided for @english.
@@ -341,37 +341,37 @@ abstract class AppLocalizations {
   /// No description provided for @spanish.
   ///
   /// In en, this message translates to:
-  /// **'Spanish'**
+  /// **'Español'**
   String get spanish;
 
   /// No description provided for @chinese.
   ///
   /// In en, this message translates to:
-  /// **'Chinese'**
+  /// **'简体中文'**
   String get chinese;
 
   /// No description provided for @hindi.
   ///
   /// In en, this message translates to:
-  /// **'Hindi'**
+  /// **'हिन्दी'**
   String get hindi;
 
   /// No description provided for @arabic.
   ///
   /// In en, this message translates to:
-  /// **'Arabic'**
+  /// **'العربية'**
   String get arabic;
 
   /// No description provided for @french.
   ///
   /// In en, this message translates to:
-  /// **'French'**
+  /// **'Français'**
   String get french;
 
   /// No description provided for @russian.
   ///
   /// In en, this message translates to:
-  /// **'Russian'**
+  /// **'Русский'**
   String get russian;
 
   /// No description provided for @developing.

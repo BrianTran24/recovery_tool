@@ -124,25 +124,25 @@ class AppLocalizationsVi extends AppLocalizations {
   String get vietnamese => 'Tiếng Việt';
 
   @override
-  String get english => 'Tiếng Anh';
+  String get english => 'English';
 
   @override
-  String get spanish => 'Tiếng Tây Ban Nha';
+  String get spanish => 'Español';
 
   @override
-  String get chinese => 'Tiếng Trung';
+  String get chinese => '简体中文';
 
   @override
-  String get hindi => 'Tiếng Hindi';
+  String get hindi => 'हिन्दी';
 
   @override
-  String get arabic => 'Tiếng Ả Rập';
+  String get arabic => 'العربية';
 
   @override
-  String get french => 'Tiếng Pháp';
+  String get french => 'Français';
 
   @override
-  String get russian => 'Tiếng Nga';
+  String get russian => 'Русский';
 
   @override
   String get developing => 'ĐANG PHÁT TRIỂN';

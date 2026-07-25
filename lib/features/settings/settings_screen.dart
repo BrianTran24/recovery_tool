@@ -19,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isCleaning = false;
   bool _isAuthorExpanded = false;
+  bool _isLanguageExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +51,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context,
                 title: l10n.language,
                 icon: Icons.language_rounded,
+                isExpanded: _isLanguageExpanded,
+                onToggle: () => setState(() => _isLanguageExpanded = !_isLanguageExpanded),
                 child: Wrap(
                   spacing: 12,
                   runSpacing: 12,

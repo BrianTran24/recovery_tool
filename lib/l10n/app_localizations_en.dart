@@ -121,28 +121,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectLanguage => 'Select Language';
 
   @override
-  String get vietnamese => 'Vietnamese';
+  String get vietnamese => 'Tiếng Việt';
 
   @override
   String get english => 'English';
 
   @override
-  String get spanish => 'Spanish';
+  String get spanish => 'Español';
 
   @override
-  String get chinese => 'Chinese';
+  String get chinese => '简体中文';
 
   @override
-  String get hindi => 'Hindi';
+  String get hindi => 'हिन्दी';
 
   @override
-  String get arabic => 'Arabic';
+  String get arabic => 'العربية';
 
   @override
-  String get french => 'French';
+  String get french => 'Français';
 
   @override
-  String get russian => 'Russian';
+  String get russian => 'Русский';
 
   @override
   String get developing => 'DEVELOPING';
