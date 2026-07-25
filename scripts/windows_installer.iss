@@ -3,7 +3,10 @@
 
 #define MyAppName "Recovery Tool"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "Recovery Tool Team"
+#define MyAppPublisher "Trần Văn Hiếu (Brian)"
+#define MyAppPublisherEmail "tranhieuglpk@gmail.com"
+#define MyAppPublisherZalo "0335286360"
+#define MyAppPublisherLinkedIn "https://www.linkedin.com/in/brian-tran1998/"
 #define MyAppExeName "recovery_tool.exe"
 
 [Setup]
@@ -12,8 +15,10 @@
 AppId={{D37E90B0-F3E4-4B2E-B9D1-0A4E6C3B5E7A}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppPublisherLinkedIn}
+AppSupportURL={#MyAppPublisherEmail}
+AppUpdatesURL={#MyAppPublisherLinkedIn}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
@@ -40,5 +45,11 @@ Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignore
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+[Messages]
+WelcomeLabel2=This tool was developed by {#MyAppPublisher}.%n%nContact Info:%n- Email: {#MyAppPublisherEmail}%n- Zalo: {#MyAppPublisherZalo}%n- LinkedIn: {#MyAppPublisherLinkedIn}%n%nClick Next to continue with the installation.
+
+[Code]
+procedure InitializeWizard;
+begin
+  WizardForm.WelcomeLabel2.AutoSize := True;
+end;
