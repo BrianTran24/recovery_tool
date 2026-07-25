@@ -17,12 +17,20 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Step 4: Locating Inno Setup Compiler (iscc.exe)..." -ForegroundColor Cyan
 $iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue
 if (-not $iscc) {
-    $isccPath = "C:\Program Files (x86)\Inno Setup 6\iscc.exe"
-    if (Test-Path $isccPath) {
-        $iscc = $isccPath
-    } else {
-        Write-Host "Error: Inno Setup (iscc.exe) not found in PATH or default location." -ForegroundColor Red
-        Write-Host "Please install Inno Setup from https://jrsoftware.org/isdl.php" -ForegroundColor Yellow
+    $searchPaths = @(
+        "C:\Program Files (x86)\Inno Setup 6\iscc.exe",
+        "$env:LocalAppData\Programs\Inno Setup 6\iscc.exe"
+    )
+    foreach ($path in $searchPaths) {
+        if (Test-Path $path) {
+            $iscc = $path
+            break
+        }
+    }
+
+    if (-not $iscc) {
+        Write-Host "Error: Inno Setup (iscc.exe) not found in PATH or standard locations." -ForegroundColor Red
+        Write-Host "Please install Inno Setup or add its folder to your PATH." -ForegroundColor Yellow
         exit 1
     }
 }
