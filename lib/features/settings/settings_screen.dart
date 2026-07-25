@@ -5,6 +5,7 @@ import 'package:recovery_tool/core/bloc/premium/premium_cubit.dart';
 import 'package:recovery_tool/core/service/storage_service.dart';
 import 'package:recovery_tool/core/theme/app_theme.dart';
 import 'package:recovery_tool/core/bloc/locale/locale_cubit.dart';
+import 'package:recovery_tool/features/premium/widgets/contact_buy_dialog.dart';
 import 'package:recovery_tool/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -67,6 +68,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               
               const SizedBox(height: 24),
+
+              BlocBuilder<PremiumCubit, PremiumState>(
+                builder: (context, premiumState) {
+                  if (premiumState.isPremium) return const SizedBox.shrink();
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _buildSettingsSection(
+                      context,
+                      title: l10n.upgradeToPremium,
+                      icon: Icons.workspace_premium_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.unlockAllFilesDesc,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => const ContactBuyDialog(),
+                              );
+                            },
+                            icon: const Icon(Icons.shopping_cart_rounded, size: 18),
+                            label: Text(l10n.buyLicenseKey),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF1744).withValues(alpha: 0.1),
+                              foregroundColor: const Color(0xFFFF1744),
+                              side: BorderSide(color: const Color(0xFFFF1744).withValues(alpha: 0.3)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
 
               BlocBuilder<PremiumCubit, PremiumState>(
                 builder: (context, premiumState) {

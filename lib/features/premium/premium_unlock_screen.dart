@@ -8,6 +8,7 @@ import '../../core/service/storage_service.dart';
 import '../../core/utils/l10n_utils.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
+import './widgets/contact_buy_dialog.dart';
 
 class PremiumUnlockScreen extends StatefulWidget {
   final String outputDir;
@@ -309,7 +310,10 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    // TODO: Open purchase page
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ContactBuyDialog(),
+                    );
                   },
                   child: Text(l10n.buyLicenseKey),
                 ),
