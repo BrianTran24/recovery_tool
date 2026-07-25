@@ -28,23 +28,23 @@ import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:path/path.dart' as p;
 import 'package:media_kit/media_kit.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  MediaKit.ensureInitialized();
-  
-  // Load environment variables from .env file
-  try {
-    await dotenv.load(fileName: ".env");
-    debugPrint('✅ .env loaded successfully');
-    debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
-  } catch (e) {
-    debugPrint('❌ Warning: Could not load .env file: $e');
-  }
-  
-  final storageService = StorageService();
-  final recoveryService = RecoveryService();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    MediaKit.ensureInitialized();
+    
+    // Load environment variables from .env file
+    try {
+      await dotenv.load(fileName: ".env");
+      debugPrint('✅ .env loaded successfully');
+      debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
+    } catch (e) {
+      debugPrint('❌ Warning: Could not load .env file: $e');
+    }
+    
+    final storageService = StorageService();
+    final recoveryService = RecoveryService();
 
-  runZonedGuarded(() {
     runApp(
       MultiRepositoryProvider(
         providers: [
