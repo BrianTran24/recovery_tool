@@ -1,0 +1,340 @@
+{
+  "@@locale": "hi",
+  "appTitle": "Recovery SD Tool",
+  "onboardingTitle1": "RECOVERY SD TOOL",
+  "onboardingSubtitle1": "अपना खोया हुआ डेटा अनलॉक करें!",
+  "onboardingDesc1": "आपके सभी SD उपकरणों के लिए पेशेवर, तेज़ और विश्वसनीय डेटा रिकवरी समाधान।",
+  "onboardingTitle2": "तेज़ स्कैन सिस्टम",
+  "onboardingSubtitle2": "आसानी से रिकवर करें",
+  "onboardingDesc2": "डीप स्कैन एल्गोरिदम खोई हुई फ़ोटो, वीडियो और दस्तावेज़ों को पल भर में खोजने में मदद करते हैं।",
+  "onboardingTitle3": "फ़ाइलों का पूर्वावलोकन",
+  "onboardingSubtitle3": "रिस्टोर करने से पहले देखें",
+  "onboardingDesc3": "स्कैनिंग प्रक्रिया के दौरान डेटा का पूर्वावलोकन करें ताकि यह सुनिश्चित हो सके कि आप वही चुन रहे हैं जो सबसे महत्वपूर्ण है।",
+  "onboardingTitle4": "सुरक्षित और विश्वसनीय",
+  "onboardingSubtitle4": "अपनी यादों को सुरक्षित रखें",
+  "onboardingDesc4": "पूरी तरह से सुरक्षित रिकवरी प्रक्रिया, यह सुनिश्चित करती है कि मूल डेटा पर कोई ओवरराइटिंग या क्षति न हो।",
+  "skip": "छोड़ें",
+  "nextStep": "अगला कदम",
+  "startRecovery": "रिकवरी शुरू करें",
+  "sidebarDevices": "उपकरण",
+  "sidebarRestore": "इमेज रिस्टोर करें",
+  "sidebarSettings": "सेटिंग्स",
+  "systemStatus": "सिस्टम की स्थिति",
+  "online": "ऑनलाइन",
+  "expand": "विस्तार करें",
+  "collapse": "समेटें",
+  "systemReady": "सिस्टम तैयार है",
+  "connectedDevices": "जुड़े हुए उपकरण",
+  "noDevicesDetected": "कोई उपकरण नहीं मिला",
+  "tryRescan": "फिर से स्कैन करें",
+  "unknownDevice": "अज्ञात उपकरण",
+  "interface": "इंटरफ़ेस",
+  "restoreData": "डेटा रिस्टोर करें",
+  "selectBackupImage": "बैकअप इमेज फ़ाइल चुनें",
+  "supportedFormats": ".img, .bin, .dd, .raw का समर्थन करता है",
+  "browseFile": "फ़ाइल ब्राउज़ करें",
+  "settings": "सेटिंग्स",
+  "language": "भाषा",
+  "selectLanguage": "भाषा चुनें",
+  "vietnamese": "वियतनामी",
+  "english": "अंग्रेज़ी",
+  "spanish": "स्पेनिश",
+  "chinese": "चीनी",
+  "hindi": "हिंदी",
+  "arabic": "अरबी",
+  "french": "फ्रेंच",
+  "russian": "रूसी",
+  "developing": "विकास में",
+  "gcTrimWarningTitle": "चेतावनी: गारबेज कलेक्शन जोखिम",
+  "gcTrimWarningDesc": "आधुनिक SD कार्ड खाली समय (Trim/GC) के दौरान हटाए गए डेटा को स्वचालित रूप से मिटा सकते हैं। अनुशंसित: डेटा सुरक्षित रखने के लिए तुरंत पूरे कार्ड को .img फ़ाइल में क्लोन करें।",
+  "sourceDevice": "स्रोत उपकरण",
+  "recoveryMode": "रिकवरी मोड",
+  "storageConfig": "स्टोरेज कॉन्फ़िगरेशन",
+  "outputDirectory": "आउटपुट डायरेक्टरी",
+  "deletedFiles": "हटाए गए फ़ाइलें",
+  "existingFiles": "मौजूदा फ़ाइलें",
+  "allFiles": "सभी फ़ाइलें",
+  "deletedFilesDesc": "फ़ाइल सिस्टम से हटाई गई फ़ाइलों को खोजें और रिकवर करें।",
+  "existingFilesDesc": "वर्तमान में उपकरण पर मौजूद फ़ाइलों को स्कैन और सूचीबद्ध करें।",
+  "allFilesDesc": "मौजूदा और हटाई गई फ़ाइलों दोनों के लिए स्कैनिंग को मिलाता है।",
+  "startScanNow": "स्कैन",
+  "change": "बदलें",
+  "pleaseSelectOutputDir": "कृपया आउटपुट डायरेक्टरी चुनें",
+  "backupImage": "बैकअप इमेज: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "केवल-पढ़ने के लिए मोड - पूर्ण सुरक्षा",
+  "capacity": "क्षमता: {size} GB",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "{path} के लिए स्कैन सेशन शुरू किया जा रहा है",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "पहचाना गया: सेक्टर {offset} पर फ़ाइल सिस्टम {type}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "पहचाना गया: कोई वैध फ़ाइल सिस्टम नहीं मिला। सिग्नेचर कार्विंग (Signature Carving) पर स्विच किया जा रहा है।",
+  "scanScanningSector": "स्कैनिंग सेक्टर: {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "मिला: {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "पूरा हुआ: {duration} में {count} फ़ाइलें मिलीं",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "त्रुटि: {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "स्ट्रीम त्रुटि: {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "स्कैन के परिणाम",
+  "scanProcessing": "डेटा प्रोसेस किया जा रहा है...",
+  "scanStop": "रोकें",
+  "scanPause": "विराम",
+  "scanResume": "जारी रखें",
+  "scanCancel": "रद्द करें",
+  "scanViewAllResults": "सभी परिणाम देखें",
+  "scanViewLive": "लाइव देखें ({count} फ़ाइलें)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "मिली फ़ाइलें",
+  "scanTabLogs": "सिस्टम लॉग",
+  "scanSearchingFiles": "फ़ाइलें खोजी जा रही हैं...",
+  "scanProgress": "स्कैन की प्रगति",
+  "scanSpeed": "गति",
+  "scanFound": "मिला",
+  "scanElapsed": "बीता हुआ समय",
+  "scanRemaining": "शेष समय (अनुमानित)",
+  "scanHardwareError": "हार्डवेयर त्रुटि",
+  "scanSystemError": "सिस्टम त्रुटि",
+  "scanUnderstand": "मैं समझता हूँ",
+  "scanNew": "दूसरे उपकरण को स्कैन करें",
+  "openFolder": "आउटपुट फ़ोल्डर खोलें",
+  "freeScanMode": "मुफ़्त स्कैन और पूर्वावलोकन मोड",
+  "upgradeToSave": "सहेजने के लिए अपग्रेड करें",
+  "upgradeRequiredDesc": "रिकवर की गई फ़ाइलों को अपने कंप्यूटर पर सहेजने के लिए प्रीमियम में अपग्रेड करें।",
+  "saveToDiskPremium": "डिस्क पर सहेजें (प्रीमियम)",
+  "premiumFeature": "प्रीमियम सुविधा",
+  "freeModeDesc": "पूर्वावलोकन के लिए अस्थायी स्टोरेज में स्कैन किया जा रहा है। फ़ाइलें सिस्टम द्वारा हटाई जा सकती हैं।",
+  "fileDetailTitle": "फ़ाइल का विवरण",
+  "fileDetailProperties": "गुण",
+  "fileDetailName": "फ़ाइल का नाम",
+  "fileDetailType": "प्रकार",
+  "fileDetailSize": "आकार",
+  "fileDetailLocation": "सापेक्ष पथ",
+  "fileDetailOffset": "सेक्टर ऑफ़सेट",
+  "fileDetailModified": "संशोधित तिथि",
+  "fileDetailStatus": "रिकवरी स्थिति",
+  "fileDetailOpenFile": "फ़ाइल खोलें",
+  "fileDetailShowInFolder": "फ़ोल्डर में दिखाएं",
+  "fileDetailNext": "अगली फ़ाइल",
+  "fileDetailPrevious": "पिछली फ़ाइल",
+  "fileDetailHealthy": "स्वस्थ",
+  "fileDetailOrphaned": "अनाथ (Orphaned)",
+  "fileDetailCarved": "कार्व किया हुआ (Carved)",
+  "clearCache": "कैश साफ़ करें",
+  "clearCacheDesc": "डिस्क स्थान खाली करने के लिए सभी अस्थायी स्कैन फ़ाइलें हटा दें।",
+  "cacheCleared": "कैश सफलतापूर्वक साफ़ किया गया",
+  "clearCacheError": "कैश साफ़ करने में त्रुटि: {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpenDevice": "उपकरण खोलने में त्रुटि ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "गंभीर हार्डवेयर/फ़र्मवेयर त्रुटि का पता चला: {message}। अनुशंसित: सीधे NAND चिप पढ़ने के लिए विशेष उपकरणों (PC-3000 Flash) का उपयोग करें।",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "अज्ञात इवेंट प्रकार: {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "लाइसेंस सत्यापित नहीं किया जा सका। कृपया बाद में पुनः प्रयास करें।",
+  "errorTimeout": "कनेक्शन टाइमआउट। कृपया अपना इंटरनेट जांचें।",
+  "errorConnection": "कनेक्शन त्रुटि: {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "प्रीमियम सफलतापूर्वक सक्रिय हो गया!",
+  "licenseExpired": "लाइसेंस कुंजी समाप्त हो गई है।",
+  "licenseInvalid": "अमान्य लाइसेंस कुंजी।",
+  "errorActivatePremium": "प्रीमियम सक्रिय करने में त्रुटि: {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "यह सुविधा हटा दी गई है।",
+  "conversionInitializing": "शुरू किया जा रहा है...",
+  "conversionDecrypting": "E01 फ़ाइल को डिक्रिप्ट किया जा रहा है...",
+  "conversionStatus": "कन्वर्ट किया जा रहा है: {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "कन्वर्जन पूरा हुआ!",
+  "errorFileNotFoundAfterConversion": "त्रुटि: कन्वर्जन के बाद आउटपुट फ़ाइल नहीं मिली।",
+  "conversionTitle": "E01 फ़ॉर्मेट कन्वर्जन",
+  "convertedRawImage": "कन्वर्ट की गई रॉ इमेज",
+  "pleaseEnterLicenseKey": "कृपया लाइसेंस कुंजी दर्ज करें",
+  "premiumActivatedTitle": "प्रीमियम सक्रिय!",
+  "askDecryptNow": "क्या आप अभी सभी फ़ाइलों को डिक्रिप्ट करना चाहते हैं?",
+  "later": "बाद में",
+  "decryptNow": "अभी डिक्रिप्ट करें",
+  "success": "सफलता!",
+  "decryptedFilesCount": "सफलतापूर्वक {decrypted}/{total} फ़ाइलें डिक्रिप्ट की गईं!",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "आप आउटपुट डायरेक्टरी से सीधे फ़ाइलों तक पहुंच सकते हैं।",
+  "close": "बंद करें",
+  "unlockPremiumTitle": "प्रीमियम अनलॉक करें",
+  "upgradeToPremium": "प्रीमियम में अपग्रेड करें",
+  "unlockAllFilesDesc": "सभी रिकवर की गई फ़ाइलों को अनलॉक करें और उन्हें सीधे डायरेक्टरी से एक्सेस करें",
+  "featureDecryptAll": "सभी फ़ाइलों को डिक्रिप्ट करें",
+  "featureDirectAccess": "डायरेक्टरी से सीधी पहुंच",
+  "featureNoWatermark": "कोई वॉटरमार्क नहीं",
+  "licenseKeyHint": "अपनी लाइसेंस कुंजी दर्ज करें",
+  "buyLicenseKey": "लाइसेंस कुंजी खरीदें",
+  "decryptingFiles": "फ़ाइलें डिक्रिप्ट की जा रही हैं...",
+  "preparing": "तैयारी की जा रही है...",
+  "dontCloseApp": "कृपया एप्लिकेशन बंद न करें",
+  "storage": "स्टोरेज",
+  "debugInfo": "डीबग जानकारी",
+  "copiedToClipboard": "क्लिपबोर्ड पर कॉपी किया गया",
+  "copyEncryptionValue": "एन्क्रिप्शन वैल्यू कॉपी करें",
+  "categoryAll": "सभी",
+  "categoryImages": "छवियां",
+  "categoryVideos": "वीडियो",
+  "categoryDocuments": "दस्तावेज़",
+  "searchFilesHint": "फ़ाइलें खोजें...",
+  "previewNotAvailable": "{type} के लिए पूर्वावलोकन उपलब्ध नहीं है",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "यह वीडियो नहीं देखा जा सकता",
+  "unknown": "अज्ञात",
+  "errorIdentifyPath": "त्रुटि: उपकरण पथ की पहचान नहीं की जा सकी",
+  "backupImageFile": "बैकअप इमेज फ़ाइल",
+  "premiumPlan": "प्रीमियम प्लान",
+  "freePlan": "मुफ़्त प्लान",
+  "outputConfig": "आउटपुट कॉन्फ़िगरेशन",
+  "selectOutputDir": "आउटपुट डायरेक्टरी चुनें",
+  "currentOutputPath": "वर्तमान पथ: {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "authorContact": "लेखक का संपर्क",
+  "authorName": "नाम",
+  "authorEmail": "ईमेल",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook",
+  "premiumPrice": "कीमत: 50,000 VND / $2 (1 दिन)"
+}

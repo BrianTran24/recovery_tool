@@ -38,6 +38,12 @@
   "selectLanguage": "Chọn ngôn ngữ",
   "vietnamese": "Tiếng Việt",
   "english": "Tiếng Anh",
+  "spanish": "Tiếng Tây Ban Nha",
+  "chinese": "Tiếng Trung",
+  "hindi": "Tiếng Hindi",
+  "arabic": "Tiếng Ả Rập",
+  "french": "Tiếng Pháp",
+  "russian": "Tiếng Nga",
   "developing": "ĐANG PHÁT TRIỂN",
   "gcTrimWarningTitle": "CẢNH BÁO: RỦI RO GARBAGE COLLECTION",
   "gcTrimWarningDesc": "Thẻ nhớ hiện đại có thể tự động xóa vật lý dữ liệu đã xóa trong lúc nhàn rỗi (Trim/GC). Khuyên dùng: Hãy clone toàn bộ thẻ sang file .img ngay lập tức để bảo toàn dữ liệu.",
@@ -329,5 +335,6 @@
   "authorEmail": "Email",
   "authorZalo": "Zalo",
   "authorLinkedIn": "LinkedIn",
-  "authorFacebook": "Facebook"
+  "authorFacebook": "Facebook",
+  "premiumPrice": "Giá: 50.000 VND / 2$ (1 Ngày)"
 }

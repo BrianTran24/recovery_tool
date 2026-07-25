@@ -1,0 +1,340 @@
+{
+  "@@locale": "zh",
+  "appTitle": "Recovery SD Tool",
+  "onboardingTitle1": "RECOVERY SD TOOL",
+  "onboardingSubtitle1": "解锁您丢失的数据！",
+  "onboardingDesc1": "为您所有的 SD 设备提供专业、快速且可靠的数据恢复解决方案。",
+  "onboardingTitle2": "快速扫描系统",
+  "onboardingSubtitle2": "轻松恢复",
+  "onboardingDesc2": "深度扫描算法帮助您瞬间找回丢失的照片、视频和文档。",
+  "onboardingTitle3": "预览文件",
+  "onboardingSubtitle3": "恢复前查看",
+  "onboardingDesc3": "在扫描过程中预览数据，确保您准确选择最重要的内容。",
+  "onboardingTitle4": "安全可靠",
+  "onboardingSubtitle4": "保护您的记忆",
+  "onboardingDesc4": "绝对安全的恢复过程，确保不覆盖或损坏原始数据。",
+  "skip": "跳过",
+  "nextStep": "下一步",
+  "startRecovery": "开始恢复",
+  "sidebarDevices": "设备",
+  "sidebarRestore": "还原镜像",
+  "sidebarSettings": "设置",
+  "systemStatus": "系统状态",
+  "online": "在线",
+  "expand": "展开",
+  "collapse": "折叠",
+  "systemReady": "系统就绪",
+  "connectedDevices": "已连接设备",
+  "noDevicesDetected": "未检测到设备",
+  "tryRescan": "尝试重新扫描",
+  "unknownDevice": "未知设备",
+  "interface": "界面",
+  "restoreData": "恢复数据",
+  "selectBackupImage": "选择备份镜像文件",
+  "supportedFormats": "支持 .img, .bin, .dd, .raw",
+  "browseFile": "浏览文件",
+  "settings": "设置",
+  "language": "语言",
+  "selectLanguage": "选择语言",
+  "vietnamese": "越南语",
+  "english": "英语",
+  "spanish": "西班牙语",
+  "chinese": "中文",
+  "hindi": "印地语",
+  "arabic": "阿拉伯语",
+  "french": "法语",
+  "russian": "俄语",
+  "developing": "开发中",
+  "gcTrimWarningTitle": "警告：垃圾回收风险",
+  "gcTrimWarningDesc": "现代 SD 卡可能会在空闲时间自动擦除已删除的数据 (Trim/GC)。建议：立即将整个卡克隆到 .img 文件以保存数据。",
+  "sourceDevice": "源设备",
+  "recoveryMode": "恢复模式",
+  "storageConfig": "存储配置",
+  "outputDirectory": "输出目录",
+  "deletedFiles": "已删除文件",
+  "existingFiles": "现有文件",
+  "allFiles": "所有文件",
+  "deletedFilesDesc": "查找并恢复从文件系统中删除的文件。",
+  "existingFilesDesc": "扫描并列出设备上当前存在的文件。",
+  "allFilesDesc": "结合扫描现有文件和已删除文件。",
+  "startScanNow": "扫描",
+  "change": "更改",
+  "pleaseSelectOutputDir": "请选择输出目录",
+  "backupImage": "备份镜像: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "只读模式 - 绝对安全",
+  "capacity": "容量: {size} GB",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "正在为 {path} 初始化扫描会话",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "已识别：扇区 {offset} 处的 {type} 文件系统",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "已识别：未找到有效的文件系统。切换到特征签名恢复 (Signature Carving)。",
+  "scanScanningSector": "正在扫描扇区：{sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "找到：{filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "完成：在 {duration} 内找到 {count} 个文件",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "错误：{message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "流错误：{error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "扫描结果",
+  "scanProcessing": "正在处理数据...",
+  "scanStop": "停止",
+  "scanPause": "暂停",
+  "scanResume": "继续",
+  "scanCancel": "取消",
+  "scanViewAllResults": "查看所有结果",
+  "scanViewLive": "实时查看 ({count} 个文件)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "找到的文件",
+  "scanTabLogs": "系统日志",
+  "scanSearchingFiles": "正在搜索文件...",
+  "scanProgress": "扫描进度",
+  "scanSpeed": "速度",
+  "scanFound": "找到",
+  "scanElapsed": "已用时间",
+  "scanRemaining": "剩余时间（预估）",
+  "scanHardwareError": "硬件错误",
+  "scanSystemError": "系统错误",
+  "scanUnderstand": "我明白",
+  "scanNew": "扫描其他设备",
+  "openFolder": "打开输出文件夹",
+  "freeScanMode": "免费扫描和预览模式",
+  "upgradeToSave": "升级以保存",
+  "upgradeRequiredDesc": "升级到高级版以将恢复的文件保存到您的计算机。",
+  "saveToDiskPremium": "保存到磁盘（高级版）",
+  "premiumFeature": "高级功能",
+  "freeModeDesc": "正在扫描到临时存储以进行预览。文件可能会被系统清除。",
+  "fileDetailTitle": "文件详情",
+  "fileDetailProperties": "属性",
+  "fileDetailName": "文件名",
+  "fileDetailType": "类型",
+  "fileDetailSize": "大小",
+  "fileDetailLocation": "相对路径",
+  "fileDetailOffset": "扇区偏移",
+  "fileDetailModified": "修改日期",
+  "fileDetailStatus": "恢复状态",
+  "fileDetailOpenFile": "打开文件",
+  "fileDetailShowInFolder": "在文件夹中显示",
+  "fileDetailNext": "下一个文件",
+  "fileDetailPrevious": "上一个文件",
+  "fileDetailHealthy": "良好",
+  "fileDetailOrphaned": "孤立文件",
+  "fileDetailCarved": "原始恢复 (Carved)",
+  "clearCache": "清理缓存",
+  "clearCacheDesc": "删除所有临时扫描文件以释放磁盘空间。",
+  "cacheCleared": "缓存清理成功",
+  "clearCacheError": "清理缓存出错：{error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpenDevice": "打开设备出错 ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "检测到严重的硬件/固件错误：{message}。建议：使用专用设备 (PC-3000 Flash) 直接读取 NAND 芯片。",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "未知事件类型：{type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "无法验证许可证。请稍后再试。",
+  "errorTimeout": "连接超时。请检查您的网络。",
+  "errorConnection": "连接错误：{error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "高级版激活成功！",
+  "licenseExpired": "许可证密钥已过期。",
+  "licenseInvalid": "许可证密钥无效。",
+  "errorActivatePremium": "激活高级版出错：{error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "此功能已被移除。",
+  "conversionInitializing": "正在初始化...",
+  "conversionDecrypting": "正在解密 E01 文件...",
+  "conversionStatus": "正在转换：{percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "转换完成！",
+  "errorFileNotFoundAfterConversion": "错误：转换后未找到输出文件。",
+  "conversionTitle": "E01 格式转换",
+  "convertedRawImage": "转换后的 Raw 镜像",
+  "pleaseEnterLicenseKey": "请输入许可证密钥",
+  "premiumActivatedTitle": "高级版已激活！",
+  "askDecryptNow": "您想现在解密所有文件吗？",
+  "later": "稍后",
+  "decryptNow": "现在解密",
+  "success": "成功！",
+  "decryptedFilesCount": "成功解密了 {decrypted}/{total} 个文件！",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "您可以直接从输出目录访问文件。",
+  "close": "关闭",
+  "unlockPremiumTitle": "解锁高级版",
+  "upgradeToPremium": "升级到高级版",
+  "unlockAllFilesDesc": "解锁所有恢复的文件并直接从目录访问它们",
+  "featureDecryptAll": "解密所有文件",
+  "featureDirectAccess": "从目录直接访问",
+  "featureNoWatermark": "无水印",
+  "licenseKeyHint": "输入您的许可证密钥",
+  "buyLicenseKey": "购买许可证密钥",
+  "decryptingFiles": "正在解密文件...",
+  "preparing": "正在准备...",
+  "dontCloseApp": "请不要关闭应用程序",
+  "storage": "存储",
+  "debugInfo": "调试信息",
+  "copiedToClipboard": "已复制到剪贴板",
+  "copyEncryptionValue": "复制加密值",
+  "categoryAll": "全部",
+  "categoryImages": "图片",
+  "categoryVideos": "视频",
+  "categoryDocuments": "文档",
+  "searchFilesHint": "搜索文件...",
+  "previewNotAvailable": "{type} 不支持预览",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "无法观看此视频",
+  "unknown": "未知",
+  "errorIdentifyPath": "错误：无法识别设备路径",
+  "backupImageFile": "备份镜像文件",
+  "premiumPlan": "高级版方案",
+  "freePlan": "免费版方案",
+  "outputConfig": "输出配置",
+  "selectOutputDir": "选择输出目录",
+  "currentOutputPath": "当前路径：{path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "authorContact": "作者联系方式",
+  "authorName": "姓名",
+  "authorEmail": "电子邮箱",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook",
+  "premiumPrice": "价格：50,000 VND / $2（1 天）"
+}

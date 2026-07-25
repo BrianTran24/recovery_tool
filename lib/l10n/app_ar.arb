@@ -1,0 +1,340 @@
+{
+  "@@locale": "ar",
+  "appTitle": "Recovery SD Tool",
+  "onboardingTitle1": "RECOVERY SD TOOL",
+  "onboardingSubtitle1": "افتح بياناتك المفقودة!",
+  "onboardingDesc1": "حل احترافي وسريع وموثوق لاستعادة البيانات لجميع أجهزة SD الخاصة بك.",
+  "onboardingTitle2": "نظام فحص سريع",
+  "onboardingSubtitle2": "استعد بسهولة",
+  "onboardingDesc2": "تساعد خوارزميات الفحص العميق في العثور على الصور ومقاطع الفيديو والمستندات المفقودة في لحظة.",
+  "onboardingTitle3": "معاينة الملفات",
+  "onboardingSubtitle3": "شاهد قبل الاستعادة",
+  "onboardingDesc3": "قم بمعاينة البيانات أثناء عملية الفحص للتأكد من اختيار ما يهمك أكثر بالضبط.",
+  "onboardingTitle4": "آمن ومضمون",
+  "onboardingSubtitle4": "احمِ ذاكرتك",
+  "onboardingDesc4": "عملية استعادة آمنة تماماً، تضمن عدم الكتابة فوق البيانات الأصلية أو إتلافها.",
+  "skip": "تخطي",
+  "nextStep": "الخطوة التالية",
+  "startRecovery": "بدء الاستعادة",
+  "sidebarDevices": "الأجهزة",
+  "sidebarRestore": "استعادة الصورة",
+  "sidebarSettings": "الإعدادات",
+  "systemStatus": "حالة النظام",
+  "online": "متصل",
+  "expand": "توسيع",
+  "collapse": "طي",
+  "systemReady": "النظام جاهز",
+  "connectedDevices": "الأجهزة المتصلة",
+  "noDevicesDetected": "لم يتم اكتشاف أي أجهزة",
+  "tryRescan": "حاول إعادة الفحص",
+  "unknownDevice": "جهاز غير معروف",
+  "interface": "الواجهة",
+  "restoreData": "استعادة البيانات",
+  "selectBackupImage": "اختر ملف صورة النسخة الاحتياطية",
+  "supportedFormats": "يدعم .img, .bin, .dd, .raw",
+  "browseFile": "تصفح الملف",
+  "settings": "الإعدادات",
+  "language": "اللغة",
+  "selectLanguage": "اختر اللغة",
+  "vietnamese": "الفيتنامية",
+  "english": "الإنجليزية",
+  "spanish": "الإسبانية",
+  "chinese": "الصينية",
+  "hindi": "الهندية",
+  "arabic": "العربية",
+  "french": "الفرنسية",
+  "russian": "الروسية",
+  "developing": "قيد التطوير",
+  "gcTrimWarningTitle": "تحذير: مخاطر جمع النفايات (Garbage Collection)",
+  "gcTrimWarningDesc": "قد تقوم بطاقات SD الحديثة تلقائياً بمسح البيانات المحذوفة فعلياً أثناء وقت الخمول (Trim/GC). يوصى بـ: استنساخ البطاقة بالكامل إلى ملف .img فوراً للحفاظ على البيانات.",
+  "sourceDevice": "الجهاز المصدر",
+  "recoveryMode": "وضع الاستعادة",
+  "storageConfig": "تكوين التخزين",
+  "outputDirectory": "دليل المخرجات",
+  "deletedFiles": "الملفات المحذوفة",
+  "existingFiles": "الملفات الموجودة",
+  "allFiles": "جميع الملفات",
+  "deletedFilesDesc": "البحث عن الملفات التي تم حذفها من نظام الملفات واستعادتها.",
+  "existingFilesDesc": "فحص وإدراج الملفات الموجودة حالياً على الجهاز.",
+  "allFilesDesc": "يجمع بين الفحص لكل من الملفات الموجودة والمحذوفة.",
+  "startScanNow": "فحص",
+  "change": "تغيير",
+  "pleaseSelectOutputDir": "يرجى اختيار دليل المخرجات",
+  "backupImage": "صورة النسخة الاحتياطية: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "وضع القراءة فقط - أمان مطلق",
+  "capacity": "السعة: {size} جيجابايت",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "بدء جلسة الفحص لـ {path}",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "تم التعرف: نظام ملفات {type} عند القطاع {offset}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "تم التعرف: لم يتم العثور على نظام ملفات صالح. الانتقال إلى الفحص الخام (Signature Carving).",
+  "scanScanningSector": "فحص القطاع: {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "تم العثور: {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "اكتمل: تم العثور على {count} ملفات في {duration}",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "خطأ: {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "خطأ في التدفق: {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "نتائج الفحص",
+  "scanProcessing": "جاري معالجة البيانات...",
+  "scanStop": "إيقاف",
+  "scanPause": "إيقاف مؤقت",
+  "scanResume": "استئناف",
+  "scanCancel": "إلغاء",
+  "scanViewAllResults": "عرض جميع النتائج",
+  "scanViewLive": "عرض مباشر ({count} ملفات)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "الملفات التي تم العثور عليها",
+  "scanTabLogs": "سجلات النظام",
+  "scanSearchingFiles": "جاري البحث عن الملفات...",
+  "scanProgress": "تقدم الفحص",
+  "scanSpeed": "السرعة",
+  "scanFound": "تم العثور",
+  "scanElapsed": "الوقت المنقضي",
+  "scanRemaining": "الوقت المتبقي (تقديري)",
+  "scanHardwareError": "خطأ في الأجهزة",
+  "scanSystemError": "خطأ في النظام",
+  "scanUnderstand": "أنا أفهم",
+  "scanNew": "فحص جهاز آخر",
+  "openFolder": "افتح مجلد المخرجات",
+  "freeScanMode": "وضع الفحص والمعاينة المجاني",
+  "upgradeToSave": "ترقية للحفظ",
+  "upgradeRequiredDesc": "قم بالترقية إلى Premium لحفظ الملفات المستردة على جهاز الكمبيوتر الخاص بك.",
+  "saveToDiskPremium": "حفظ على القرص (Premium)",
+  "premiumFeature": "ميزة Premium",
+  "freeModeDesc": "جاري الفحص إلى وحدة تخزين مؤقتة للمعاينة. قد يقوم النظام بمسح الملفات.",
+  "fileDetailTitle": "تفاصيل الملف",
+  "fileDetailProperties": "الخصائص",
+  "fileDetailName": "اسم الملف",
+  "fileDetailType": "النوع",
+  "fileDetailSize": "الحجم",
+  "fileDetailLocation": "المسار النسبي",
+  "fileDetailOffset": "إزاحة القطاع",
+  "fileDetailModified": "تاريخ التعديل",
+  "fileDetailStatus": "حالة الاستعادة",
+  "fileDetailOpenFile": "افتح الملف",
+  "fileDetailShowInFolder": "عرض في المجلد",
+  "fileDetailNext": "الملف التالي",
+  "fileDetailPrevious": "الملف السابق",
+  "fileDetailHealthy": "سليم",
+  "fileDetailOrphaned": "يتيم (Orphaned)",
+  "fileDetailCarved": "مسترد خام (Carved)",
+  "clearCache": "مسح ذاكرة التخزين المؤقت",
+  "clearCacheDesc": "احذف جميع ملفات الفحص المؤقتة لتحرير مساحة على القرص.",
+  "cacheCleared": "تم مسح ذاكرة التخزين المؤقت بنجاح",
+  "clearCacheError": "خطأ أثناء مسح ذاكرة التخزين المؤقت: {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpenDevice": "خطأ في فتح الجهاز ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "تم اكتشاف خطأ فادح في الأجهزة/البرامج الثابتة: {message}. يوصى بـ: استخدام معدات متخصصة (PC-3000 Flash) لقراءة شريحة NAND مباشرة.",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "نوع حدث غير معروف: {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "تعذر التحقق من الترخيص. يرجى المحاولة مرة أخرى لاحقاً.",
+  "errorTimeout": "انتهت مهلة الاتصال. يرجى التحقق من الإنترنت الخاص بك.",
+  "errorConnection": "خطأ في الاتصال: {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "تم تفعيل Premium بنجاح!",
+  "licenseExpired": "انتهت صلاحية مفتاح الترخيص.",
+  "licenseInvalid": "مفتاح الترخيص غير صالح.",
+  "errorActivatePremium": "خطأ في تفعيل Premium: {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "تمت إزالة هذه الميزة.",
+  "conversionInitializing": "جاري التهيئة...",
+  "conversionDecrypting": "جاري فك تشفير ملف E01...",
+  "conversionStatus": "جاري التحويل: {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "اكتمل التحويل!",
+  "errorFileNotFoundAfterConversion": "خطأ: لم يتم العثور على ملف المخرجات بعد التحويل.",
+  "conversionTitle": "تحويل تنسيق E01",
+  "convertedRawImage": "صورة الخام المحولة",
+  "pleaseEnterLicenseKey": "يرجى إدخال مفتاح الترخيص",
+  "premiumActivatedTitle": "تم تفعيل Premium!",
+  "askDecryptNow": "هل تريد فك تشفير جميع الملفات الآن؟",
+  "later": "لاحقاً",
+  "decryptNow": "فك التشفير الآن",
+  "success": "نجاح!",
+  "decryptedFilesCount": "تم فك تشفير {decrypted}/{total} ملفات بنجاح!",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "يمكنك الوصول إلى الملفات مباشرة من دليل المخرجات.",
+  "close": "إغلاق",
+  "unlockPremiumTitle": "فتح Premium",
+  "upgradeToPremium": "ترقية إلى Premium",
+  "unlockAllFilesDesc": "افتح جميع الملفات المستردة والوصول إليها مباشرة من الدليل",
+  "featureDecryptAll": "فك تشفير جميع الملفات",
+  "featureDirectAccess": "الوصول المباشر من الدليل",
+  "featureNoWatermark": "بدون علامة مائية",
+  "licenseKeyHint": "أدخل مفتاح الترخيص الخاص بك",
+  "buyLicenseKey": "شراء مفتاح الترخيص",
+  "decryptingFiles": "جاري فك تشفير الملفات...",
+  "preparing": "جاري التحضير...",
+  "dontCloseApp": "يرجى عدم إغلاق التطبيق",
+  "storage": "التخزين",
+  "debugInfo": "معلومات التصحيح",
+  "copiedToClipboard": "تم النسخ إلى الحافظة",
+  "copyEncryptionValue": "نسخ قيمة التشفير",
+  "categoryAll": "الكل",
+  "categoryImages": "صور",
+  "categoryVideos": "مقاطع فيديو",
+  "categoryDocuments": "مستندات",
+  "searchFilesHint": "البحث عن الملفات...",
+  "previewNotAvailable": "المعاينة غير متاحة لـ {type}",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "لا يمكن مشاهدة هذا الفيديو",
+  "unknown": "غير معروف",
+  "errorIdentifyPath": "خطأ: تعذر تحديد مسار الجهاز",
+  "backupImageFile": "ملف صورة النسخة الاحتياطية",
+  "premiumPlan": "خطة PREMIUM",
+  "freePlan": "الخطة المجانية",
+  "outputConfig": "تكوين المخرجات",
+  "selectOutputDir": "اختر دليل المخرجات",
+  "currentOutputPath": "المسار الحالي: {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "authorContact": "معلومات المؤلف",
+  "authorName": "الاسم",
+  "authorEmail": "البريد الإلكتروني",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook",
+  "premiumPrice": "السعر: 50,000 VND / $2 (يوم واحد)"
+}

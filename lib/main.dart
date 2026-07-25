@@ -118,6 +118,12 @@ class MyApp extends StatelessWidget {
               supportedLocales: const [
                 Locale('en'),
                 Locale('vi'),
+                Locale('es'),
+                Locale('zh'),
+                Locale('hi'),
+                Locale('ar'),
+                Locale('fr'),
+                Locale('ru'),
               ],
               initialRoute: initialRoute,
               routes: {

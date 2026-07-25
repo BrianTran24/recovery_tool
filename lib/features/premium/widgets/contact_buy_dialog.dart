@@ -85,6 +85,40 @@ class ContactBuyDialog extends StatelessWidget {
               ),
             ),
             
+            // Price Info
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFFF1744).withValues(alpha: 0.15),
+                    AppTheme.cyberCyan.withValues(alpha: 0.15),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.cyberCyan.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.payments_outlined, color: AppTheme.cyberCyan, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    l10n.premiumPrice,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
             // Content
             Flexible(
               child: SingleChildScrollView(

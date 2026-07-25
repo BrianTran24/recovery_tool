@@ -50,18 +50,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context,
                 title: l10n.language,
                 icon: Icons.language_rounded,
-                child: Row(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
                     _LanguageOption(
                       label: l10n.vietnamese,
                       isSelected: currentLocale.languageCode == 'vi',
                       onTap: () => context.read<LocaleCubit>().setLocale(const Locale('vi')),
                     ),
-                    const SizedBox(width: 16),
                     _LanguageOption(
                       label: l10n.english,
                       isSelected: currentLocale.languageCode == 'en',
                       onTap: () => context.read<LocaleCubit>().setLocale(const Locale('en')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.spanish,
+                      isSelected: currentLocale.languageCode == 'es',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('es')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.chinese,
+                      isSelected: currentLocale.languageCode == 'zh',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('zh')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.hindi,
+                      isSelected: currentLocale.languageCode == 'hi',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('hi')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.arabic,
+                      isSelected: currentLocale.languageCode == 'ar',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('ar')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.french,
+                      isSelected: currentLocale.languageCode == 'fr',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('fr')),
+                    ),
+                    _LanguageOption(
+                      label: l10n.russian,
+                      isSelected: currentLocale.languageCode == 'ru',
+                      onTap: () => context.read<LocaleCubit>().setLocale(const Locale('ru')),
                     ),
                   ],
                 ),
@@ -87,6 +118,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.premiumPrice,
+                            style: const TextStyle(
+                              color: AppTheme.cyberCyan,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -131,6 +171,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.premiumPrice,
+                            style: const TextStyle(
+                              color: AppTheme.cyberCyan,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -424,13 +473,14 @@ class _LanguageOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SizedBox(
+      width: (MediaQuery.of(context).size.width - 64 - 48 - 24) / 3, // Adjust based on padding and spacing
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.cyberCyan.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
@@ -442,9 +492,11 @@ class _LanguageOption extends StatelessWidget {
           child: Center(
             child: Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.white54,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
               ),
             ),
           ),

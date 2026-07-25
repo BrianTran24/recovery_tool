@@ -127,6 +127,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get english => 'English';
 
   @override
+  String get spanish => 'Spanish';
+
+  @override
+  String get chinese => 'Chinese';
+
+  @override
+  String get hindi => 'Hindi';
+
+  @override
+  String get arabic => 'Arabic';
+
+  @override
+  String get french => 'French';
+
+  @override
+  String get russian => 'Russian';
+
+  @override
   String get developing => 'DEVELOPING';
 
   @override
@@ -588,4 +606,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authorFacebook => 'Facebook';
+
+  @override
+  String get premiumPrice => 'Price: 50,000 VND / \$2 (1 Day)';
 }

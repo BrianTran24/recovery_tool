@@ -127,6 +127,24 @@ class AppLocalizationsVi extends AppLocalizations {
   String get english => 'Tiếng Anh';
 
   @override
+  String get spanish => 'Tiếng Tây Ban Nha';
+
+  @override
+  String get chinese => 'Tiếng Trung';
+
+  @override
+  String get hindi => 'Tiếng Hindi';
+
+  @override
+  String get arabic => 'Tiếng Ả Rập';
+
+  @override
+  String get french => 'Tiếng Pháp';
+
+  @override
+  String get russian => 'Tiếng Nga';
+
+  @override
   String get developing => 'ĐANG PHÁT TRIỂN';
 
   @override
@@ -588,4 +606,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get authorFacebook => 'Facebook';
+
+  @override
+  String get premiumPrice => 'Giá: 50.000 VND / 2\$ (1 Ngày)';
 }

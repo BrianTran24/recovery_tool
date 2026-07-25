@@ -1,0 +1,340 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Recovery SD Tool",
+  "onboardingTitle1": "RECOVERY SD TOOL",
+  "onboardingSubtitle1": "DÉBLOQUEZ VOS DONNÉES PERDUES !",
+  "onboardingDesc1": "Solution de récupération de données professionnelle, rapide et fiable pour tous vos appareils SD.",
+  "onboardingTitle2": "SYSTÈME DE SCAN RAPIDE",
+  "onboardingSubtitle2": "RÉCUPÉREZ FACILEMENT",
+  "onboardingDesc2": "Les algorithmes de scan approfondi aident à retrouver instantanément les photos, vidéos et documents perdus.",
+  "onboardingTitle3": "APERÇU DES FICHIERS",
+  "onboardingSubtitle3": "VOIR AVANT DE RESTAURER",
+  "onboardingDesc3": "Prévisualisez les données pendant le processus de scan pour vous assurer de sélectionner exactement ce qui compte le plus.",
+  "onboardingTitle4": "SÛR ET SÉCURISÉ",
+  "onboardingSubtitle4": "PROTÉGEZ VOTRE MÉMOIRE",
+  "onboardingDesc4": "Processus de récupération absolument sûr, garantissant l'absence de réécriture ou de dommage aux données originales.",
+  "skip": "PASSER",
+  "nextStep": "ÉTAPE SUIVANTE",
+  "startRecovery": "DÉMARRER LA RÉCUPÉRATION",
+  "sidebarDevices": "APPAREILS",
+  "sidebarRestore": "RESTAURER L'IMAGE",
+  "sidebarSettings": "PARAMÈTRES",
+  "systemStatus": "ÉTAT DU SYSTÈME",
+  "online": "EN LIGNE",
+  "expand": "Développer",
+  "collapse": "Réduire",
+  "systemReady": "SYSTÈME PRÊT",
+  "connectedDevices": "Appareils Connectés",
+  "noDevicesDetected": "AUCUN APPAREIL DÉTECTÉ",
+  "tryRescan": "RÉESSAYER LE SCAN",
+  "unknownDevice": "Appareil Inconnu",
+  "interface": "INTERFACE",
+  "restoreData": "Restaurer les Données",
+  "selectBackupImage": "SÉLECTIONNER LE FICHIER IMAGE DE SAUVEGARDE",
+  "supportedFormats": "Supporte .img, .bin, .dd, .raw",
+  "browseFile": "PARCOURIR LE FICHIER",
+  "settings": "Paramètres",
+  "language": "Langue",
+  "selectLanguage": "Choisir la Langue",
+  "vietnamese": "Vietnamien",
+  "english": "Anglais",
+  "spanish": "Espagnol",
+  "chinese": "Chinois",
+  "hindi": "Hindi",
+  "arabic": "Arabe",
+  "french": "Français",
+  "russian": "Russe",
+  "developing": "EN DÉVELOPPEMENT",
+  "gcTrimWarningTitle": "AVERTISSEMENT : RISQUE DE GARBAGE COLLECTION",
+  "gcTrimWarningDesc": "Les cartes SD modernes peuvent effacer automatiquement les données supprimées pendant le temps d'inactivité (Trim/GC). Recommandé : Clonez immédiatement toute la carte dans un fichier .img pour préserver les données.",
+  "sourceDevice": "Appareil Source",
+  "recoveryMode": "Mode de Récupération",
+  "storageConfig": "Configuration du Stockage",
+  "outputDirectory": "Répertoire de Sortie",
+  "deletedFiles": "Fichiers Supprimés",
+  "existingFiles": "Fichiers Existants",
+  "allFiles": "Tous les Fichiers",
+  "deletedFilesDesc": "Recherchez et récupérez les fichiers qui ont été supprimés du système de fichiers.",
+  "existingFilesDesc": "Scannez et listez les fichiers actuellement présents sur l'appareil.",
+  "allFilesDesc": "Combine le scan pour les fichiers existants et supprimés.",
+  "startScanNow": "SCANNER",
+  "change": "Modifier",
+  "pleaseSelectOutputDir": "Veuillez sélectionner le répertoire de sortie",
+  "backupImage": "Image de Sauvegarde : {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "Mode lecture seule - Sécurité absolue",
+  "capacity": "Capacité : {size} Go",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "Initialisation de la session de scan pour {path}",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "IDENTIFIÉ : Système de fichiers {type} au secteur {offset}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "IDENTIFIÉ : Aucun système de fichiers valide trouvé. Passage à la Signature Carving.",
+  "scanScanningSector": "Scan du secteur : {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "TROUVÉ : {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "TERMINÉ : {count} fichiers trouvés en {duration}",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "ERREUR : {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "ERREUR DE FLUX : {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "Résultats du Scan",
+  "scanProcessing": "Traitement des données...",
+  "scanStop": "Arrêter",
+  "scanPause": "Pause",
+  "scanResume": "Reprendre",
+  "scanCancel": "Annuler",
+  "scanViewAllResults": "VOIR TOUS LES RÉSULTATS",
+  "scanViewLive": "VOIR EN DIRECT ({count} fichiers)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "Fichiers trouvés",
+  "scanTabLogs": "Journaux système",
+  "scanSearchingFiles": "Recherche de fichiers...",
+  "scanProgress": "Progression du Scan",
+  "scanSpeed": "Vitesse",
+  "scanFound": "TROUVÉ",
+  "scanElapsed": "ÉCOULÉ",
+  "scanRemaining": "RESTANT (EST.)",
+  "scanHardwareError": "Erreur Matérielle",
+  "scanSystemError": "Erreur Système",
+  "scanUnderstand": "JE COMPRENDS",
+  "scanNew": "SCANNER UN AUTRE APPAREIL",
+  "openFolder": "OUVRIR LE DOSSIER DE SORTIE",
+  "freeScanMode": "Mode Scan & Aperçu Gratuit",
+  "upgradeToSave": "PASSER À LA VERSION SUPÉRIEURE POUR ENREGISTRER",
+  "upgradeRequiredDesc": "Passez à la version Premium pour enregistrer les fichiers récupérés sur votre ordinateur.",
+  "saveToDiskPremium": "Enregistrer sur le disque (Premium)",
+  "premiumFeature": "Fonctionnalité Premium",
+  "freeModeDesc": "Scan vers le stockage temporaire pour aperçu. Les fichiers peuvent être effacés par le système.",
+  "fileDetailTitle": "Détails du Fichier",
+  "fileDetailProperties": "Propriétés",
+  "fileDetailName": "Nom du fichier",
+  "fileDetailType": "Type",
+  "fileDetailSize": "Taille",
+  "fileDetailLocation": "Chemin Relatif",
+  "fileDetailOffset": "Offset du secteur",
+  "fileDetailModified": "Date de modification",
+  "fileDetailStatus": "État de récupération",
+  "fileDetailOpenFile": "Ouvrir le fichier",
+  "fileDetailShowInFolder": "Afficher dans le dossier",
+  "fileDetailNext": "Fichier suivant",
+  "fileDetailPrevious": "Fichier précédent",
+  "fileDetailHealthy": "Sain",
+  "fileDetailOrphaned": "Orphelin (Orphaned)",
+  "fileDetailCarved": "Récupéré par signature (Carved)",
+  "clearCache": "Vider le cache",
+  "clearCacheDesc": "Supprimer tous les fichiers de scan temporaires pour libérer de l'espace disque.",
+  "cacheCleared": "Cache vidé avec succès",
+  "clearCacheError": "Erreur lors du vidage du cache : {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpenDevice": "Erreur lors de l'ouverture de l'appareil ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "Erreur matérielle/firmware grave détectée : {message}. Recommandé : Utiliser un équipement spécialisé (PC-3000 Flash) pour lire directement la puce NAND.",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "Type d'événement inconnu : {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "Impossible de vérifier la licence. Veuillez réessayer plus tard.",
+  "errorTimeout": "Délai de connexion dépassé. Veuillez vérifier votre connexion internet.",
+  "errorConnection": "Erreur de connexion : {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "Premium activé avec succès !",
+  "licenseExpired": "La clé de licence a expiré.",
+  "licenseInvalid": "Clé de licence invalide.",
+  "errorActivatePremium": "Erreur lors de l'activation du premium : {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "Cette fonctionnalité a été supprimée.",
+  "conversionInitializing": "Initialisation...",
+  "conversionDecrypting": "Déchiffrement du fichier E01...",
+  "conversionStatus": "Conversion en cours : {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "Conversion terminée !",
+  "errorFileNotFoundAfterConversion": "Erreur : Fichier de sortie introuvable après la conversion.",
+  "conversionTitle": "CONVERSION DE FORMAT E01",
+  "convertedRawImage": "Image Raw convertie",
+  "pleaseEnterLicenseKey": "Veuillez saisir la clé de licence",
+  "premiumActivatedTitle": "Premium Activé !",
+  "askDecryptNow": "Voulez-vous déchiffrer tous les fichiers maintenant ?",
+  "later": "Plus tard",
+  "decryptNow": "Déchiffrer maintenant",
+  "success": "Succès !",
+  "decryptedFilesCount": "Déchiffrement réussi de {decrypted}/{total} fichiers !",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "Vous pouvez accéder aux fichiers directement depuis le répertoire de sortie.",
+  "close": "Fermer",
+  "unlockPremiumTitle": "Débloquer le Premium",
+  "upgradeToPremium": "Passer au Premium",
+  "unlockAllFilesDesc": "Débloquez tous les fichiers récupérés et accédez-y directement depuis le répertoire",
+  "featureDecryptAll": "Déchiffrer tous les fichiers",
+  "featureDirectAccess": "Accès direct depuis le répertoire",
+  "featureNoWatermark": "Sans filigrane",
+  "licenseKeyHint": "Saisissez votre clé de licence",
+  "buyLicenseKey": "Acheter une clé de licence",
+  "decryptingFiles": "Déchiffrement des fichiers...",
+  "preparing": "Préparation...",
+  "dontCloseApp": "Veuillez ne pas fermer l'application",
+  "storage": "Stockage",
+  "debugInfo": "Infos de débogage",
+  "copiedToClipboard": "Copié dans le presse-papiers",
+  "copyEncryptionValue": "Copier la valeur de chiffrement",
+  "categoryAll": "Tout",
+  "categoryImages": "Images",
+  "categoryVideos": "Vidéos",
+  "categoryDocuments": "Documents",
+  "searchFilesHint": "Rechercher des fichiers...",
+  "previewNotAvailable": "Aperçu non disponible pour {type}",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "Impossible de visionner cette vidéo",
+  "unknown": "Inconnu",
+  "errorIdentifyPath": "Erreur : Impossible d'identifier le chemin de l'appareil",
+  "backupImageFile": "Fichier Image de Sauvegarde",
+  "premiumPlan": "FORFAIT PREMIUM",
+  "freePlan": "FORFAIT GRATUIT",
+  "outputConfig": "Configuration de Sortie",
+  "selectOutputDir": "Choisir le répertoire de sortie",
+  "currentOutputPath": "Chemin actuel : {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "authorContact": "Contact de l'auteur",
+  "authorName": "Nom",
+  "authorEmail": "E-mail",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook",
+  "premiumPrice": "Prix : 50 000 VND / 2 $ (1 jour)"
+}

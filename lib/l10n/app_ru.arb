@@ -1,0 +1,340 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Recovery SD Tool",
+  "onboardingTitle1": "RECOVERY SD TOOL",
+  "onboardingSubtitle1": "РАЗБЛОКИРУЙТЕ ВАШИ ПОТЕРЯННЫЕ ДАННЫЕ!",
+  "onboardingDesc1": "Профессиональное, быстрое и надежное решение для восстановления данных для всех ваших SD-устройств.",
+  "onboardingTitle2": "СИСТЕМА БЫСТРОГО СКАНИРОВАНИЯ",
+  "onboardingSubtitle2": "ВОССТАНАВЛИВАЙТЕ С ЛЕГКОСТЬЮ",
+  "onboardingDesc2": "Алгоритмы глубокого сканирования помогут в мгновение ока найти потерянные фотографии, видео и документы.",
+  "onboardingTitle3": "ПРЕДПРОСМОТР ФАЙЛОВ",
+  "onboardingSubtitle3": "ПОСМОТРИТЕ ПЕРЕД ВОССТАНОВЛЕНИЕМ",
+  "onboardingDesc3": "Предварительно просмотрите данные в процессе сканирования, чтобы убедиться, что вы выбрали именно то, что важнее всего.",
+  "onboardingTitle4": "БЕЗОПАСНО И НАДЕЖНО",
+  "onboardingSubtitle4": "ЗАЩИТИТЕ СВОЮ ПАМЯТЬ",
+  "onboardingDesc4": "Абсолютно безопасный процесс восстановления, гарантирующий отсутствие перезаписи или повреждения исходных данных.",
+  "skip": "ПРОПУСТИТЬ",
+  "nextStep": "СЛЕДУЮЩИЙ ШАГ",
+  "startRecovery": "НАЧАТЬ ВОССТАНОВЛЕНИЕ",
+  "sidebarDevices": "УСТРОЙСТВА",
+  "sidebarRestore": "ВОССТАНОВИТЬ ОБРАЗ",
+  "sidebarSettings": "НАСТРОЙКИ",
+  "systemStatus": "СТАТУС СИСТЕМЫ",
+  "online": "В СЕТИ",
+  "expand": "Развернуть",
+  "collapse": "Свернуть",
+  "systemReady": "СИСТЕМА ГОТОВА",
+  "connectedDevices": "Подключенные устройства",
+  "noDevicesDetected": "УСТРОЙСТВА НЕ ОБНАРУЖЕНЫ",
+  "tryRescan": "ПОВТОРИТЬ СКАНИРОВАНИЕ",
+  "unknownDevice": "Неизвестное устройство",
+  "interface": "ИНТЕРФЕЙС",
+  "restoreData": "Восстановить данные",
+  "selectBackupImage": "ВЫБЕРИТЕ ФАЙЛ ОБРАЗА РЕЗЕРВНОЙ КОПИИ",
+  "supportedFormats": "Поддерживает .img, .bin, .dd, .raw",
+  "browseFile": "ОБЗОР ФАЙЛА",
+  "settings": "Настройки",
+  "language": "Язык",
+  "selectLanguage": "Выбрать язык",
+  "vietnamese": "Вьетнамский",
+  "english": "Английский",
+  "spanish": "Испанский",
+  "chinese": "Китайский",
+  "hindi": "Хинди",
+  "arabic": "Арабский",
+  "french": "Французский",
+  "russian": "Русский",
+  "developing": "В РАЗРАБОТКЕ",
+  "gcTrimWarningTitle": "ПРЕДУПРЕЖДЕНИЕ: РИСК СБОРА МУСОРА (Garbage Collection)",
+  "gcTrimWarningDesc": "Современные SD-карты могут автоматически физически стирать удаленные данные во время простоя (Trim/GC). Рекомендуется: Немедленно клонируйте всю карту в файл .img для сохранения данных.",
+  "sourceDevice": "Исходное устройство",
+  "recoveryMode": "Режим восстановления",
+  "storageConfig": "Конфигурация хранилища",
+  "outputDirectory": "Выходной каталог",
+  "deletedFiles": "Удаленные файлы",
+  "existingFiles": "Существующие файлы",
+  "allFiles": "Все файлы",
+  "deletedFilesDesc": "Поиск и восстановление файлов, удаленных из файловой системы.",
+  "existingFilesDesc": "Сканирование и список файлов, присутствующих на устройстве в данный момент.",
+  "allFilesDesc": "Объединяет сканирование существующих и удаленных файлов.",
+  "startScanNow": "СКАНИРОВАТЬ",
+  "change": "Изменить",
+  "pleaseSelectOutputDir": "Пожалуйста, выберите выходной каталог",
+  "backupImage": "Образ резервной копии: {path}",
+  "@backupImage": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyMode": "Режим «только чтение» — абсолютная безопасность",
+  "capacity": "Емкость: {size} ГБ",
+  "@capacity": {
+    "placeholders": {
+      "size": {
+        "type": "int"
+      }
+    }
+  },
+  "scanInitializing": "Инициализация сеанса сканирования для {path}",
+  "@scanInitializing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFsIdentified": "ИДЕНТИФИЦИРОВАНО: Файловая система {type} в секторе {offset}",
+  "@scanFsIdentified": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "scanFsNotFound": "ИДЕНТИФИЦИРОВАНО: Допустимая файловая система не найдена. Переключение на Signature Carving.",
+  "scanScanningSector": "Сканирование сектора: {sector} ({percent}%)",
+  "@scanScanningSector": {
+    "placeholders": {
+      "sector": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "scanFileFound": "НАЙДЕНО: {filename} ({type})",
+  "@scanFileFound": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "scanComplete": "ЗАВЕРШЕНО: Найдено {count} файлов за {duration}",
+  "@scanComplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "scanError": "ОШИБКА: {message}",
+  "@scanError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "scanStreamError": "ОШИБКА ПОТОКА: {error}",
+  "@scanStreamError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "scanResults": "Результаты сканирования",
+  "scanProcessing": "Обработка данных...",
+  "scanStop": "Стоп",
+  "scanPause": "Пауза",
+  "scanResume": "Продолжить",
+  "scanCancel": "Отмена",
+  "scanViewAllResults": "ПОСМОТРЕТЬ ВСЕ РЕЗУЛЬТАТЫ",
+  "scanViewLive": "ПОСМОТРЕТЬ В РЕАЛЬНОМ ВРЕМЕНИ ({count} файлов)",
+  "@scanViewLive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scanTabFiles": "Найденные файлы",
+  "scanTabLogs": "Системные логи",
+  "scanSearchingFiles": "Поиск файлов...",
+  "scanProgress": "Прогресс сканирования",
+  "scanSpeed": "Скорость",
+  "scanFound": "НАЙДЕНО",
+  "scanElapsed": "ПРОШЛО",
+  "scanRemaining": "ОСТАЛОСЬ (ПРИМЕРНО)",
+  "scanHardwareError": "Ошибка оборудования",
+  "scanSystemError": "Системная ошибка",
+  "scanUnderstand": "Я ПОНИМАЮ",
+  "scanNew": "СКАНИРОВАТЬ ДРУГОЕ УСТРОЙСТВО",
+  "openFolder": "ОТКРЫТЬ ПАПКУ ВЫВОДА",
+  "freeScanMode": "Бесплатный режим сканирования и предпросмотра",
+  "upgradeToSave": "ОБНОВИТЕСЬ, ЧТОБЫ СОХРАНИТЬ",
+  "upgradeRequiredDesc": "Обновитесь до Premium, чтобы сохранять восстановленные файлы на свой компьютер.",
+  "saveToDiskPremium": "Сохранить на диск (Premium)",
+  "premiumFeature": "Premium функция",
+  "freeModeDesc": "Сканирование во временное хранилище для предпросмотра. Файлы могут быть удалены системой.",
+  "fileDetailTitle": "Детали файла",
+  "fileDetailProperties": "Свойства",
+  "fileDetailName": "Имя файла",
+  "fileDetailType": "Тип",
+  "fileDetailSize": "Размер",
+  "fileDetailLocation": "Относительный путь",
+  "fileDetailOffset": "Смещение сектора",
+  "fileDetailModified": "Дата изменения",
+  "fileDetailStatus": "Статус восстановления",
+  "fileDetailOpenFile": "Открыть файл",
+  "fileDetailShowInFolder": "Показать в папке",
+  "fileDetailNext": "Следующий файл",
+  "fileDetailPrevious": "Предыдущий файл",
+  "fileDetailHealthy": "Целый",
+  "fileDetailOrphaned": "Потерянный (Orphaned)",
+  "fileDetailCarved": "Восстановлен по сигнатуре (Carved)",
+  "clearCache": "Очистить кэш",
+  "clearCacheDesc": "Удалить все временные файлы сканирования, чтобы освободить место на диске.",
+  "cacheCleared": "Кэш успешно очищен",
+  "clearCacheError": "Ошибка при очистке кэша: {error}",
+  "@clearCacheError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpenDevice": "Ошибка открытия устройства ({handle})",
+  "@errorOpenDevice": {
+    "placeholders": {
+      "handle": {
+        "type": "int"
+      }
+    }
+  },
+  "errorHardwareSerious": "Обнаружена серьезная ошибка оборудования/прошивки: {message}. Рекомендуется: Использовать специализированное оборудование (PC-3000 Flash) для прямого чтения чипа NAND.",
+  "@errorHardwareSerious": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnknownEvent": "Неизвестный тип события: {type}",
+  "@errorUnknownEvent": {
+    "placeholders": {
+      "type": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVerifyLicense": "Не удалось проверить лицензию. Пожалуйста, попробуйте позже.",
+  "errorTimeout": "Тайм-аут подключения. Пожалуйста, проверьте ваш интернет.",
+  "errorConnection": "Ошибка подключения: {error}",
+  "@errorConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumActivated": "Premium успешно активирован!",
+  "licenseExpired": "Лицензионный ключ истек.",
+  "licenseInvalid": "Неверный лицензионный ключ.",
+  "errorActivatePremium": "Ошибка активации premium: {error}",
+  "@errorActivatePremium": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "featureRemoved": "Эта функция была удалена.",
+  "conversionInitializing": "Инициализация...",
+  "conversionDecrypting": "Расшифровка файла E01...",
+  "conversionStatus": "Конвертация: {percent}%",
+  "@conversionStatus": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "conversionComplete": "Конвертация завершена!",
+  "errorFileNotFoundAfterConversion": "Ошибка: Выходной файл не найден после конвертации.",
+  "conversionTitle": "КОНВЕРТАЦИЯ ФОРМАТА E01",
+  "convertedRawImage": "Конвертированный Raw образ",
+  "pleaseEnterLicenseKey": "Пожалуйста, введите лицензионный ключ",
+  "premiumActivatedTitle": "Premium активирован!",
+  "askDecryptNow": "Хотите расшифровать все файлы прямо сейчас?",
+  "later": "Позже",
+  "decryptNow": "Расшифровать сейчас",
+  "success": "Успех!",
+  "decryptedFilesCount": "Успешно расшифровано {decrypted}/{total} файлов!",
+  "@decryptedFilesCount": {
+    "placeholders": {
+      "decrypted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accessFilesFromOutput": "Вы можете получить доступ к файлам напрямую из выходного каталога.",
+  "close": "Закрыть",
+  "unlockPremiumTitle": "Разблокировать Premium",
+  "upgradeToPremium": "Обновиться до Premium",
+  "unlockAllFilesDesc": "Разблокируйте все восстановленные файлы и получите к ним прямой доступ из каталога",
+  "featureDecryptAll": "Расшифровать все файлы",
+  "featureDirectAccess": "Прямой доступ из каталога",
+  "featureNoWatermark": "Без водяного знака",
+  "licenseKeyHint": "Введите лицензионный ключ",
+  "buyLicenseKey": "Купить лицензионный ключ",
+  "decryptingFiles": "Расшифровка файлов...",
+  "preparing": "Подготовка...",
+  "dontCloseApp": "Пожалуйста, не закрывайте приложение",
+  "storage": "Хранилище",
+  "debugInfo": "Отладочная информация",
+  "copiedToClipboard": "Скопировано в буфер обмена",
+  "copyEncryptionValue": "Копировать значение шифрования",
+  "categoryAll": "Все",
+  "categoryImages": "Изображения",
+  "categoryVideos": "Видео",
+  "categoryDocuments": "Документы",
+  "searchFilesHint": "Поиск файлов...",
+  "previewNotAvailable": "Предпросмотр недоступен для {type}",
+  "@previewNotAvailable": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotViewVideo": "Невозможно просмотреть это видео",
+  "unknown": "Неизвестно",
+  "errorIdentifyPath": "Ошибка: Не удалось идентифицировать путь к устройству",
+  "backupImageFile": "Файл образа резервной копии",
+  "premiumPlan": "PREMIUM ПЛАН",
+  "freePlan": "БЕСПЛАТНЫЙ ПЛАН",
+  "outputConfig": "Конфигурация вывода",
+  "selectOutputDir": "Выбрать выходной каталог",
+  "currentOutputPath": "Текущий путь: {path}",
+  "@currentOutputPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "authorContact": "Контакты автора",
+  "authorName": "Имя",
+  "authorEmail": "Email",
+  "authorZalo": "Zalo",
+  "authorLinkedIn": "LinkedIn",
+  "authorFacebook": "Facebook",
+  "premiumPrice": "Цена: 50 000 вьетнамских донгов / 2 доллара США (1 день)"
+}
