@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../models/license_models.dart';
 
 class ApiService {
   static String get _baseUrl => dotenv.get('API_BASE_URL', fallback: 'http://localhost:3000');
   static int get _timeout => int.parse(dotenv.get('API_TIMEOUT', fallback: '30'));
 
   Future<PremiumVerificationResult> verifyPremiumLicense(String licenseKey) async {
+    // Note: This method is being replaced by verifyLicense but kept for backward compatibility if needed
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/verify-license'),
@@ -44,6 +46,44 @@ class ApiService {
       return PremiumVerificationResult(
         isValid: false,
         message: 'errorConnection:${e.toString()}',
+      );
+    }
+  }
+
+  Future<ActivateLicenseResponse> activateLicense(ActivateLicenseRequest request) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/v1/license/activate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(request.toJson()),
+      ).timeout(Duration(seconds: _timeout));
+
+      final data = jsonDecode(response.body);
+      return ActivateLicenseResponse.fromJson(data);
+    } catch (e) {
+      debugPrint('Activate License API Exception: $e');
+      return ActivateLicenseResponse(
+        valid: false,
+        error: 'errorConnection:${e.toString()}',
+      );
+    }
+  }
+
+  Future<VerifyLicenseResponse> verifyLicense(VerifyLicenseRequest request) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/v1/license/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(request.toJson()),
+      ).timeout(Duration(seconds: _timeout));
+
+      final data = jsonDecode(response.body);
+      return VerifyLicenseResponse.fromJson(data);
+    } catch (e) {
+      debugPrint('Verify License API Exception: $e');
+      return VerifyLicenseResponse(
+        valid: false,
+        error: 'errorConnection:${e.toString()}',
       );
     }
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../models/license_models.dart';
+import '../utils/device_info_utils.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
 
@@ -13,6 +15,26 @@ class PremiumService {
     final isPremium = await _storageService.getPremiumStatus();
     
     if (!isPremium) return false;
+
+    final licenseKey = await _storageService.getPremiumLicenseKey();
+    if (licenseKey != null && licenseKey.isNotEmpty) {
+      // Periodic online verification or verification on startup
+      final hwid = await DeviceInfoUtils.getHWID();
+      final result = await _apiService.verifyLicense(VerifyLicenseRequest(
+        code: licenseKey,
+        hwid: hwid,
+      ));
+
+      if (!result.valid) {
+        debugPrint('License verification failed: ${result.error}');
+        await _storageService.setPremiumStatus(false);
+        return false;
+      }
+
+      if (result.data != null) {
+        await _storageService.setPremiumExpiry(result.data!.expiresAt);
+      }
+    }
 
     final isExpired = await _storageService.isPremiumExpired();
     if (isExpired) {
@@ -42,36 +64,31 @@ class PremiumService {
         );
       }
       
-      final result = await _apiService.verifyPremiumLicense(licenseKey);
+      final hwid = await DeviceInfoUtils.getHWID();
+      final deviceName = DeviceInfoUtils.getDeviceName();
+
+      final result = await _apiService.activateLicense(ActivateLicenseRequest(
+        code: licenseKey,
+        hwid: hwid,
+        deviceName: deviceName,
+      ));
       
-      if (result.isValid && !result.isExpired) {
+      if (result.valid && result.data != null) {
         await _storageService.setPremiumStatus(true);
-        
-        if (result.userId != null) {
-          await _storageService.setPremiumUserId(result.userId!);
-        }
-        
-        if (result.expiresAt != null) {
-          await _storageService.setPremiumExpiry(result.expiresAt);
-        }
-        
         await _storageService.setPremiumLicenseKey(licenseKey);
+        await _storageService.setPremiumExpiry(result.data!.expiresAt);
+        await _storageService.setPremiumUserId(result.data!.code); // Using code as user ID if not provided
         
         debugPrint('Premium activated successfully');
         
         return PremiumActivationResult(
           success: true,
-          message: 'premiumActivated',
-        );
-      } else if (result.isExpired) {
-        return PremiumActivationResult(
-          success: false,
-          message: 'licenseExpired',
+          message: result.message ?? 'premiumActivated',
         );
       } else {
         return PremiumActivationResult(
           success: false,
-          message: result.message ?? 'licenseInvalid',
+          message: result.error ?? 'licenseInvalid',
         );
       }
     } catch (e) {
