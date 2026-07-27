@@ -16,6 +16,56 @@ class ActivateLicenseRequest {
   };
 }
 
+class EncryptedRequest {
+  final String payload;
+  final String iv;
+  final int timestamp;
+  final String nonce;
+  final String signature;
+
+  EncryptedRequest({
+    required this.payload,
+    required this.iv,
+    required this.timestamp,
+    required this.nonce,
+    required this.signature,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'payload': payload,
+    'iv': iv,
+    'timestamp': timestamp,
+    'nonce': nonce,
+    'signature': signature,
+  };
+}
+
+class EncryptedResponse {
+  final bool encrypted;
+  final String payload;
+  final String iv;
+  final String signature;
+  final int timestamp;
+
+  EncryptedResponse({
+    required this.encrypted,
+    required this.payload,
+    required this.iv,
+    required this.signature,
+    required this.timestamp,
+  });
+
+  factory EncryptedResponse.fromJson(Map<String, dynamic> json) {
+    return EncryptedResponse(
+      encrypted: json['encrypted'] ?? false,
+      payload: json['payload'] ?? '',
+      iv: json['iv'] ?? '',
+      signature: json['signature'] ?? '',
+      timestamp: json['timestamp'] ?? 0,
+    );
+  }
+}
+
 class LicenseData {
   final String code;
   final String type;
