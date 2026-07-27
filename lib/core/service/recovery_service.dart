@@ -99,6 +99,25 @@ class RecoveryService {
     return controller.stream;
   }
 
+  Stream<RecoveryEvent> startBackup({
+    required String sourcePath,
+    required String outputPath,
+  }) {
+    final controller = StreamController<RecoveryEvent>(
+      onCancel: () {
+        cancel();
+      },
+    );
+
+    _startBackupInternal(
+      sourcePath: sourcePath,
+      outputPath: outputPath,
+      controller: controller,
+    );
+
+    return controller.stream;
+  }
+
   Future<void> _startWipeInternal({
     required String sourcePath,
     required int passes,
@@ -182,6 +201,90 @@ class RecoveryService {
 
       workerBindings.wipe(handle, callable.nativeFunction, passes, wipeType);
       callable.close();
+    });
+  }
+
+  Future<void> _startBackupInternal({
+    required String sourcePath,
+    required String outputPath,
+    required StreamController<RecoveryEvent> controller,
+  }) async {
+    debugPrint('DEBUG: _startBackupInternal started for $sourcePath');
+    var targetPath = _normalizeNativeDevicePath(sourcePath);
+    String unmountPath = sourcePath;
+
+    if (Platform.isMacOS) {
+      if (sourcePath.contains('/dev/disk') && !sourcePath.contains('/dev/rdisk')) {
+        targetPath = sourcePath.replaceFirst('/dev/disk', '/dev/rdisk');
+      } else if (sourcePath.contains('/dev/rdisk')) {
+        unmountPath = sourcePath.replaceFirst('/dev/rdisk', '/dev/disk');
+      }
+    }
+
+    if (unmountPath.startsWith('/dev/')) {
+      final unmountPtr = unmountPath.toNativeUtf8();
+      _bindings.unmount(unmountPtr);
+      malloc.free(unmountPtr);
+    }
+
+    final targetPtr = targetPath.toNativeUtf8();
+    int handle = _bindings.open(targetPtr);
+    malloc.free(targetPtr);
+
+    if (handle < 0) {
+      controller.add(ErrorEvent(code: handle, message: 'errorOpenDevice:$handle'));
+      controller.close();
+      return;
+    }
+
+    _activeHandle = handle;
+    controller.add(ProgressEvent(percent: 0, scannedBytes: 0, speedMbps: 0));
+
+    final receivePort = ReceivePort();
+    final backupCompleter = Completer<void>();
+
+    final subscription = receivePort.listen((message) {
+      if (message is RecoveryEvent && !controller.isClosed) {
+        controller.add(message);
+        if (message is DoneEvent || message is ErrorEvent) {
+          if (!backupCompleter.isCompleted) backupCompleter.complete();
+        }
+      }
+    });
+
+    await _runBackupInIsolate(
+      handle: handle,
+      outputPath: outputPath,
+      sendPort: receivePort.sendPort,
+    );
+
+    await backupCompleter.future.timeout(const Duration(hours: 10), onTimeout: () => null);
+
+    await subscription.cancel();
+    receivePort.close();
+    _bindings.close(handle);
+    _activeHandle = null;
+
+    if (!controller.isClosed) controller.close();
+  }
+
+  static Future<void> _runBackupInIsolate({
+    required int handle,
+    required String outputPath,
+    required SendPort sendPort,
+  }) {
+    return Isolate.run(() {
+      final workerBindings = RecoveryBindings();
+      final outputPtr = outputPath.toNativeUtf8();
+      final callable = NativeCallable<Void Function(Pointer<RecoveryEventNative>)>.isolateLocal((Pointer<RecoveryEventNative> ptr) {
+        final ev = ptr.ref;
+        final event = _mapNativeEventStatic(ev);
+        sendPort.send(event);
+      });
+
+      workerBindings.backup(handle, outputPtr, callable.nativeFunction);
+      callable.close();
+      malloc.free(outputPtr);
     });
   }
 
@@ -437,6 +540,37 @@ class RecoveryService {
     final pathPtr = outputPath.toNativeUtf8();
     final result = _bindings.saveFile(handle, sectorOffset, fileSize, pathPtr);
     malloc.free(pathPtr);
+    return result;
+  }
+
+  Future<int> quickFormat({required String sourcePath}) async {
+    var targetPath = _normalizeNativeDevicePath(sourcePath);
+    String unmountPath = sourcePath;
+
+    if (Platform.isMacOS) {
+      if (sourcePath.contains('/dev/disk') && !sourcePath.contains('/dev/rdisk')) {
+        targetPath = sourcePath.replaceFirst('/dev/disk', '/dev/rdisk');
+      } else if (sourcePath.contains('/dev/rdisk')) {
+        unmountPath = sourcePath.replaceFirst('/dev/rdisk', '/dev/disk');
+      }
+    }
+
+    if (unmountPath.startsWith('/dev/')) {
+      final unmountPtr = unmountPath.toNativeUtf8();
+      _bindings.unmount(unmountPtr);
+      malloc.free(unmountPtr);
+    }
+
+    final targetPtr = targetPath.toNativeUtf8();
+    // Mode 1 = ReadWrite
+    int handle = _bindings.openEx(targetPtr, 1);
+    malloc.free(targetPtr);
+
+    if (handle < 0) return handle;
+
+    final result = _bindings.quickFormat(handle);
+    _bindings.close(handle);
+
     return result;
   }
 

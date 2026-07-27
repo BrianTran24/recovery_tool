@@ -119,6 +119,18 @@ typedef ConvertE01Dart = int Function(
     Pointer<Utf8> outputPath,
     Pointer<NativeFunction<CallbackNative>> callback);
 
+typedef BackupNative = Int32 Function(
+    Int32 handle,
+    Pointer<Utf8> outputPath,
+    Pointer<NativeFunction<CallbackNative>> callback);
+typedef BackupDart = int Function(
+    int handle,
+    Pointer<Utf8> outputPath,
+    Pointer<NativeFunction<CallbackNative>> callback);
+
+typedef QuickFormatNative = Int32 Function(Int32 handle);
+typedef QuickFormatDart   = int   Function(int handle);
+
 // ── Bindings class ───────────────────────────────────────────────────
 class RecoveryBindings {
   late final DynamicLibrary _lib;
@@ -138,6 +150,8 @@ class RecoveryBindings {
   late final CheckHardwareDart checkHardware;
   late final IdentifyFsDart identifyFs;
   late final ConvertE01Dart convertE01;
+  late final BackupDart    backup;
+  late final QuickFormatDart quickFormat;
 
   RecoveryBindings() {
     String libPath;
@@ -172,5 +186,7 @@ class RecoveryBindings {
     checkHardware     = _lib.lookupFunction<CheckHardwareNative, CheckHardwareDart>('recovery_check_hardware');
     identifyFs        = _lib.lookupFunction<IdentifyFsNative, IdentifyFsDart>('recovery_identify_fs');
     convertE01        = _lib.lookupFunction<ConvertE01Native, ConvertE01Dart>('recovery_convert_e01');
+    backup            = _lib.lookupFunction<BackupNative,     BackupDart>    ('recovery_backup');
+    quickFormat       = _lib.lookupFunction<QuickFormatNative, QuickFormatDart>('recovery_quick_format');
   }
 }

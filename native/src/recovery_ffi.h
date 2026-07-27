@@ -152,6 +152,21 @@ EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referenc
  */
 EXPORT int32_t recovery_convert_e01(const char* e01_path, const char* output_path, RecoveryCallback callback);
 
+/**
+ * Tạo bản sao (image) của thiết bị ra file.
+ * Xử lý sector lỗi bằng cách điền zeros.
+ */
+EXPORT int32_t recovery_backup(
+        int32_t           handle,
+        const char*       output_path,
+        RecoveryCallback  callback
+);
+
+/**
+ * Xóa nhanh các sector đầu tiên (MBR/GPT/VBR) để camera nhận diện thẻ trống và cho phép format lại.
+ */
+EXPORT int32_t recovery_quick_format(int32_t handle);
+
 #ifdef __cplusplus
 }
 #endif

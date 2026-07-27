@@ -343,5 +343,21 @@
   "wipeWarningDesc": "Hành động này sẽ ghi đè toàn bộ dữ liệu trên thiết bị. Sau khi thực hiện, KHÔNG CÓ CÁCH NÀO để khôi phục lại dữ liệu cũ. Hãy chắc chắn bạn đã sao lưu các dữ liệu quan trọng.",
   "confirmWipeCheckbox": "Tôi hiểu rằng hành động này không thể hoàn tác và toàn bộ dữ liệu sẽ bị mất vĩnh viễn.",
   "startWipeNow": "BẮT ĐẦU XOÁ VĨNH VIỄN",
-  "wipeCompleteDesc": "Toàn bộ dữ liệu trên thiết bị đã được xoá vĩnh viễn và không thể khôi phục."
+  "wipeCompleteDesc": "Toàn bộ dữ liệu trên thiết bị đã được xoá vĩnh viễn và không thể khôi phục.",
+  "backupTitle": "SAO LƯU THÀNH FILE IMAGE",
+  "backupSaveAs": "Lưu bản sao lưu thành...",
+  "backupProcessing": "ĐANG TẠO FILE IMAGE CỦA ĐĨA...",
+  "backupComplete": "Sao lưu hoàn tất!",
+  "backupCompleteDesc": "Quá trình sao lưu hoàn tất thành công tại {path}",
+  "@backupCompleteDesc": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "quickFormat": "RESET NHANH",
+  "quickFormatDesc": "Thao tác này sẽ xoá bảng phân vùng và các header hệ thống tập tin, làm cho thẻ trở nên 'mới' để máy ảnh có thể format lại. Toàn bộ dữ liệu sẽ không thể truy cập!",
+  "confirmQuickFormat": "Tôi muốn reset thẻ này để sử dụng lại.",
+  "formatSuccess": "Reset thẻ thành công! Bây giờ bạn có thể lắp thẻ vào máy ảnh để format lại và sử dụng."
 }

@@ -325,5 +325,21 @@
   "wipeWarningDesc": "This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.",
   "confirmWipeCheckbox": "I understand that this action is irreversible and all data will be permanently lost.",
   "startWipeNow": "START PERMANENT ERASE",
-  "wipeCompleteDesc": "All data on the device has been permanently erased and cannot be recovered."
+  "wipeCompleteDesc": "All data on the device has been permanently erased and cannot be recovered.",
+  "backupTitle": "BACKUP TO IMAGE",
+  "backupSaveAs": "Save Backup As...",
+  "backupProcessing": "CREATING DISK IMAGE...",
+  "backupComplete": "Backup complete!",
+  "backupCompleteDesc": "Backup completed successfully to {path}",
+  "@backupCompleteDesc": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "quickFormat": "QUICK RESET",
+  "quickFormatDesc": "This will erase the partition table and file system headers, making the card 'fresh' for your camera. All data will be inaccessible!",
+  "confirmQuickFormat": "I want to reset this card for reuse.",
+  "formatSuccess": "Card reset successfully! You can now put it back in your camera to format it properly."
 }

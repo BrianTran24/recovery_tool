@@ -661,6 +661,100 @@ EXPORT int32_t recovery_secure_wipe(int32_t handle, RecoveryCallback callback, i
     return 0;
 }
 
+EXPORT int32_t recovery_backup(int32_t handle, const char* output_path, RecoveryCallback callback) {
+    if (handle < 0 || handle >= 8) return -1;
+    ScanSession* s = &g_sessions[handle];
+    s->cb = callback;
+    s->cancelled = 0;
+    s->start_ms = GetTimeMs();
+
+    DiskGeometry geo;
+    if (GetDiskGeometry(s->fd, &geo) < 0) return -2;
+
+    FILE* out = fopen(output_path, "wb");
+    if (!out) return -3;
+
+    int64_t total_bytes = geo.totalBytes;
+    uint32_t sector_size = geo.bytesPerSector;
+    size_t chunk_size = 1024 * 1024; // 1MB chunks
+    uint8_t* buf = (uint8_t*)malloc(chunk_size);
+    if (!buf) {
+        fclose(out);
+        return -4;
+    }
+
+    uint64_t pos = 0;
+    int64_t last_emit_ms = GetTimeMs();
+
+    while (pos < (uint64_t)total_bytes) {
+        if (s->cancelled) break;
+
+        size_t to_read = (size_t)((uint64_t)total_bytes - pos);
+        if (to_read > chunk_size) to_read = chunk_size;
+
+        size_t bytesRead = 0;
+        int res = ReadSectors(s->fd, (long long)(pos / sector_size), (uint32_t)(to_read / sector_size), sector_size, buf, &bytesRead);
+
+        if (res < 0) {
+            // Error reading sector, fill with zeros to preserve alignment
+            memset(buf, 0, to_read);
+            fwrite(buf, 1, to_read, out);
+        } else {
+            fwrite(buf, 1, bytesRead, out);
+        }
+
+        pos += to_read;
+
+        int64_t now = GetTimeMs();
+        if (now - last_emit_ms > 200) {
+            double progress = (double)pos / total_bytes * 100.0;
+            EmitProgress(s, progress, (int64_t)pos, 0);
+            last_emit_ms = now;
+        }
+    }
+
+    free(buf);
+    fclose(out);
+
+    RecoveryEvent done = {0};
+    done.event_type = EVENT_DONE;
+    done.duration_ms = GetTimeMs() - s->start_ms;
+    PostEvent(s, &done);
+
+    return 0;
+}
+
+EXPORT int32_t recovery_quick_format(int32_t handle) {
+    if (handle < 0 || handle >= 8) return -1;
+    ScanSession* s = &g_sessions[handle];
+
+    DiskGeometry geo;
+    if (GetDiskGeometry(s->fd, &geo) < 0) return -2;
+
+    uint32_t sector_size = geo.bytesPerSector;
+    // Zero out the first 32MB (approx 65536 sectors if 512B)
+    uint32_t sectors_to_wipe = (32 * 1024 * 1024) / sector_size;
+    if (sectors_to_wipe > (uint32_t)geo.totalSectors) sectors_to_wipe = (uint32_t)geo.totalSectors;
+
+    size_t chunk_size = 1024 * 1024; // 1MB chunk
+    uint8_t* zero_buf = (uint8_t*)calloc(chunk_size, 1);
+    if (!zero_buf) return -3;
+
+    for (uint32_t i = 0; i < sectors_to_wipe; ) {
+        uint32_t current_chunk_sectors = (uint32_t)(chunk_size / sector_size);
+        if (i + current_chunk_sectors > sectors_to_wipe) {
+            current_chunk_sectors = sectors_to_wipe - i;
+        }
+
+        size_t written = 0;
+        WriteSectors(s->fd, (long long)i, current_chunk_sectors, sector_size, zero_buf, &written);
+        i += current_chunk_sectors;
+    }
+
+    free(zero_buf);
+    return 0;
+}
+
 EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath) {
     if (handle < 0 || handle >= 8) return -1;
     ScanSession* s = &g_sessions[handle];
