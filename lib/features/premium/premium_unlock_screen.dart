@@ -59,13 +59,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
           // Refresh premium status in cubit
           await context.read<PremiumCubit>().refreshStatus();
           
-          // Check if output dir is set, if not ask for it
-          final premiumState = context.read<PremiumCubit>().state;
-          if (premiumState.outputDir == null || premiumState.outputDir!.isEmpty) {
-            await _promptForOutputDir();
-          }
-
-          // Show success
+          // Show success (will handle folder prompt inside)
           if (mounted) {
             _showSuccessDialog();
           }
@@ -99,8 +93,12 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
 
   void _showSuccessDialog() {
     final l10n = AppLocalizations.of(context)!;
+    final premiumState = context.read<PremiumCubit>().state;
+    final needsOutputDir = premiumState.outputDir == null || premiumState.outputDir!.isEmpty;
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
@@ -109,17 +107,43 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             Text(l10n.success),
           ],
         ),
-        content: Text(l10n.premiumActivated),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.premiumActivated),
+            if (needsOutputDir) ...[
+              const SizedBox(height: 16),
+              Text(
+                l10n.pleaseSelectOutputDir,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ],
+        ),
         actions: [
+          if (needsOutputDir)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true); // Return to preview
+              },
+              child: Text(l10n.later),
+            ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(true); // Return to preview
+              if (needsOutputDir) {
+                await _promptForOutputDir();
+              }
+              if (mounted) {
+                Navigator.of(context).pop(true); // Return to preview
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: Text(l10n.close),
+            child: Text(needsOutputDir ? l10n.selectOutputDir : l10n.close),
           ),
         ],
       ),
