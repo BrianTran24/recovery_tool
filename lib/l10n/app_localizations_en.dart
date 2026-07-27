@@ -607,4 +607,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wipeCompleteDesc =>
       'All data on the device has been permanently erased and cannot be recovered.';
+
+  @override
+  String get backupTitle => 'BACKUP TO IMAGE';
+
+  @override
+  String get backupSaveAs => 'Save Backup As...';
+
+  @override
+  String get backupProcessing => 'CREATING DISK IMAGE...';
+
+  @override
+  String get backupComplete => 'Backup complete!';
+
+  @override
+  String backupCompleteDesc(String path) {
+    return 'Backup completed successfully to $path';
+  }
+
+  @override
+  String get quickFormat => 'QUICK RESET';
+
+  @override
+  String get quickFormatDesc =>
+      'This will erase the partition table and file system headers, making the card \'fresh\' for your camera. All data will be inaccessible!';
+
+  @override
+  String get confirmQuickFormat => 'I want to reset this card for reuse.';
+
+  @override
+  String get formatSuccess =>
+      'Card reset successfully! You can now put it back in your camera to format it properly.';
 }

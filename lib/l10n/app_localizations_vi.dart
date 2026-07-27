@@ -606,4 +606,35 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get wipeCompleteDesc =>
       'Toàn bộ dữ liệu trên thiết bị đã được xoá vĩnh viễn và không thể khôi phục.';
+
+  @override
+  String get backupTitle => 'SAO LƯU THÀNH FILE IMAGE';
+
+  @override
+  String get backupSaveAs => 'Lưu bản sao lưu thành...';
+
+  @override
+  String get backupProcessing => 'ĐANG TẠO FILE IMAGE CỦA ĐĨA...';
+
+  @override
+  String get backupComplete => 'Sao lưu hoàn tất!';
+
+  @override
+  String backupCompleteDesc(String path) {
+    return 'Quá trình sao lưu hoàn tất thành công tại $path';
+  }
+
+  @override
+  String get quickFormat => 'RESET NHANH';
+
+  @override
+  String get quickFormatDesc =>
+      'Thao tác này sẽ xoá bảng phân vùng và các header hệ thống tập tin, làm cho thẻ trở nên \'mới\' để máy ảnh có thể format lại. Toàn bộ dữ liệu sẽ không thể truy cập!';
+
+  @override
+  String get confirmQuickFormat => 'Tôi muốn reset thẻ này để sử dụng lại.';
+
+  @override
+  String get formatSuccess =>
+      'Reset thẻ thành công! Bây giờ bạn có thể lắp thẻ vào máy ảnh để format lại và sử dụng.';
 }

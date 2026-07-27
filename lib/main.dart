@@ -570,9 +570,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-    );
-  }
-
   void _showQuickFormatDialog(Disk disk) {
     final l10n = AppLocalizations.of(context)!;
     bool confirmed = false;
