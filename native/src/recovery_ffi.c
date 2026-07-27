@@ -263,10 +263,14 @@ EXPORT int32_t recovery_unmount(const char* device_path) {
 }
 
 EXPORT int32_t recovery_open(const char* device_path) {
+    return recovery_open_ex(device_path, 0);
+}
+
+EXPORT int32_t recovery_open_ex(const char* device_path, int32_t mode) {
     for (int i = 0; i < 8; i++) {
         if (g_sessions[i].fd <= 0) {
-            int fd = OpenDisk(device_path);
-            if (fd < 0) return fd; // Return the error code directly
+            int fd = OpenDisk(device_path, mode);
+            if (fd < 0) return fd;
             g_sessions[i].fd = fd;
             g_sessions[i].cancelled = 0;
             return i;
@@ -582,6 +586,79 @@ EXPORT char* recovery_identify_fs(int32_t handle) {
 
     strcat(json, "]");
     return STRDUP(json);
+}
+
+EXPORT int32_t recovery_secure_wipe(int32_t handle, RecoveryCallback callback, int32_t passes, int32_t wipe_type) {
+    if (handle < 0 || handle >= 8) return -1;
+    ScanSession* s = &g_sessions[handle];
+    s->cb = callback;
+    s->cancelled = 0;
+    s->start_ms = GetTimeMs();
+
+    DiskGeometry geo;
+    if (GetDiskGeometry(s->fd, &geo) < 0) return -2;
+
+    int64_t total_bytes = geo.totalBytes;
+    uint32_t sector_size = geo.bytesPerSector;
+    size_t chunk_size = 1024 * 1024; // 1MB chunks
+    uint8_t* wipe_buf = (uint8_t*)malloc(chunk_size);
+    if (!wipe_buf) return -3;
+
+    // Simple PRNG state (Xorshift128+)
+    uint64_t seed[2] = { (uint64_t)time(NULL), 0xdeadbeefcafebabeULL };
+
+    for (int p = 0; p < passes; p++) {
+        if (s->cancelled) break;
+
+        uint64_t pos = 0;
+        int64_t last_emit_ms = GetTimeMs();
+
+        while (pos < (uint64_t)total_bytes) {
+            if (s->cancelled) break;
+
+            size_t to_write = (size_t)((uint64_t)total_bytes - pos);
+            if (to_write > chunk_size) to_write = chunk_size;
+
+            if (wipe_type == 1) { // Random
+                for (size_t i = 0; i < to_write; i += 8) {
+                    // Xorshift128+
+                    uint64_t x = seed[0];
+                    uint64_t const y = seed[1];
+                    seed[0] = y;
+                    x ^= x << 23;
+                    seed[1] = x ^ y ^ (x >> 17) ^ (y >> 26);
+                    uint64_t val = seed[1] + y;
+                    memcpy(wipe_buf + i, &val, (to_write - i < 8) ? (to_write - i) : 8);
+                }
+            } else { // Zeros
+                memset(wipe_buf, 0, to_write);
+            }
+
+            size_t written = 0;
+            // Use WriteSectors for aligned writing
+            // Note: If last chunk is not sector aligned, we might miss some bytes if we only use WriteSectors
+            // But usually disk size is multiple of sector size.
+            WriteSectors(s->fd, (long long)(pos / sector_size), (uint32_t)(to_write / sector_size), sector_size, wipe_buf, &written);
+
+            pos += to_write;
+
+            int64_t now = GetTimeMs();
+            if (now - last_emit_ms > 200) {
+                double progress = ((double)p / passes * 100.0) + ((double)pos / total_bytes * (100.0 / passes));
+                EmitProgress(s, progress, (int64_t)pos, 0);
+                last_emit_ms = now;
+            }
+        }
+    }
+
+    free(wipe_buf);
+
+    RecoveryEvent done = {0};
+    done.event_type = EVENT_DONE;
+    done.duration_ms = GetTimeMs() - s->start_ms;
+    PostEvent(s, &done);
+
+    return 0;
 }
 
 EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referencePath) {

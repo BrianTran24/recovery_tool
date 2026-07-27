@@ -67,6 +67,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get sidebarRestore => 'KHÔI PHỤC ẢNH';
 
   @override
+  String get sidebarWipe => 'XOÁ DỮ LIỆU';
+
+  @override
   String get sidebarSettings => 'CÀI ĐẶT';
 
   @override
@@ -609,4 +612,25 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get premiumPrice => 'Giá: 50.000 VND / 2\$ (1 Ngày)';
+
+  @override
+  String get wipeDataTitle => 'Xoá Vĩnh Viễn Dữ Liệu';
+
+  @override
+  String get criticalWarning => 'CẢNH BÁO NGUY HIỂM';
+
+  @override
+  String get wipeWarningDesc =>
+      'Hành động này sẽ ghi đè toàn bộ dữ liệu trên thiết bị. Sau khi thực hiện, KHÔNG CÓ CÁCH NÀO để khôi phục lại dữ liệu cũ. Hãy chắc chắn bạn đã sao lưu các dữ liệu quan trọng.';
+
+  @override
+  String get confirmWipeCheckbox =>
+      'Tôi hiểu rằng hành động này không thể hoàn tác và toàn bộ dữ liệu sẽ bị mất vĩnh viễn.';
+
+  @override
+  String get startWipeNow => 'BẮT ĐẦU XOÁ VĨNH VIỄN';
+
+  @override
+  String get wipeCompleteDesc =>
+      'Toàn bộ dữ liệu trên thiết bị đã được xoá vĩnh viễn và không thể khôi phục.';
 }

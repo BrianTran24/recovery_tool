@@ -26,10 +26,10 @@ int UnmountDisk(const char* devicePath) {
     return 0;
 }
 
-int OpenDisk(const char* devicePath) {
+int OpenDisk(const char* devicePath, int readWrite) {
     HANDLE hDisk = CreateFileA(
         devicePath,
-        GENERIC_READ,
+        GENERIC_READ | (readWrite ? GENERIC_WRITE : 0),
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         NULL,
         OPEN_EXISTING,
@@ -44,7 +44,7 @@ int OpenDisk(const char* devicePath) {
     }
 
     // Convert HANDLE to POSIX file descriptor so lseek/read work
-    int fd = _open_osfhandle((intptr_t)hDisk, _O_RDONLY | _O_BINARY);
+    int fd = _open_osfhandle((intptr_t)hDisk, (readWrite ? _O_RDWR : _O_RDONLY) | _O_BINARY);
     if (fd == -1) {
         CloseHandle(hDisk);
         return -1;
@@ -85,6 +85,18 @@ int ReadSectors(int fd, long long sectorIndex, uint32_t numSectors,
     return 0;
 }
 
+int WriteSectors(int fd, long long sectorIndex, uint32_t numSectors,
+                 uint32_t sectorSize, const uint8_t* buffer, size_t* bytesWritten) {
+    off_t_64 offset = (off_t_64)sectorIndex * sectorSize;
+    if (_lseeki64(fd, offset, SEEK_SET) == -1L) return -1;
+
+    int n = _write(fd, buffer, numSectors * sectorSize);
+    if (n < 0) return -1;
+
+    *bytesWritten = (size_t)n;
+    return 0;
+}
+
 #else
 // === macOS / POSIX Implementation ===
 
@@ -95,8 +107,8 @@ int UnmountDisk(const char* devicePath) {
     return (ret == 0) ? 0 : -1;
 }
 
-int OpenDisk(const char* devicePath) {
-    int fd = open(devicePath, O_RDONLY | O_SYNC);
+int OpenDisk(const char* devicePath, int readWrite) {
+    int fd = open(devicePath, (readWrite ? O_RDWR : O_RDONLY) | O_SYNC);
     if (fd < 0) {
         fprintf(stderr, "Cannot open %s: %s\n", devicePath, strerror(errno));
     }
@@ -129,6 +141,16 @@ int ReadSectors(int fd, long long sectorIndex, uint32_t numSectors,
     ssize_t n = read(fd, buffer, (size_t)numSectors * sectorSize);
     if (n < 0) return -1;
     *bytesRead = (size_t)n;
+    return 0;
+}
+
+int WriteSectors(int fd, long long sectorIndex, uint32_t numSectors,
+                 uint32_t sectorSize, const uint8_t* buffer, size_t* bytesWritten) {
+    off_t_64 offset = (off_t_64)sectorIndex * sectorSize;
+    if (lseek(fd, offset, SEEK_SET) < 0) return -1;
+    ssize_t n = write(fd, buffer, (size_t)numSectors * sectorSize);
+    if (n < 0) return -1;
+    *bytesWritten = (size_t)n;
     return 0;
 }
 

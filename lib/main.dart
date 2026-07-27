@@ -24,6 +24,7 @@ import 'package:recovery_tool/l10n/app_localizations.dart';
 
 import 'package:recovery_tool/features/conversion/conversion_view.dart';
 import 'package:recovery_tool/features/config/config_view.dart';
+import 'package:recovery_tool/features/wipe/wipe_view.dart';
 import 'package:recovery_tool/scan_view.dart';
 import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:path/path.dart' as p;
@@ -138,7 +139,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-enum HomeTool { devices, restore, settings }
+enum HomeTool { devices, restore, wipe, settings }
 
 enum RestoreStep { pickFile, converting, configuring, scanning }
 
@@ -338,6 +339,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                     ),
                     _SidebarItem(
+                      icon: Icons.delete_forever_rounded,
+                      label: l10n.sidebarWipe,
+                      isSelected: _selectedTool == HomeTool.wipe,
+                      isCollapsed: _isCollapsed,
+                      onTap: () {
+                        setState(() {
+                          _selectedTool = HomeTool.wipe;
+                        });
+                      },
+                    ),
+                    _SidebarItem(
                       icon: Icons.settings_rounded,
                       label: l10n.sidebarSettings,
                       isSelected: _selectedTool == HomeTool.settings,
@@ -477,6 +489,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     _buildDevicesContent(),
                     _buildRestoreContent(),
+                    _buildWipeContent(),
                     const SettingsScreen(),
                   ],
                 ),
@@ -775,6 +788,19 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         );
     }
+  }
+
+  Widget _buildWipeContent() {
+    if (_selectedDisk == null) {
+      return _buildDevicesContent();
+    }
+    final path = (_selectedDisk!.raw.startsWith('/dev/')) ? _selectedDisk!.raw : _selectedDisk!.devicePath;
+    return WipeView(
+      sourcePath: path!,
+      diskSize: _selectedDisk!.size ?? 0,
+      onCancel: _resetRestore,
+      onDone: _resetRestore,
+    );
   }
 
   Widget _buildPickFileView() {

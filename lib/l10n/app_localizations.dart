@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'RESTORE IMAGE'**
   String get sidebarRestore;
 
+  /// No description provided for @sidebarWipe.
+  ///
+  /// In en, this message translates to:
+  /// **'WIPE DATA'**
+  String get sidebarWipe;
+
   /// No description provided for @sidebarSettings.
   ///
   /// In en, this message translates to:
@@ -1201,6 +1207,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price: 50,000 VND / \$2 (1 Day)'**
   String get premiumPrice;
+
+  /// No description provided for @wipeDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently Delete Data'**
+  String get wipeDataTitle;
+
+  /// No description provided for @criticalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'CRITICAL WARNING'**
+  String get criticalWarning;
+
+  /// No description provided for @wipeWarningDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.'**
+  String get wipeWarningDesc;
+
+  /// No description provided for @confirmWipeCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand that this action is irreversible and all data will be permanently lost.'**
+  String get confirmWipeCheckbox;
+
+  /// No description provided for @startWipeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'START PERMANENT ERASE'**
+  String get startWipeNow;
+
+  /// No description provided for @wipeCompleteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'All data on the device has been permanently erased and cannot be recovered.'**
+  String get wipeCompleteDesc;
 }
 
 class _AppLocalizationsDelegate

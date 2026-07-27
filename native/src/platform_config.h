@@ -10,6 +10,7 @@
 
 #define LSEEK _lseeki64
 #define READ  _read
+#define WRITE _write
 #define CLOSE _close
 #define OPEN  _open
 #define MKDIR(path, mode) _mkdir(path)
@@ -53,6 +54,7 @@ static inline ssize_t PREAD(int fd, void* buf, size_t count, off_t_64 offset) {
 
 #define LSEEK lseek
 #define READ  read
+#define WRITE write
 #define CLOSE close
 #define OPEN  open
 #define MKDIR(path, mode) mkdir(path, mode)

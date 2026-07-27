@@ -59,6 +59,9 @@ final class RecoveryEventNative extends Struct {
 typedef OpenNative = Int32 Function(Pointer<Utf8> path);
 typedef OpenDart   = int   Function(Pointer<Utf8> path);
 
+typedef OpenExNative = Int32 Function(Pointer<Utf8> path, Int32 mode);
+typedef OpenExDart   = int   Function(Pointer<Utf8> path, int mode);
+
 typedef DiskSizeNative = Int64 Function(Int32 handle);
 typedef DiskSizeDart   = int   Function(int handle);
 
@@ -74,6 +77,19 @@ typedef ScanDart = int Function(
     Pointer<NativeFunction<CallbackNative>> callback,
     int enableFat, int enableCarve,
     int scanMode,
+    );
+
+typedef WipeNative = Int32 Function(
+    Int32 handle,
+    Pointer<NativeFunction<CallbackNative>> callback,
+    Int32 passes,
+    Int32 wipeType,
+    );
+typedef WipeDart = int Function(
+    int handle,
+    Pointer<NativeFunction<CallbackNative>> callback,
+    int passes,
+    int wipeType,
     );
 
 typedef VoidIntNative = Void Function(Int32);
@@ -107,9 +123,11 @@ typedef ConvertE01Dart = int Function(
 class RecoveryBindings {
   late final DynamicLibrary _lib;
   late final OpenDart      open;
+  late final OpenExDart    openEx;
   late final OpenDart      unmount;
   late final DiskSizeDart  diskSize;
   late final ScanDart      scan;
+  late final WipeDart      wipe;
   late final VoidIntDart   cancel;
   late final VoidIntDart   pause;
   late final VoidIntDart   resume;
@@ -139,9 +157,11 @@ class RecoveryBindings {
     _lib = DynamicLibrary.open(libPath);
 
     open     = _lib.lookupFunction<OpenNative,     OpenDart>    ('recovery_open');
+    openEx   = _lib.lookupFunction<OpenExNative,   OpenExDart>  ('recovery_open_ex');
     unmount  = _lib.lookupFunction<OpenNative,     OpenDart>    ('recovery_unmount');
     diskSize = _lib.lookupFunction<DiskSizeNative, DiskSizeDart>('recovery_disk_size');
     scan     = _lib.lookupFunction<ScanNative,     ScanDart>    ('recovery_scan');
+    wipe     = _lib.lookupFunction<WipeNative,     WipeDart>    ('recovery_secure_wipe');
     cancel   = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_cancel');
     pause    = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_pause');
     resume   = _lib.lookupFunction<VoidIntNative,  VoidIntDart> ('recovery_resume');

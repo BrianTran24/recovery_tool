@@ -67,6 +67,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sidebarRestore => 'RESTORE IMAGE';
 
   @override
+  String get sidebarWipe => 'WIPE DATA';
+
+  @override
   String get sidebarSettings => 'SETTINGS';
 
   @override
@@ -609,4 +612,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get premiumPrice => 'Price: 50,000 VND / \$2 (1 Day)';
+
+  @override
+  String get wipeDataTitle => 'Permanently Delete Data';
+
+  @override
+  String get criticalWarning => 'CRITICAL WARNING';
+
+  @override
+  String get wipeWarningDesc =>
+      'This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.';
+
+  @override
+  String get confirmWipeCheckbox =>
+      'I understand that this action is irreversible and all data will be permanently lost.';
+
+  @override
+  String get startWipeNow => 'START PERMANENT ERASE';
+
+  @override
+  String get wipeCompleteDesc =>
+      'All data on the device has been permanently erased and cannot be recovered.';
 }

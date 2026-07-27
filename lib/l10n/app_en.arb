@@ -18,6 +18,7 @@
   "startRecovery": "START RECOVERY",
   "sidebarDevices": "DEVICES",
   "sidebarRestore": "RESTORE IMAGE",
+  "sidebarWipe": "WIPE DATA",
   "sidebarSettings": "SETTINGS",
   "systemStatus": "SYSTEM STATUS",
   "online": "ONLINE",
@@ -336,5 +337,11 @@
   "authorZalo": "Zalo",
   "authorLinkedIn": "LinkedIn",
   "authorFacebook": "Facebook",
-  "premiumPrice": "Price: 50,000 VND / $2 (1 Day)"
+  "premiumPrice": "Price: 50,000 VND / $2 (1 Day)",
+  "wipeDataTitle": "Permanently Delete Data",
+  "criticalWarning": "CRITICAL WARNING",
+  "wipeWarningDesc": "This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.",
+  "confirmWipeCheckbox": "I understand that this action is irreversible and all data will be permanently lost.",
+  "startWipeNow": "START PERMANENT ERASE",
+  "wipeCompleteDesc": "All data on the device has been permanently erased and cannot be recovered."
 }
