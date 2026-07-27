@@ -14,7 +14,7 @@ class SecurityService {
   late final SecretKey _encryptionKey;
 
   SecurityService() {
-    _encryptionKey = SecretKey(utf8.encode(SecurityConstants.aesKey));
+    _encryptionKey = SecretKey(SecurityConstants.aesKey);
   }
 
   /// Encrypts a JSON request according to the specified protocol.
@@ -28,7 +28,13 @@ class SecurityService {
       secretKey: _encryptionKey,
     );
 
-    final payloadBase64 = base64.encode(secretBox.cipherText);
+    // 3. Combine Ciphertext + MAC (Auth Tag) before Base64 Encoding
+    // Go Backend (AES-GCM) expects the tag to be appended to the ciphertext
+    final combined = Uint8List(secretBox.cipherText.length + secretBox.mac.bytes.length);
+    combined.setRange(0, secretBox.cipherText.length, secretBox.cipherText);
+    combined.setRange(secretBox.cipherText.length, combined.length, secretBox.mac.bytes);
+
+    final payloadBase64 = base64.encode(combined);
     final ivBase64 = base64.encode(secretBox.nonce);
 
     // 4. Current Timestamp and Nonce (UUID v4)
@@ -60,8 +66,10 @@ class SecurityService {
     }
 
     // 2. Verify Server Ed25519 Signature
-    final publicKeyHex = overridePublicKey ?? SecurityConstants.serverEd25519PublicKey;
-    final publicKeyBytes = _decodeHex(publicKeyHex);
+    final Uint8List publicKeyBytes = overridePublicKey != null
+        ? _decodeHex(overridePublicKey)
+        : SecurityConstants.serverEd25519PublicKey;
+
     final signatureBytes = base64.decode(response.signature);
     final payloadBytes = utf8.encode(response.payload);
 

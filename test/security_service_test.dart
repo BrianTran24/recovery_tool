@@ -27,7 +27,7 @@ void main() {
       // Verify HMAC
       final signatureData = '${encryptedReq.payload}:${encryptedReq.timestamp}:${encryptedReq.nonce}';
       final hmacSha256 = Hmac.sha256();
-      final key = SecretKey(utf8.encode(SecurityConstants.aesKey));
+      final key = SecretKey(SecurityConstants.aesKey);
       final expectedHmac = await hmacSha256.calculateMac(
         utf8.encode(signatureData),
         secretKey: key,
@@ -43,7 +43,7 @@ void main() {
 
       // 2. Encrypt manually to simulate server response
       final aesGcm = AesGcm.with256bits();
-      final key = SecretKey(utf8.encode(SecurityConstants.aesKey));
+      final key = SecretKey(SecurityConstants.aesKey);
       final secretBox = await aesGcm.encrypt(payloadBytes, secretKey: key);
       
       final combinedCiphertext = [...secretBox.cipherText, ...secretBox.mac.bytes];
@@ -85,7 +85,7 @@ void main() {
       final originalData = {'valid': true};
       final jsonString = jsonEncode(originalData);
       final aesGcm = AesGcm.with256bits();
-      final key = SecretKey(utf8.encode(SecurityConstants.aesKey));
+      final key = SecretKey(SecurityConstants.aesKey);
       final secretBox = await aesGcm.encrypt(utf8.encode(jsonString), secretKey: key);
       
       final combinedCiphertext = [...secretBox.cipherText, ...secretBox.mac.bytes];
