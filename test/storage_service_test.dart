@@ -104,49 +104,6 @@ void main() {
     });
   });
 
-  group('StorageService Encrypted Files Tests', () {
-    test('getEncryptedFiles should return empty list by default', () async {
-      final files = await storageService.getEncryptedFiles();
-      expect(files, isEmpty);
-    });
-
-    test('addEncryptedFile should add file to list', () async {
-      await storageService.addEncryptedFile('/path/to/file1.jpg');
-      final files = await storageService.getEncryptedFiles();
-      
-      expect(files, contains('/path/to/file1.jpg'));
-      expect(files.length, 1);
-    });
-
-    test('addEncryptedFile should not add duplicates', () async {
-      await storageService.addEncryptedFile('/path/to/file1.jpg');
-      await storageService.addEncryptedFile('/path/to/file1.jpg');
-      
-      final files = await storageService.getEncryptedFiles();
-      expect(files.length, 1);
-    });
-
-    test('removeEncryptedFile should remove file from list', () async {
-      await storageService.addEncryptedFile('/path/to/file1.jpg');
-      await storageService.addEncryptedFile('/path/to/file2.jpg');
-      await storageService.removeEncryptedFile('/path/to/file1.jpg');
-
-      final files = await storageService.getEncryptedFiles();
-      expect(files, isNot(contains('/path/to/file1.jpg')));
-      expect(files, contains('/path/to/file2.jpg'));
-      expect(files.length, 1);
-    });
-
-    test('clearEncryptedFilesList should remove all files', () async {
-      await storageService.addEncryptedFile('/path/to/file1.jpg');
-      await storageService.addEncryptedFile('/path/to/file2.jpg');
-      await storageService.clearEncryptedFilesList();
-
-      final files = await storageService.getEncryptedFiles();
-      expect(files, isEmpty);
-    });
-  });
-
   group('StorageService Language Tests', () {
     test('getLanguage should return null by default', () async {
       final language = await storageService.getLanguage();

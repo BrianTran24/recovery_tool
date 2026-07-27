@@ -474,21 +474,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumActivatedTitle => 'Premium Activated!';
 
   @override
-  String get askDecryptNow => 'Do you want to decrypt all files now?';
-
-  @override
-  String get later => 'Later';
-
-  @override
-  String get decryptNow => 'Decrypt Now';
-
-  @override
   String get success => 'Success!';
-
-  @override
-  String decryptedFilesCount(int decrypted, int total) {
-    return 'Successfully decrypted $decrypted/$total files!';
-  }
 
   @override
   String get accessFilesFromOutput =>
@@ -508,9 +494,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unlock all recovered files and access them directly from the directory';
 
   @override
-  String get featureDecryptAll => 'Decrypt all files';
-
-  @override
   String get featureDirectAccess => 'Direct access from directory';
 
   @override
@@ -521,15 +504,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get buyLicenseKey => 'Buy license key';
-
-  @override
-  String get decryptingFiles => 'Decrypting files...';
-
-  @override
-  String get preparing => 'Preparing...';
-
-  @override
-  String get dontCloseApp => 'Please do not close the application';
 
   @override
   String get storage => 'Storage';

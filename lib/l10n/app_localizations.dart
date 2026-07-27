@@ -944,35 +944,11 @@ abstract class AppLocalizations {
   /// **'Premium Activated!'**
   String get premiumActivatedTitle;
 
-  /// No description provided for @askDecryptNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Do you want to decrypt all files now?'**
-  String get askDecryptNow;
-
-  /// No description provided for @later.
-  ///
-  /// In en, this message translates to:
-  /// **'Later'**
-  String get later;
-
-  /// No description provided for @decryptNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypt Now'**
-  String get decryptNow;
-
   /// No description provided for @success.
   ///
   /// In en, this message translates to:
   /// **'Success!'**
   String get success;
-
-  /// No description provided for @decryptedFilesCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Successfully decrypted {decrypted}/{total} files!'**
-  String decryptedFilesCount(int decrypted, int total);
 
   /// No description provided for @accessFilesFromOutput.
   ///
@@ -1004,12 +980,6 @@ abstract class AppLocalizations {
   /// **'Unlock all recovered files and access them directly from the directory'**
   String get unlockAllFilesDesc;
 
-  /// No description provided for @featureDecryptAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypt all files'**
-  String get featureDecryptAll;
-
   /// No description provided for @featureDirectAccess.
   ///
   /// In en, this message translates to:
@@ -1033,24 +1003,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Buy license key'**
   String get buyLicenseKey;
-
-  /// No description provided for @decryptingFiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypting files...'**
-  String get decryptingFiles;
-
-  /// No description provided for @preparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing...'**
-  String get preparing;
-
-  /// No description provided for @dontCloseApp.
-  ///
-  /// In en, this message translates to:
-  /// **'Please do not close the application'**
-  String get dontCloseApp;
 
   /// No description provided for @storage.
   ///

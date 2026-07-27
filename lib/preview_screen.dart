@@ -190,7 +190,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'File đang được mã hóa. Nâng cấp Premium để giải mã và truy cập trực tiếp.',
+                  'File đang được khôi phục. Nâng cấp Premium để lưu và truy cập trực tiếp.',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 12,

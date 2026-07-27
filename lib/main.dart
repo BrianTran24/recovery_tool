@@ -50,7 +50,6 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ .env loaded successfully');
-    debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
   } catch (e) {
     debugPrint('❌ Warning: Could not load .env file: $e');
   }

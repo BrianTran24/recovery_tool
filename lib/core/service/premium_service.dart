@@ -100,26 +100,6 @@ class PremiumService {
     }
   }
 
-  Future<DecryptionProgress> unlockPremium(String outputDir) async {
-    return DecryptionProgress(
-      success: true,
-      message: 'featureRemoved',
-      totalFiles: 0,
-      decryptedFiles: 0,
-      failedFiles: 0,
-    );
-  }
-
-  Future<DecryptionProgress> decryptAllFiles(String outputDir) async {
-    return DecryptionProgress(
-      success: true,
-      message: 'featureRemoved',
-      totalFiles: 0,
-      decryptedFiles: 0,
-      failedFiles: 0,
-    );
-  }
-
   Future<void> deactivatePremium() async {
     await _storageService.clearPremiumData();
     debugPrint('Premium deactivated');
@@ -148,27 +128,6 @@ class PremiumActivationResult {
     required this.success,
     required this.message,
   });
-}
-
-class DecryptionProgress {
-  bool success;
-  String message;
-  int totalFiles;
-  int decryptedFiles;
-  int failedFiles;
-
-  DecryptionProgress({
-    required this.success,
-    required this.message,
-    required this.totalFiles,
-    required this.decryptedFiles,
-    required this.failedFiles,
-  });
-
-  double get progressPercentage {
-    if (totalFiles == 0) return 0;
-    return (decryptedFiles / totalFiles) * 100;
-  }
 }
 
 class PremiumInfo {

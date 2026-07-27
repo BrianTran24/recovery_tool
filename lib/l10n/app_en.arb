@@ -270,34 +270,16 @@
   "convertedRawImage": "Converted Raw Image",
   "pleaseEnterLicenseKey": "Please enter license key",
   "premiumActivatedTitle": "Premium Activated!",
-  "askDecryptNow": "Do you want to decrypt all files now?",
-  "later": "Later",
-  "decryptNow": "Decrypt Now",
   "success": "Success!",
-  "decryptedFilesCount": "Successfully decrypted {decrypted}/{total} files!",
-  "@decryptedFilesCount": {
-    "placeholders": {
-      "decrypted": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "accessFilesFromOutput": "You can access files directly from the output directory.",
   "close": "Close",
   "unlockPremiumTitle": "Unlock Premium",
   "upgradeToPremium": "Upgrade to Premium",
   "unlockAllFilesDesc": "Unlock all recovered files and access them directly from the directory",
-  "featureDecryptAll": "Decrypt all files",
   "featureDirectAccess": "Direct access from directory",
   "featureNoWatermark": "No watermark",
   "licenseKeyHint": "Enter your license key",
   "buyLicenseKey": "Buy license key",
-  "decryptingFiles": "Decrypting files...",
-  "preparing": "Preparing...",
-  "dontCloseApp": "Please do not close the application",
   "storage": "Storage",
   "debugInfo": "Debug Info",
   "copiedToClipboard": "Copied to clipboard",

@@ -473,22 +473,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get premiumActivatedTitle => 'Premium Đã Kích Hoạt!';
 
   @override
-  String get askDecryptNow =>
-      'Bạn có muốn giải mã toàn bộ file ngay bây giờ không?';
-
-  @override
-  String get later => 'Để sau';
-
-  @override
-  String get decryptNow => 'Giải mã ngay';
-
-  @override
   String get success => 'Thành công!';
-
-  @override
-  String decryptedFilesCount(int decrypted, int total) {
-    return 'Đã giải mã thành công $decrypted/$total file!';
-  }
 
   @override
   String get accessFilesFromOutput =>
@@ -508,9 +493,6 @@ class AppLocalizationsVi extends AppLocalizations {
       'Mở khóa toàn bộ file đã khôi phục và truy cập trực tiếp từ thư mục';
 
   @override
-  String get featureDecryptAll => 'Giải mã toàn bộ file';
-
-  @override
   String get featureDirectAccess => 'Truy cập trực tiếp từ thư mục';
 
   @override
@@ -521,15 +503,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get buyLicenseKey => 'Mua license key';
-
-  @override
-  String get decryptingFiles => 'Đang giải mã file...';
-
-  @override
-  String get preparing => 'Đang chuẩn bị...';
-
-  @override
-  String get dontCloseApp => 'Vui lòng không đóng ứng dụng';
 
   @override
   String get storage => 'Lưu trữ';
