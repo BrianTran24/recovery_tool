@@ -7,7 +7,7 @@ Write-Host "Step 2: Getting dependencies..." -ForegroundColor Cyan
 flutter pub get
 
 Write-Host "Step 3: Building Flutter Windows application (Release)..." -ForegroundColor Cyan
-flutter build windows --release
+flutter build windows --release --obfuscate --split-debug-info=build/symbols/windows
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Flutter build failed. Exiting." -ForegroundColor Red
