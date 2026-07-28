@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'RESTORE IMAGE'**
   String get sidebarRestore;
 
+  /// No description provided for @sidebarWipe.
+  ///
+  /// In en, this message translates to:
+  /// **'WIPE DATA'**
+  String get sidebarWipe;
+
   /// No description provided for @sidebarSettings.
   ///
   /// In en, this message translates to:
@@ -938,35 +944,11 @@ abstract class AppLocalizations {
   /// **'Premium Activated!'**
   String get premiumActivatedTitle;
 
-  /// No description provided for @askDecryptNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Do you want to decrypt all files now?'**
-  String get askDecryptNow;
-
-  /// No description provided for @later.
-  ///
-  /// In en, this message translates to:
-  /// **'Later'**
-  String get later;
-
-  /// No description provided for @decryptNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypt Now'**
-  String get decryptNow;
-
   /// No description provided for @success.
   ///
   /// In en, this message translates to:
   /// **'Success!'**
   String get success;
-
-  /// No description provided for @decryptedFilesCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Successfully decrypted {decrypted}/{total} files!'**
-  String decryptedFilesCount(int decrypted, int total);
 
   /// No description provided for @accessFilesFromOutput.
   ///
@@ -998,12 +980,6 @@ abstract class AppLocalizations {
   /// **'Unlock all recovered files and access them directly from the directory'**
   String get unlockAllFilesDesc;
 
-  /// No description provided for @featureDecryptAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypt all files'**
-  String get featureDecryptAll;
-
   /// No description provided for @featureDirectAccess.
   ///
   /// In en, this message translates to:
@@ -1027,24 +1003,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Buy license key'**
   String get buyLicenseKey;
-
-  /// No description provided for @decryptingFiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Decrypting files...'**
-  String get decryptingFiles;
-
-  /// No description provided for @preparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing...'**
-  String get preparing;
-
-  /// No description provided for @dontCloseApp.
-  ///
-  /// In en, this message translates to:
-  /// **'Please do not close the application'**
-  String get dontCloseApp;
 
   /// No description provided for @storage.
   ///
@@ -1201,6 +1159,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price: 50,000 VND / \$2 (1 Day)'**
   String get premiumPrice;
+
+  /// No description provided for @wipeDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently Delete Data'**
+  String get wipeDataTitle;
+
+  /// No description provided for @criticalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'CRITICAL WARNING'**
+  String get criticalWarning;
+
+  /// No description provided for @wipeWarningDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.'**
+  String get wipeWarningDesc;
+
+  /// No description provided for @confirmWipeCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand that this action is irreversible and all data will be permanently lost.'**
+  String get confirmWipeCheckbox;
+
+  /// No description provided for @startWipeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'START PERMANENT ERASE'**
+  String get startWipeNow;
+
+  /// No description provided for @wipeCompleteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'All data on the device has been permanently erased and cannot be recovered.'**
+  String get wipeCompleteDesc;
+
+  /// No description provided for @backupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BACKUP TO IMAGE'**
+  String get backupTitle;
+
+  /// No description provided for @backupSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Backup As...'**
+  String get backupSaveAs;
+
+  /// No description provided for @backupProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATING DISK IMAGE...'**
+  String get backupProcessing;
+
+  /// No description provided for @backupComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup complete!'**
+  String get backupComplete;
+
+  /// No description provided for @backupCompleteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup completed successfully to {path}'**
+  String backupCompleteDesc(String path);
+
+  /// No description provided for @quickFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'QUICK RESET'**
+  String get quickFormat;
+
+  /// No description provided for @quickFormatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This will erase the partition table and file system headers, making the card \'fresh\' for your camera. All data will be inaccessible!'**
+  String get quickFormatDesc;
+
+  /// No description provided for @confirmQuickFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'I want to reset this card for reuse.'**
+  String get confirmQuickFormat;
+
+  /// No description provided for @formatSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Card reset successfully! You can now put it back in your camera to format it properly.'**
+  String get formatSuccess;
 }
 
 class _AppLocalizationsDelegate

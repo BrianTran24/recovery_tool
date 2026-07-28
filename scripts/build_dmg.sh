@@ -9,7 +9,7 @@ DMG_NAME="RecoverySD_Tool_v${VERSION}.dmg"
 APP_PATH="build/macos/Build/Products/Release/${APP_NAME}.app"
 
 echo "🚀 Building Flutter macOS app in release mode..."
-flutter build macos --release
+flutter build macos --release --obfuscate --split-debug-info=build/symbols/macos
 
 echo "📦 Packaging DMG..."
 

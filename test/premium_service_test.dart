@@ -120,63 +120,6 @@ void main() {
     });
   });
 
-  group('PremiumService Bulk Decryption Tests', () {
-    test('decryptAllFiles should check premium status first', () async {
-      // Without premium
-      final progress = await premiumService.unlockPremium(testDir.path);
-
-      expect(progress.success, false);
-      expect(progress.message, contains('premium'));
-    });
-
-    test('decryptAllFiles should fail if directory does not exist', () async {
-      // Set premium status
-      await storageService.setPremiumStatus(true);
-      await storageService.setPremiumExpiry(DateTime.now().add(const Duration(days: 365)));
-
-      final nonExistentDir = p.join(testDir.path, 'non_existent');
-      final progress = await premiumService.decryptAllFiles(nonExistentDir);
-
-      expect(progress.success, false);
-      expect(progress.message, contains('không tồn tại'));
-    });
-
-    test('decryptAllFiles with empty directory should succeed', () async {
-      // Set premium status
-      await storageService.setPremiumStatus(true);
-      await storageService.setPremiumExpiry(DateTime.now().add(const Duration(days: 365)));
-
-      final progress = await premiumService.decryptAllFiles(testDir.path);
-
-      expect(progress.totalFiles, 0);
-      expect(progress.success, true);
-    });
-
-    test('DecryptionProgress should calculate percentage correctly', () {
-      final progress = DecryptionProgress(
-        success: true,
-        message: 'Test',
-        totalFiles: 100,
-        decryptedFiles: 50,
-        failedFiles: 0,
-      );
-
-      expect(progress.progressPercentage, 50.0);
-    });
-
-    test('DecryptionProgress with zero files should return 0%', () {
-      final progress = DecryptionProgress(
-        success: true,
-        message: 'Test',
-        totalFiles: 0,
-        decryptedFiles: 0,
-        failedFiles: 0,
-      );
-
-      expect(progress.progressPercentage, 0.0);
-    });
-  });
-
   group('PremiumInfo Tests', () {
     test('PremiumInfo should detect expired status', () {
       final expiredInfo = PremiumInfo(

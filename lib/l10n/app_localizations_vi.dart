@@ -67,6 +67,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get sidebarRestore => 'KHÔI PHỤC ẢNH';
 
   @override
+  String get sidebarWipe => 'XOÁ DỮ LIỆU';
+
+  @override
   String get sidebarSettings => 'CÀI ĐẶT';
 
   @override
@@ -470,22 +473,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get premiumActivatedTitle => 'Premium Đã Kích Hoạt!';
 
   @override
-  String get askDecryptNow =>
-      'Bạn có muốn giải mã toàn bộ file ngay bây giờ không?';
-
-  @override
-  String get later => 'Để sau';
-
-  @override
-  String get decryptNow => 'Giải mã ngay';
-
-  @override
   String get success => 'Thành công!';
-
-  @override
-  String decryptedFilesCount(int decrypted, int total) {
-    return 'Đã giải mã thành công $decrypted/$total file!';
-  }
 
   @override
   String get accessFilesFromOutput =>
@@ -505,9 +493,6 @@ class AppLocalizationsVi extends AppLocalizations {
       'Mở khóa toàn bộ file đã khôi phục và truy cập trực tiếp từ thư mục';
 
   @override
-  String get featureDecryptAll => 'Giải mã toàn bộ file';
-
-  @override
   String get featureDirectAccess => 'Truy cập trực tiếp từ thư mục';
 
   @override
@@ -518,15 +503,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get buyLicenseKey => 'Mua license key';
-
-  @override
-  String get decryptingFiles => 'Đang giải mã file...';
-
-  @override
-  String get preparing => 'Đang chuẩn bị...';
-
-  @override
-  String get dontCloseApp => 'Vui lòng không đóng ứng dụng';
 
   @override
   String get storage => 'Lưu trữ';
@@ -609,4 +585,56 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get premiumPrice => 'Giá: 50.000 VND / 2\$ (1 Ngày)';
+
+  @override
+  String get wipeDataTitle => 'Xoá Vĩnh Viễn Dữ Liệu';
+
+  @override
+  String get criticalWarning => 'CẢNH BÁO NGUY HIỂM';
+
+  @override
+  String get wipeWarningDesc =>
+      'Hành động này sẽ ghi đè toàn bộ dữ liệu trên thiết bị. Sau khi thực hiện, KHÔNG CÓ CÁCH NÀO để khôi phục lại dữ liệu cũ. Hãy chắc chắn bạn đã sao lưu các dữ liệu quan trọng.';
+
+  @override
+  String get confirmWipeCheckbox =>
+      'Tôi hiểu rằng hành động này không thể hoàn tác và toàn bộ dữ liệu sẽ bị mất vĩnh viễn.';
+
+  @override
+  String get startWipeNow => 'BẮT ĐẦU XOÁ VĨNH VIỄN';
+
+  @override
+  String get wipeCompleteDesc =>
+      'Toàn bộ dữ liệu trên thiết bị đã được xoá vĩnh viễn và không thể khôi phục.';
+
+  @override
+  String get backupTitle => 'SAO LƯU THÀNH FILE IMAGE';
+
+  @override
+  String get backupSaveAs => 'Lưu bản sao lưu thành...';
+
+  @override
+  String get backupProcessing => 'ĐANG TẠO FILE IMAGE CỦA ĐĨA...';
+
+  @override
+  String get backupComplete => 'Sao lưu hoàn tất!';
+
+  @override
+  String backupCompleteDesc(String path) {
+    return 'Quá trình sao lưu hoàn tất thành công tại $path';
+  }
+
+  @override
+  String get quickFormat => 'RESET NHANH';
+
+  @override
+  String get quickFormatDesc =>
+      'Thao tác này sẽ xoá bảng phân vùng và các header hệ thống tập tin, làm cho thẻ trở nên \'mới\' để máy ảnh có thể format lại. Toàn bộ dữ liệu sẽ không thể truy cập!';
+
+  @override
+  String get confirmQuickFormat => 'Tôi muốn reset thẻ này để sử dụng lại.';
+
+  @override
+  String get formatSuccess =>
+      'Reset thẻ thành công! Bây giờ bạn có thể lắp thẻ vào máy ảnh để format lại và sử dụng.';
 }

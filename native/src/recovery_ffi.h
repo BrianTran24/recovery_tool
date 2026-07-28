@@ -86,6 +86,9 @@ EXPORT char* recovery_identify_fs(int32_t handle);
 // Mở drive, trả về handle (>= 0) hoặc lỗi (< 0)
 EXPORT int32_t recovery_open(const char* device_path);
 
+// Mở drive với chế độ (0=Read, 1=ReadWrite), trả về handle (>= 0) hoặc lỗi (< 0)
+EXPORT int32_t recovery_open_ex(const char* device_path, int32_t mode);
+
 // Unmount ổ đĩa (macOS)
 EXPORT int32_t recovery_unmount(const char* device_path);
 
@@ -101,6 +104,14 @@ EXPORT int32_t recovery_scan(
         int32_t           enable_fat,    // 1 = bật filesystem parser (FAT32/exFAT)
         int32_t           enable_carve,  // 1 = bật signature carving
         int32_t           scan_mode      // 1=Deleted, 2=Existing, 3=Both
+);
+
+// Thực hiện xóa vĩnh viễn dữ liệu (Secure Wipe)
+EXPORT int32_t recovery_secure_wipe(
+        int32_t           handle,
+        RecoveryCallback  callback,
+        int32_t           passes,        // Số lần ghi đè (thường 1 hoặc 3)
+        int32_t           wipe_type      // 0=Zeros, 1=Random
 );
 
 // Yêu cầu dừng scan (set flag, không block)
@@ -140,6 +151,21 @@ EXPORT int32_t recovery_set_reference_video(int32_t handle, const char* referenc
  * callback trả về EVENT_PROGRESS.
  */
 EXPORT int32_t recovery_convert_e01(const char* e01_path, const char* output_path, RecoveryCallback callback);
+
+/**
+ * Tạo bản sao (image) của thiết bị ra file.
+ * Xử lý sector lỗi bằng cách điền zeros.
+ */
+EXPORT int32_t recovery_backup(
+        int32_t           handle,
+        const char*       output_path,
+        RecoveryCallback  callback
+);
+
+/**
+ * Xóa nhanh các sector đầu tiên (MBR/GPT/VBR) để camera nhận diện thẻ trống và cho phép format lại.
+ */
+EXPORT int32_t recovery_quick_format(int32_t handle);
 
 #ifdef __cplusplus
 }

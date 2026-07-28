@@ -27,8 +27,6 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
   final PremiumService _premiumService = PremiumService(StorageService());
   
   bool _isLoading = false;
-  bool _isDecrypting = false;
-  DecryptionProgress? _decryptionProgress;
   String? _errorMessage;
 
   @override
@@ -61,14 +59,10 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
           // Refresh premium status in cubit
           await context.read<PremiumCubit>().refreshStatus();
           
-          // Check if output dir is set, if not ask for it
-          final premiumState = context.read<PremiumCubit>().state;
-          if (premiumState.outputDir == null || premiumState.outputDir!.isEmpty) {
-            await _promptForOutputDir();
+          // Show success (will handle folder prompt inside)
+          if (mounted) {
+            _showSuccessDialog();
           }
-
-          // Show success and ask to decrypt
-          _showDecryptDialog();
         } else {
           setState(() => _errorMessage = L10nUtils.translate(context, result.message));
         }
@@ -97,73 +91,14 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
     }
   }
 
-  void _showDecryptDialog() {
+  void _showSuccessDialog() {
     final l10n = AppLocalizations.of(context)!;
+    final premiumState = context.read<PremiumCubit>().state;
+    final needsOutputDir = premiumState.outputDir == null || premiumState.outputDir!.isEmpty;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.premiumActivatedTitle),
-        content: Text(l10n.askDecryptNow),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(true); // Return to preview
-            },
-            child: Text(l10n.later),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _startDecryption();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-            ),
-            child: Text(l10n.decryptNow),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _startDecryption() async {
-    setState(() {
-      _isDecrypting = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final progress = await _premiumService.decryptAllFiles(widget.outputDir);
-      
-      if (mounted) {
-        setState(() {
-          _isDecrypting = false;
-          _decryptionProgress = progress;
-        });
-        
-        if (progress.success) {
-          _showSuccessDialog();
-        } else {
-          setState(() => _errorMessage = L10nUtils.translate(context, progress.message));
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        setState(() {
-          _isDecrypting = false;
-          _errorMessage = '${l10n.scanError(e.toString())}';
-        });
-      }
-    }
-  }
-
-  void _showSuccessDialog() {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
@@ -172,20 +107,43 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             Text(l10n.success),
           ],
         ),
-        content: Text(
-          '${l10n.decryptedFilesCount(_decryptionProgress?.decryptedFiles ?? 0, _decryptionProgress?.totalFiles ?? 0)}\n\n'
-          '${l10n.accessFilesFromOutput}',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.premiumActivated),
+            if (needsOutputDir) ...[
+              const SizedBox(height: 16),
+              Text(
+                l10n.pleaseSelectOutputDir,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ],
         ),
         actions: [
+          if (needsOutputDir)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true); // Return to preview
+              },
+              child: Text(l10n.later),
+            ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(true); // Return to preview
+              if (needsOutputDir) {
+                await _promptForOutputDir();
+              }
+              if (mounted) {
+                Navigator.of(context).pop(true); // Return to preview
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: Text(l10n.close),
+            child: Text(needsOutputDir ? l10n.selectOutputDir : l10n.close),
           ),
         ],
       ),
@@ -211,7 +169,7 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
             ],
           ),
         ),
-        child: _isDecrypting ? _buildDecryptionProgress() : _buildActivationForm(),
+        child: _buildActivationForm(),
       ),
     );
   }
@@ -257,8 +215,6 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                _buildFeatureItem(Icons.lock_open_rounded, l10n.featureDecryptAll),
-                const SizedBox(height: 12),
                 _buildFeatureItem(Icons.folder_open_rounded, l10n.featureDirectAccess),
                 const SizedBox(height: 12),
                 _buildFeatureItem(Icons.verified_user_rounded, l10n.featureNoWatermark),
@@ -335,81 +291,6 @@ class _PremiumUnlockScreenState extends State<PremiumUnlockScreen> {
           style: const TextStyle(fontSize: 14),
         ),
       ],
-    );
-  }
-
-  Widget _buildDecryptionProgress() {
-    final l10n = AppLocalizations.of(context)!;
-    final progress = _decryptionProgress;
-    
-    return Center(
-      child: Card(
-        margin: const EdgeInsets.all(24),
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 500),
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                strokeWidth: 6,
-                color: AppTheme.primaryColor,
-              ),
-              const SizedBox(height: 32),
-              Text(
-                l10n.decryptingFiles,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (progress != null) ...[
-                Text(
-                  '${progress.decryptedFiles}/${progress.totalFiles} file',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: progress.progressPercentage / 100,
-                  backgroundColor: Colors.grey.shade200,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${progress.progressPercentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ] else
-                Text(
-                  l10n.preparing,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.dontCloseApp,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -10,7 +10,6 @@ class StorageService {
   static const String _premiumExpiryKey = 'premium_expiry';
   static const String _premiumLicenseKey = 'premium_license_key';
   static const String _premiumOutputDirKey = 'premium_output_dir';
-  static const String _encryptedFilesListKey = 'encrypted_files_list';
 
   Future<void> setLanguage(String languageCode) async {
     final prefs = await SharedPreferences.getInstance();
@@ -98,33 +97,6 @@ class StorageService {
     await prefs.remove(_premiumExpiryKey);
     await prefs.remove(_premiumLicenseKey);
     await prefs.remove(_premiumOutputDirKey);
-  }
-
-  // Encrypted files tracking
-  Future<void> addEncryptedFile(String filePath) async {
-    final prefs = await SharedPreferences.getInstance();
-    final files = prefs.getStringList(_encryptedFilesListKey) ?? [];
-    if (!files.contains(filePath)) {
-      files.add(filePath);
-      await prefs.setStringList(_encryptedFilesListKey, files);
-    }
-  }
-
-  Future<void> removeEncryptedFile(String filePath) async {
-    final prefs = await SharedPreferences.getInstance();
-    final files = prefs.getStringList(_encryptedFilesListKey) ?? [];
-    files.remove(filePath);
-    await prefs.setStringList(_encryptedFilesListKey, files);
-  }
-
-  Future<List<String>> getEncryptedFiles() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_encryptedFilesListKey) ?? [];
-  }
-
-  Future<void> clearEncryptedFilesList() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_encryptedFilesListKey);
   }
 
   Future<bool> isPremiumExpired() async {

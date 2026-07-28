@@ -65,7 +65,7 @@ export CODE_SIGN_IDENTITY="477E99BBCDC9705AE5F3816C95ACC41503B0B40D"
 export DEVELOPMENT_TEAM="${APPLE_TEAM_ID}"
 export OTHER_CODE_SIGN_FLAGS="--timestamp"
 
-flutter build macos --release --device-id=macos
+flutter build macos --release --device-id=macos --obfuscate --split-debug-info=build/symbols/macos
 
 echo "🖋️ Step 1.25: Re-signing app with secure timestamp (inside-out)..."
 # Flutter/xcodebuild's signing during build does NOT reliably include a secure

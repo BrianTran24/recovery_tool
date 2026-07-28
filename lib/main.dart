@@ -24,6 +24,8 @@ import 'package:recovery_tool/l10n/app_localizations.dart';
 
 import 'package:recovery_tool/features/conversion/conversion_view.dart';
 import 'package:recovery_tool/features/config/config_view.dart';
+import 'package:recovery_tool/features/wipe/wipe_view.dart';
+import 'package:recovery_tool/features/backup/backup_view.dart';
 import 'package:recovery_tool/scan_view.dart';
 import 'package:recovery_tool/features/premium/premium_unlock_screen.dart';
 import 'package:path/path.dart' as p;
@@ -49,7 +51,6 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ .env loaded successfully');
-    debugPrint('📝 ENABLE_FILE_ENCRYPTION = ${dotenv.get('ENABLE_FILE_ENCRYPTION', fallback: 'NOT_SET')}');
   } catch (e) {
     debugPrint('❌ Warning: Could not load .env file: $e');
   }
@@ -138,9 +139,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
-enum HomeTool { devices, restore, settings }
+enum HomeTool { devices, restore, wipe, settings, backup }
 
-enum RestoreStep { pickFile, converting, configuring, scanning }
+enum RestoreStep { pickFile, converting, configuring, scanning, backingUp }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -157,6 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
   RestoreStep _restoreStep = RestoreStep.pickFile;
   Disk? _selectedDisk;
   String? _e01Path;
+  String? _backupOutputPath;
   late int _scanMode;
   late String _outputDir;
   late String _referenceVideo;
@@ -338,6 +340,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                     ),
                     _SidebarItem(
+                      icon: Icons.delete_forever_rounded,
+                      label: l10n.sidebarWipe,
+                      isSelected: _selectedTool == HomeTool.wipe,
+                      isCollapsed: _isCollapsed,
+                      onTap: () {
+                        setState(() {
+                          _selectedTool = HomeTool.wipe;
+                        });
+                      },
+                    ),
+                    _SidebarItem(
                       icon: Icons.settings_rounded,
                       label: l10n.sidebarSettings,
                       isSelected: _selectedTool == HomeTool.settings,
@@ -477,7 +490,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     _buildDevicesContent(),
                     _buildRestoreContent(),
+                    _buildWipeContent(),
                     const SettingsScreen(),
+                    _buildBackupContent(),
                   ],
                 ),
               ),
@@ -551,6 +566,65 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showQuickFormatDialog(Disk disk) {
+    final l10n = AppLocalizations.of(context)!;
+    bool confirmed = false;
+    bool processing = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppTheme.cyberDeepNavy,
+          title: Text(l10n.quickFormat, style: const TextStyle(color: Colors.orangeAccent)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.quickFormatDesc, style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 24),
+              CheckboxListTile(
+                value: confirmed,
+                onChanged: (val) => setState(() => confirmed = val ?? false),
+                title: Text(l10n.confirmQuickFormat, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                activeColor: Colors.orangeAccent,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              if (processing) ...[
+                const SizedBox(height: 16),
+                const LinearProgressIndicator(color: Colors.orangeAccent),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: processing ? null : () => Navigator.pop(context),
+              child: Text(l10n.scanCancel, style: const TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: (confirmed && !processing)
+                  ? () async {
+                      setState(() => processing = true);
+                      final path = (disk.raw.startsWith('/dev/')) ? disk.raw : disk.devicePath;
+                      final res = await context.read<RecoveryService>().quickFormat(sourcePath: path!);
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      if (res == 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.formatSuccess)));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $res')));
+                      }
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black),
+              child: Text(l10n.quickFormat),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -709,6 +783,35 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+                                      if (disk.raw.startsWith('/dev/'))
+                                        IconButton(
+                                          icon: const Icon(Icons.backup_rounded, color: AppTheme.cyberCyan),
+                                          tooltip: 'Backup to Image',
+                                          onPressed: () async {
+                                            String? outputFile = await FilePicker.platform.saveFile(
+                                              dialogTitle: 'Select where to save the backup image',
+                                              fileName: 'backup_${DateTime.now().millisecondsSinceEpoch}.img',
+                                              type: FileType.custom,
+                                              allowedExtensions: ['img'],
+                                            );
+
+                                            if (outputFile != null) {
+                                              setState(() {
+                                                _selectedTool = HomeTool.backup;
+                                                _selectedDisk = disk;
+                                                _backupOutputPath = outputFile;
+                                                _restoreStep = RestoreStep.backingUp;
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      if (disk.raw.startsWith('/dev/'))
+                                        IconButton(
+                                          icon: const Icon(Icons.refresh_rounded, color: Colors.orangeAccent),
+                                          tooltip: l10n.quickFormat,
+                                          onPressed: () => _showQuickFormatDialog(disk),
+                                        ),
                                       const Icon(Icons.chevron_right_rounded, color: AppTheme.cyberCyan),
                                     ],
                                   ),
@@ -774,7 +877,36 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         );
+      case RestoreStep.backingUp:
+        return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildWipeContent() {
+    if (_selectedDisk == null) {
+      return _buildDevicesContent();
+    }
+    final path = (_selectedDisk!.raw.startsWith('/dev/')) ? _selectedDisk!.raw : _selectedDisk!.devicePath;
+    return WipeView(
+      sourcePath: path!,
+      diskSize: _selectedDisk!.size ?? 0,
+      onCancel: _resetRestore,
+      onDone: _resetRestore,
+    );
+  }
+
+  Widget _buildBackupContent() {
+    if (_selectedDisk == null || _backupOutputPath == null) {
+      return _buildDevicesContent();
+    }
+    final path = (_selectedDisk!.raw.startsWith('/dev/')) ? _selectedDisk!.raw : _selectedDisk!.devicePath;
+    return BackupView(
+      sourcePath: path!,
+      outputPath: _backupOutputPath!,
+      diskSize: _selectedDisk!.size ?? 0,
+      onCancel: _resetRestore,
+      onDone: _resetRestore,
+    );
   }
 
   Widget _buildPickFileView() {

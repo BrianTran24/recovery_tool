@@ -18,6 +18,7 @@
   "startRecovery": "START RECOVERY",
   "sidebarDevices": "DEVICES",
   "sidebarRestore": "RESTORE IMAGE",
+  "sidebarWipe": "WIPE DATA",
   "sidebarSettings": "SETTINGS",
   "systemStatus": "SYSTEM STATUS",
   "online": "ONLINE",
@@ -269,34 +270,17 @@
   "convertedRawImage": "Converted Raw Image",
   "pleaseEnterLicenseKey": "Please enter license key",
   "premiumActivatedTitle": "Premium Activated!",
-  "askDecryptNow": "Do you want to decrypt all files now?",
   "later": "Later",
-  "decryptNow": "Decrypt Now",
   "success": "Success!",
-  "decryptedFilesCount": "Successfully decrypted {decrypted}/{total} files!",
-  "@decryptedFilesCount": {
-    "placeholders": {
-      "decrypted": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "accessFilesFromOutput": "You can access files directly from the output directory.",
   "close": "Close",
   "unlockPremiumTitle": "Unlock Premium",
   "upgradeToPremium": "Upgrade to Premium",
   "unlockAllFilesDesc": "Unlock all recovered files and access them directly from the directory",
-  "featureDecryptAll": "Decrypt all files",
   "featureDirectAccess": "Direct access from directory",
   "featureNoWatermark": "No watermark",
   "licenseKeyHint": "Enter your license key",
   "buyLicenseKey": "Buy license key",
-  "decryptingFiles": "Decrypting files...",
-  "preparing": "Preparing...",
-  "dontCloseApp": "Please do not close the application",
   "storage": "Storage",
   "debugInfo": "Debug Info",
   "copiedToClipboard": "Copied to clipboard",
@@ -336,5 +320,27 @@
   "authorZalo": "Zalo",
   "authorLinkedIn": "LinkedIn",
   "authorFacebook": "Facebook",
-  "premiumPrice": "Price: 50,000 VND / $2 (1 Day)"
+  "premiumPrice": "Price: 50,000 VND / $2 (1 Day)",
+  "wipeDataTitle": "Permanently Delete Data",
+  "criticalWarning": "CRITICAL WARNING",
+  "wipeWarningDesc": "This action will overwrite all data on the device. Once performed, there is NO WAY to recover the old data. Please make sure you have backed up important data.",
+  "confirmWipeCheckbox": "I understand that this action is irreversible and all data will be permanently lost.",
+  "startWipeNow": "START PERMANENT ERASE",
+  "wipeCompleteDesc": "All data on the device has been permanently erased and cannot be recovered.",
+  "backupTitle": "BACKUP TO IMAGE",
+  "backupSaveAs": "Save Backup As...",
+  "backupProcessing": "CREATING DISK IMAGE...",
+  "backupComplete": "Backup complete!",
+  "backupCompleteDesc": "Backup completed successfully to {path}",
+  "@backupCompleteDesc": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "quickFormat": "QUICK RESET",
+  "quickFormatDesc": "This will erase the partition table and file system headers, making the card 'fresh' for your camera. All data will be inaccessible!",
+  "confirmQuickFormat": "I want to reset this card for reuse.",
+  "formatSuccess": "Card reset successfully! You can now put it back in your camera to format it properly."
 }
